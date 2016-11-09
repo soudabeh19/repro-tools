@@ -15,12 +15,12 @@ print ("The total numbers of args passed to the script: %d " % total)
 print ("Args list: %s " % cmdargs)
 print ("Script name: %s" % str(sys.argv[0]))
 print ("First argument: %s" % str(sys.argv[1]))
-
+file_dict = {}
 for root, dirs, files in os.walk(sys.argv[1]):
     dirs[:] = (map(lambda d: os.path.join(root, d), dirs))
     files[:] = (map(lambda f: os.path.join(root, f), files))
     files.sort(key=lambda x: os.stat(os.path.join(root, x)).st_mtime)
-    file_dict = {}
+    #file_dict = {}
     for dirname in dirs:
         dirname = os.path.join(root,dirname)
 	
@@ -32,5 +32,5 @@ for root, dirs, files in os.walk(sys.argv[1]):
 	file_dict[filename] = stat
         
         #print filename
-        print file_dict
+print file_dict
 
