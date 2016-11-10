@@ -7,14 +7,9 @@
 import os
 import sys
 import subprocess
+import argparse
 from collections import OrderedDict
 
-total = len(sys.argv)
-cmdargs = str(sys.argv)
-print ("The total numbers of args passed to the script: %d " % total)
-print ("Args list: %s " % cmdargs)
-print ("Script name: %s" % str(sys.argv[0]))
-print ("First argument: %s" % str(sys.argv[1]))
 #study_folder_dict is an orderd python dictionary for storing the details regarding the individual subjects. Key : Study Folder Name, Value : Corresponding file_dir_dict
 study_folder_dict = OrderedDict()
 #Method list_files_and_dirs is used for listing files and directories present in the input directory.
@@ -63,5 +58,18 @@ def read_contents_from_file(fileDir):
 	   my_list = data.splitlines()
 	   return my_list
 
-study_folder_dict=populate_study_folder_dict(sys.argv[1])
-print study_folder_dict
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('file_in', help='Input the text file containing the path to the subject folders')
+    args = parser.parse_args()
+    total = len(sys.argv)
+    cmdargs = str(sys.argv)
+    print ("The total numbers of args passed to the script: %d " % total)
+    print ("Args list: %s " % cmdargs)
+    print ("Script name: %s" % str(sys.argv[0]))
+    print ("First argument: %s" % str(sys.argv[1]))
+    study_folder_dict=populate_study_folder_dict(sys.argv[1])
+    print study_folder_dict
+
+if __name__ == '__main__':
+    main()
