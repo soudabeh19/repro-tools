@@ -45,7 +45,6 @@ def populate_study_folder_dict(file_path):
 	#study_folders_list : List contians all the subject folder paths
 	study_folders_list=read_contents_from_file(file_path)
 	for folder in study_folders_list:
-	   print folder
 	   #fileNamesAndDirArray is used to store the absolute path of directories and files of the directory given as input.
            fileNamesAndDirArray=[]
            #file_dir_dict is an ordered  python dictionary used to store the details of individual files.Key : Absolute file path, Value : Status info
@@ -53,7 +52,7 @@ def populate_study_folder_dict(file_path):
 	   fileNamesAndDirArray=list_files_and_dirs(folder)
 	   file_dir_dict=populate_file_dir_dict(fileNamesAndDirArray)
 	   temp_study_folder_dict[folder]=file_dir_dict
-	   return temp_study_folder_dict
+	return temp_study_folder_dict
 
 #read_contents_from_file method is used to read the subject folder paths from the text file given as input parameter.
 def read_contents_from_file(fileDir): 
