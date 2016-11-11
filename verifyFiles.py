@@ -9,29 +9,32 @@ import sys
 import subprocess
 import argparse
 from collections import OrderedDict
-
 #study_folder_dict is an orderd python dictionary for storing the details regarding the individual subjects. Key : Study Folder Name, Value : Corresponding file_dir_dict
 study_folder_dict = OrderedDict()
 #Method list_files_and_dirs is used for listing files and directories present in the input directory.
 #Input Argument : Directory Path
-def list_files_and_dirs(dir):
+def list_files_and_dirs(dirPath):
         listFileAndDirs = []
-        for root, dirs, files in os.walk(dir):
-           for dirname in dirs:
-              listFileAndDirs.append(os.path.join(root, dirname))
-           for name in files:
-              listFileAndDirs.append(os.path.join(root, name))
-        listFileAndDirs.sort(key=lambda x: os.path.getmtime(x))
-        return listFileAndDirs
+	rootDir = dirPath
+        for dir_, _, files in os.walk(rootDir):
+           listFileAndDirs.append(os.path.relpath(dir_, rootDir))
+           for fileName in files:
+              relDir = os.path.relpath(dir_, rootDir)
+              relFile = os.path.join(relDir, fileName)
+              listFileAndDirs.append(relFile)
+        listFileAndDirs.sort(key=lambda x: os.path.getmtime(os.path.join(rootDir,x)))
+	return listFileAndDirs
 
 #Method populate_file_dir_dict is an ordered  python dictionary to save the status details of
 #each file and directory present in the listFileAndDirs list
 #Input parameter : List contianing the details of the path of each file and directory.
-def populate_file_dir_dict(listFileAndDirs):
+def populate_file_dir_dict(listFileAndDirs,dirPath):
         temp_dict = OrderedDict()
-        for path in listFileAndDirs:
-           dirDetails=os.stat(path)
-           temp_dict[path]=dirDetails
+        for relPath in listFileAndDirs:
+	   print relPath
+           dirDetails=os.stat(os.path.join(dirPath,relPath))
+	   print dirDetails
+           temp_dict[relPath]=dirDetails
         return temp_dict
 
 #Method populate_study_folder_dict will store the details regarding each subject folder in an ordered python dictionary. Key : Subject Folder Name , Value : dictionary with details of files
@@ -45,7 +48,8 @@ def populate_study_folder_dict(file_path):
            #file_dir_dict is an ordered  python dictionary used to store the details of individual files.Key : Absolute file path, Value : Status info
            file_dir_dict=OrderedDict()
 	   fileNamesAndDirArray=list_files_and_dirs(folder)
-	   file_dir_dict=populate_file_dir_dict(fileNamesAndDirArray)
+	   print fileNamesAndDirArray
+	   file_dir_dict=populate_file_dir_dict(fileNamesAndDirArray,folder)
 	   temp_study_folder_dict[folder]=file_dir_dict
 	return temp_study_folder_dict
 
