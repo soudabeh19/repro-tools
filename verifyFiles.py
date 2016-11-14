@@ -22,7 +22,9 @@ def list_files_and_dirs(dirPath):
               relDir = os.path.relpath(dir_, rootDir)
               relFile = os.path.join(relDir, fileName)
               listFileAndDirs.append(relFile)
+	print listFileAndDirs
         listFileAndDirs.sort(key=lambda x: os.path.getmtime(os.path.join(rootDir,x)))
+	print listFileAndDirs
 	return listFileAndDirs
 
 #Method populate_file_dir_dict is an ordered  python dictionary to save the status details of
@@ -31,9 +33,7 @@ def list_files_and_dirs(dirPath):
 def populate_file_dir_dict(listFileAndDirs,dirPath):
         temp_dict = OrderedDict()
         for relPath in listFileAndDirs:
-	   print relPath
            dirDetails=os.stat(os.path.join(dirPath,relPath))
-	   print dirDetails
            temp_dict[relPath]=dirDetails
         return temp_dict
 
@@ -48,7 +48,6 @@ def populate_study_folder_dict(file_path):
            #file_dir_dict is an ordered  python dictionary used to store the details of individual files.Key : Absolute file path, Value : Status info
            file_dir_dict=OrderedDict()
 	   fileNamesAndDirArray=list_files_and_dirs(folder)
-	   print fileNamesAndDirArray
 	   file_dir_dict=populate_file_dir_dict(fileNamesAndDirArray,folder)
 	   temp_study_folder_dict[folder]=file_dir_dict
 	return temp_study_folder_dict
@@ -73,7 +72,7 @@ def main():
     print ("Script name: %s" % str(sys.argv[0]))
     print ("First argument: %s" % str(sys.argv[1]))
     study_folder_dict=populate_study_folder_dict(sys.argv[1])
-    print study_folder_dict
+    #print study_folder_dict
 
 if __name__ == '__main__':
     main()
