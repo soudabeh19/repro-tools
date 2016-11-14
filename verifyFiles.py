@@ -9,7 +9,7 @@ import sys
 import subprocess
 import argparse
 from collections import OrderedDict
-#study_folder_dict is an orderd python dictionary for storing the details regarding the individual subjects. Key : Study Folder Name, Value : Corresponding file_dir_dict
+#study_folder_dict is an orderd python dictionary for storing the details regarding the files of  individual subjects. Key : Relative file name, Value : Corresponding file_dir_dict
 study_folder_dict = OrderedDict()
 #Method list_files_and_dirs is used for listing files and directories present in the input directory.
 #Input Argument : Directory Path
@@ -22,6 +22,7 @@ def list_files_and_dirs(dirPath):
               relDir = os.path.relpath(dir_, rootDir)
               relFile = os.path.join(relDir, fileName)
               listFileAndDirs.append(relFile)
+	#Sort the files and subdirectories according to the modification time.
         listFileAndDirs.sort(key=lambda x: os.path.getmtime(os.path.join(rootDir,x)))
 	return listFileAndDirs
 
@@ -35,22 +36,22 @@ def populate_file_dir_dict(listFileAndDirs,dirPath):
            temp_dict[relPath]=dirDetails
         return temp_dict
 
-#Method populate_study_folder_dict will store the details regarding each subject folder in an ordered python dictionary. Key : Subject Folder Name , Value : dictionary with details of files
+#Method populate_study_folder_dict will store the details regarding each subject folder in an ordered python dictionary. Key : Folder or file name , Value : dictionary with details of the key value
 def populate_study_folder_dict(file_path):
 	temp_study_folder_dict=OrderedDict()
 	#study_folders_list : List contians all the subject folder paths
 	study_folders_list=read_contents_from_file(file_path)
 	for folder in study_folders_list:
-	   #fileNamesAndDirArray is used to store the absolute path of directories and files of the directory given as input.
+	   #fileNamesAndDirArray is used to store the relative path of the directories and files present in the directory given as input.
            fileNamesAndDirArray=[]
-           #file_dir_dict is an ordered  python dictionary used to store the details of individual files.Key : Absolute file path, Value : Status info
+           #file_dir_dict is an ordered  python dictionary used to store the details of individual files.Key : Relative file path, Value : Status info
            file_dir_dict=OrderedDict()
 	   fileNamesAndDirArray=list_files_and_dirs(folder)
 	   file_dir_dict=populate_file_dir_dict(fileNamesAndDirArray,folder)
 	   temp_study_folder_dict[folder]=file_dir_dict
 	return temp_study_folder_dict
 
-#read_contents_from_file method is used to read the subject folder paths from the text file given as input parameter.
+#read_contents_from_file method is used to read the directory path containing the subject folders.
 def read_contents_from_file(fileDir): 
 # Open the file for reading.
 	with open(fileDir, 'r') as infile:
