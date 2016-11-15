@@ -65,6 +65,7 @@ def read_contents_from_file(fileDir):
 	   directory_list = data.splitlines()
 	   return directory_list
 
+#Method generate_checksum is used for generating checksum of individual files.
 def generate_checksum(rootdir, filename):
     blocksize=2**20
     hasher = hashlib.sha256()
