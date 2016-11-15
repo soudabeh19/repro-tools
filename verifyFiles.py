@@ -8,7 +8,8 @@ import os
 import sys
 import subprocess
 import argparse
-from collections import OrderedDict
+import hashlib
+from collections import defaultdict,OrderedDict
 #study_folder_dict is an orderd python dictionary for storing the details regarding the files of  individual subjects. Key : Relative file name, Value : Corresponding file_dir_dict
 study_folder_dict = OrderedDict()
 #Method list_files_and_dirs is used for listing files and directories present in the input directory.
@@ -30,10 +31,14 @@ def list_files_and_dirs(dirPath):
 #each file and directory present in the listFileAndDirs list
 #Input parameter : List contianing the details of the path of each file and directory.
 def populate_file_dir_dict(listFileAndDirs,dirPath):
-        temp_dict = OrderedDict()
+        temp_dict = OrderedDict(defaultdict(list))
         for relPath in listFileAndDirs:
+	   sha256_digest = generate_checksum(dirPath,relPath)
            dirDetails=os.stat(os.path.join(dirPath,relPath))
-           temp_dict[relPath]=dirDetails
+	   temp_dict.setdefault(relPath, []).append(sha256_digest)
+	   temp_dict.setdefault(relPath, []).append(dirDetails)
+	   #temp_dict[relPath]=sha256_digest
+           #temp_dict[relPath].append(dirDetails)
         return temp_dict
 
 #Method populate_study_folder_dict will store the details regarding each subject folder in an ordered python dictionary. Key : Folder or file name , Value : dictionary with details of the key value
@@ -57,8 +62,20 @@ def read_contents_from_file(fileDir):
 	with open(fileDir, 'r') as infile:
 	   data = infile.read()  # Read the contents of the file into memory.
 	   #Return a list of the lines, breaking at line boundaries.
-	   my_list = data.splitlines()
-	   return my_list
+	   directory_list = data.splitlines()
+	   return directory_list
+
+def generate_checksum(rootdir, filename):
+    blocksize=2**20
+    hasher = hashlib.sha256()
+    if os.path.isfile(os.path.join(rootdir, filename)):
+       with open( os.path.join(rootdir, filename) , "rb" ) as f:
+           while True:
+               buf = f.read(blocksize)
+               if not buf:
+                   break
+               hasher.update( buf )
+       return hasher.hexdigest()
 
 def main():
     parser = argparse.ArgumentParser()
