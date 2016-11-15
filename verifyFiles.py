@@ -37,8 +37,6 @@ def populate_file_dir_dict(listFileAndDirs,dirPath):
            dirDetails=os.stat(os.path.join(dirPath,relPath))
 	   temp_dict.setdefault(relPath, []).append(sha256_digest)
 	   temp_dict.setdefault(relPath, []).append(dirDetails)
-	   #temp_dict[relPath]=sha256_digest
-           #temp_dict[relPath].append(dirDetails)
         return temp_dict
 
 #Method populate_study_folder_dict will store the details regarding each subject folder in an ordered python dictionary. Key : Folder or file name , Value : dictionary with details of the key value
