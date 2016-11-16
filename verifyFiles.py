@@ -10,11 +10,12 @@ import subprocess
 import argparse
 import hashlib
 from collections import defaultdict,OrderedDict
-#study_folder_dict is an orderd python dictionary for storing the details regarding the files of  individual subjects. Key : Relative file name, Value : Corresponding file_dir_dict
-study_folder_dict = OrderedDict()
+#study_folder_details_dict_list is a list for storing ordered dictionaries containing the details regarding the files of  individual subjects.
+study_folder_details_dict_list  = []
 #Method list_files_and_dirs is used for listing files and directories present in the input directory.
 #Input Argument : Directory Path
 def list_files_and_dirs(dirPath):
+	print dirPath
         listFileAndDirs = []
 	rootDir = dirPath
         for dir_, _, files in os.walk(rootDir):
@@ -41,18 +42,22 @@ def populate_file_dir_dict(listFileAndDirs,dirPath):
 
 #Method populate_study_folder_dict will store the details regarding each subject folder in an ordered python dictionary. Key : Folder or file name , Value : dictionary with details of the key value
 def populate_study_folder_dict(file_path):
-	temp_study_folder_dict=OrderedDict()
-	#study_folders_list : List contians all the subject folder paths
+	list_of_dictionaries_based_on_conditions=[]
+	#study_folders_list : List contains path to the folders contianing the study folders based on each condition and os
 	study_folders_list=read_contents_from_file(file_path)
 	for folder in study_folders_list:
+           temp_study_folder_dict=OrderedDict()
 	   #fileNamesAndDirArray is used to store the relative path of the directories and files present in the directory given as input.
            fileNamesAndDirArray=[]
            #file_dir_dict is an ordered  python dictionary used to store the details of individual files.Key : Relative file path, Value : Status info
            file_dir_dict=OrderedDict()
 	   fileNamesAndDirArray=list_files_and_dirs(folder)
+	   #print fileNamesAndDirArray
 	   file_dir_dict=populate_file_dir_dict(fileNamesAndDirArray,folder)
 	   temp_study_folder_dict[folder]=file_dir_dict
-	return temp_study_folder_dict
+	   #print temp_study_folder_dict
+	   list_of_dictionaries_based_on_conditions.append(temp_study_folder_dict)
+	return list_of_dictionaries_based_on_conditions
 
 #read_contents_from_file method is used to read the directory path containing the subject folders.
 def read_contents_from_file(fileDir): 
@@ -86,8 +91,8 @@ def main():
     print ("Args list: %s " % cmdargs)
     print ("Script name: %s" % str(sys.argv[0]))
     print ("First argument: %s" % str(sys.argv[1]))
-    study_folder_dict=populate_study_folder_dict(sys.argv[1])
-    print study_folder_dict
+    study_folder_details_dict_list=populate_study_folder_dict(sys.argv[1])
+    print study_folder_details_dict_list
 
 if __name__ == '__main__':
     main()
