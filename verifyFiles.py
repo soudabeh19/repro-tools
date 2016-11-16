@@ -11,18 +11,17 @@ import argparse
 import hashlib
 from collections import defaultdict,OrderedDict
 #study_folder_details_dict_list is a list for storing ordered dictionaries containing the details regarding the files of  individual subjects.
-study_folder_details_dict_list  = []
+study_folder_details_dict_list=[]
 #Method list_files_and_dirs is used for listing files and directories present in the input directory.
 #Input Argument : Directory Path
 def list_files_and_dirs(dirPath):
-	print dirPath
-        listFileAndDirs = []
-	rootDir = dirPath
+        listFileAndDirs=[]
+	rootDir=dirPath
         for dir_, _, files in os.walk(rootDir):
            listFileAndDirs.append(os.path.relpath(dir_, rootDir))
            for fileName in files:
-              relDir = os.path.relpath(dir_, rootDir)
-              relFile = os.path.join(relDir, fileName)
+              relDir=os.path.relpath(dir_, rootDir)
+              relFile=os.path.join(relDir, fileName)
               listFileAndDirs.append(relFile)
 	#Sort the files and subdirectories according to the modification time.
         listFileAndDirs.sort(key=lambda x: os.path.getmtime(os.path.join(rootDir,x)))
@@ -32,9 +31,9 @@ def list_files_and_dirs(dirPath):
 #each file and directory present in the listFileAndDirs list
 #Input parameter : List contianing the details of the path of each file and directory.
 def populate_file_dir_dict(listFileAndDirs,dirPath):
-        temp_dict = OrderedDict(defaultdict(list))
+        temp_dict=OrderedDict(defaultdict(list))
         for relPath in listFileAndDirs:
-	   sha256_digest = generate_checksum(dirPath,relPath)
+	   sha256_digest=generate_checksum(dirPath,relPath)
            dirDetails=os.stat(os.path.join(dirPath,relPath))
 	   temp_dict.setdefault(relPath, []).append(sha256_digest)
 	   temp_dict.setdefault(relPath, []).append(dirDetails)
@@ -52,10 +51,8 @@ def populate_study_folder_dict(file_path):
            #file_dir_dict is an ordered  python dictionary used to store the details of individual files.Key : Relative file path, Value : Status info
            file_dir_dict=OrderedDict()
 	   fileNamesAndDirArray=list_files_and_dirs(folder)
-	   #print fileNamesAndDirArray
 	   file_dir_dict=populate_file_dir_dict(fileNamesAndDirArray,folder)
 	   temp_study_folder_dict[folder]=file_dir_dict
-	   #print temp_study_folder_dict
 	   list_of_dictionaries_based_on_conditions.append(temp_study_folder_dict)
 	return list_of_dictionaries_based_on_conditions
 
@@ -63,36 +60,53 @@ def populate_study_folder_dict(file_path):
 def read_contents_from_file(fileDir): 
 # Open the file for reading.
 	with open(fileDir, 'r') as infile:
-	   data = infile.read()  # Read the contents of the file into memory.
+	   data=infile.read()  # Read the contents of the file into memory.
 	   #Return a list of the lines, breaking at line boundaries.
-	   directory_list = data.splitlines()
-	   return directory_list
+	   directory_list=data.splitlines()
+	return directory_list
 
 #Method generate_checksum is used for generating checksum of individual files.
 def generate_checksum(rootdir, filename):
-    blocksize=2**20
-    hasher = hashlib.sha256()
-    if os.path.isfile(os.path.join(rootdir, filename)):
-       with open( os.path.join(rootdir, filename) , "rb" ) as f:
-           while True:
-               buf = f.read(blocksize)
-               if not buf:
-                   break
-               hasher.update( buf )
-       return hasher.hexdigest()
+        blocksize=2**20
+        hasher=hashlib.sha256()
+        if os.path.isfile(os.path.join(rootdir, filename)):
+            with open( os.path.join(rootdir, filename) , "rb" ) as f:
+               while True:
+                  buf=f.read(blocksize)
+                  if not buf:
+                      break
+                  hasher.update( buf )
+        return hasher.hexdigest()
+
+#Method generate_common_files_list will create a list containing the common elements from the different dictionaries corresponding to the conditions in which it was created
+def generate_common_files_list(study_folder_details_dict_list,fileWithDir):
+	common_files_list=[]
+	keys_list=read_contents_from_file(fileWithDir)
+	index = 0
+	common_set=set([])
+	for item in study_folder_details_dict_list:
+              dictionary=item[keys_list[index]]
+	      keys_from_each_dictionary=set(dictionary.keys())
+	      if(len(common_set)):
+	         keys_common=common_set & keys_from_each_dictionary
+	      index+=1
+	#dict(set.intersection(*(set(d.iteritems()) for d in dicts)))
+	print keys_common
+    	return common_files_list
 
 def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument('file_in', help='Input the text file containing the path to the subject folders')
-    args = parser.parse_args()
-    total = len(sys.argv)
-    cmdargs = str(sys.argv)
-    print ("The total numbers of args passed to the script: %d " % total)
-    print ("Args list: %s " % cmdargs)
-    print ("Script name: %s" % str(sys.argv[0]))
-    print ("First argument: %s" % str(sys.argv[1]))
-    study_folder_details_dict_list=populate_study_folder_dict(sys.argv[1])
-    print study_folder_details_dict_list
+        parser=argparse.ArgumentParser()
+        parser.add_argument('file_in', help='Input the text file containing the path to the subject folders')
+        args=parser.parse_args()
+        total=len(sys.argv)
+        cmdargs=str(sys.argv)
+        print ("The total numbers of args passed to the script: %d " % total)
+        print ("Args list: %s " % cmdargs)
+        print ("Script name: %s" % str(sys.argv[0]))
+        print ("First argument: %s" % str(sys.argv[1]))
+        study_folder_details_dict_list=populate_study_folder_dict(sys.argv[1])
+        generate_common_files_list(study_folder_details_dict_list,sys.argv[1])
+	#print study_folder_details_dict_list
 
-if __name__ == '__main__':
-    main()
+if __name__=='__main__':
+	main()
