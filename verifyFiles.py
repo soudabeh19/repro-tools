@@ -33,9 +33,9 @@ def list_files_and_dirs(dirPath):
 def populate_file_dir_dict(listFileAndDirs,dirPath):
         temp_dict=OrderedDict(defaultdict(list))
         for relPath in listFileAndDirs:
-	   sha256_digest=generate_checksum(dirPath,relPath)
+	   md5_digest=generate_checksum(dirPath,relPath)
            dirDetails=os.stat(os.path.join(dirPath,relPath))
-	   temp_dict.setdefault(relPath, []).append(sha256_digest)
+	   temp_dict.setdefault(relPath, []).append(md5_digest)
 	   temp_dict.setdefault(relPath, []).append(dirDetails)
         return temp_dict
 
@@ -68,14 +68,20 @@ def read_contents_from_file(fileDir):
 #Method generate_checksum is used for generating checksum of individual files.
 def generate_checksum(rootdir, filename):
         blocksize=2**20
-        hasher=hashlib.sha256()
+        hasher=hashlib.md5()
         if os.path.isfile(os.path.join(rootdir, filename)):
             with open( os.path.join(rootdir, filename) , "rb" ) as f:
                while True:
                   buf=f.read(blocksize)
                   if not buf:
                       break
-                  hasher.update( buf )
+                  hasher.update(buf)
+	elif os.path.isdir(os.path.join(rootdir, filename)):
+	    matches = []
+            for root, dirnames, filenames in os.walk(os.path.join(rootdir, filename)):
+              for filename in sorted(filenames):
+                 matches.append(os.path.join(root, filename))
+	    print matches  
         return hasher.hexdigest()
 
 #Method generate_common_files_list will create a list containing the common elements from the different dictionaries corresponding to the conditions in which it was created
@@ -105,8 +111,8 @@ def main():
         print ("Script name: %s" % str(sys.argv[0]))
         print ("First argument: %s" % str(sys.argv[1]))
         study_folder_details_dict_list=populate_study_folder_dict(sys.argv[1])
-        generate_common_files_list(study_folder_details_dict_list,sys.argv[1])
-	#print study_folder_details_dict_list
+        #generate_common_files_list(study_folder_details_dict_list,sys.argv[1])
+	print study_folder_details_dict_list
 
 if __name__=='__main__':
 	main()
