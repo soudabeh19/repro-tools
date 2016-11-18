@@ -67,28 +67,39 @@ def read_contents_from_file(fileDir):
 
 #Method generate_checksum is used for generating checksum of individual files.
 def generate_checksum(rootdir, filename):
-        blocksize=2**20
         hasher=hashlib.md5()
         if os.path.isfile(os.path.join(rootdir, filename)):
-            with open( os.path.join(rootdir, filename) , "rb" ) as f:
-               while True:
-                  buf=f.read(blocksize)
-                  if not buf:
-                      break
-                  hasher.update(buf)
+            md5_sum=file_hash(os.path.join(rootdir, filename),hasher)
 	elif os.path.isdir(os.path.join(rootdir, filename)):
-	    matches = []
-            for root, dirnames, filenames in os.walk(os.path.join(rootdir, filename)):
-              for filename in sorted(filenames):
-                 matches.append(os.path.join(root, filename))
-	    print matches  
-        return hasher.hexdigest()
+            md5_sum=directory_hash(hasher,os.path.join(rootdir, filename))
+	return md5_sum
+
+#Method file_hash is used for generating md5 checksum of a file Input: file name and hasher
+def file_hash(fileName,hasher):
+    fileContent=open(fileName)
+    while True:
+        readBuffer=fileContent.read(2**20)
+        if len(readBuffer)==0: 
+	   break
+        hasher.update(readBuffer)
+    fileContent.close()
+    return hasher.hexdigest()
+
+#Method directory_hash recursively traverses in case a directory is found, sorts the contents and creates checksum on the entire read content.
+def directory_hash(hasher, dirPath):
+    if os.path.isdir(dirPath):
+        for entry in sorted(os.listdir(dirPath)):
+            directory_hash(hasher, os.path.join(dirPath, entry))
+    elif os.path.isfile(dirPath):
+        hasher.update(file_hash(dirPath,hasher))
+    else: pass
+    return hasher.hexdigest()
 
 #Method generate_common_files_list will create a list containing the common elements from the different dictionaries corresponding to the conditions in which it was created
 def generate_common_files_list(study_folder_details_dict_list,fileWithDir):
 	common_files_list=[]
 	keys_list=read_contents_from_file(fileWithDir)
-	index = 0
+	index=0
 	common_set=set([])
 	for item in study_folder_details_dict_list:
               dictionary=item[keys_list[index]]
