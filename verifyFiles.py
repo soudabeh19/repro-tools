@@ -100,19 +100,19 @@ def generate_common_files_list(study_folder_details_dict_list,fileWithDirectoryD
 	common_files_list=[]
 	keys_list=read_contents_from_file(fileWithDirectoryDetails)
 	index=0
-	common_set=set([])
+	common_set=set()
 	reference_dict=study_folder_details_dict_list[index]
-	reference_set=set(reference_dict.keys())
+	reference_set=set(reference_dict[keys_list[0]].keys())
 	for item in study_folder_details_dict_list:
               dictionary=item[keys_list[index]]
 	      keys_from_each_dictionary=set(dictionary.keys())
-	      if(len(common_set)):
+	      if not common_set:
 	         common_set=reference_set & keys_from_each_dictionary
 	      else:
 		 common_set=common_set & keys_from_each_dictionary
 	      index+=1
 	#dict(set.intersection(*(set(d.iteritems()) for d in dicts)))
-	print common_set
+	common_files_list=list(common_set)
     	return common_files_list
 
 def main():
@@ -126,8 +126,9 @@ def main():
         print ("Script name: %s" % str(sys.argv[0]))
         print ("First argument: %s" % str(sys.argv[1]))
         study_folder_details_dict_list=populate_study_folder_dict(sys.argv[1])
-        generate_common_files_list(study_folder_details_dict_list,sys.argv[1])
-	#print study_folder_details_dict_list
+        common_files=generate_common_files_list(study_folder_details_dict_list,sys.argv[1])
+	print common_files
+	print study_folder_details_dict_list
 
 if __name__=='__main__':
 	main()
