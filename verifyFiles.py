@@ -115,6 +115,21 @@ def generate_common_files_list(study_folder_details_dict_list,fileWithDirectoryD
 	common_files_list=list(common_set)
     	return common_files_list
 
+#Method generate_missing_files will create a list containing the files that are not common to all the subject folders. It takes study_folder_details_dict_list,fileWithDirectoryDetails and common_files_list as the input parameters.
+def generate_missing_files_list(study_folder_details_dict_list,fileWithDirectoryDetails,common_files_list):
+	missing_files_list=[]
+	keys_list=read_contents_from_file(fileWithDirectoryDetails)
+	index=0;
+	keys_from_all_files=set()
+	for item in study_folder_details_dict_list:
+	     dictionary=item[keys_list[index]]
+	     keys_from_individual_files=set(dictionary.keys())
+	     keys_from_all_files=keys_from_all_files | keys_from_individual_files
+	     index+=1
+	missing_files_list=list(keys_from_all_files - set(common_files_list))
+	return missing_files_list
+	     
+
 def main():
         parser=argparse.ArgumentParser()
         parser.add_argument('file_in', help='Input the text file containing the path to the subject folders')
@@ -127,8 +142,10 @@ def main():
         print ("First argument: %s" % str(sys.argv[1]))
         study_folder_details_dict_list=populate_study_folder_dict(sys.argv[1])
         common_files=generate_common_files_list(study_folder_details_dict_list,sys.argv[1])
+	missing_files=generate_missing_files_list(study_folder_details_dict_list,sys.argv[1],common_files)
 	print common_files
-	print study_folder_details_dict_list
+	print missing_files
+	#print study_folder_details_dict_list
 
 if __name__=='__main__':
 	main()
