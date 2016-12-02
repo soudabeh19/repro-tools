@@ -1,16 +1,14 @@
 # repro-tools
-A set of tools to evaluate the reproducibility of computations done on the Human Connectome Data using Human Connecome Project Pipelines.
+A set of tools to evaluate the reproducibility of computations done using Human Connecome Project Pipelines.
 
 
 ## Getting Started
 
-verifyFiles.py is a Python Script which will produce an output containging the details regarding the common files and files that are not common, based on timestamp, checksum and distance between the output files after HCP processing.
+verifyFiles.py is a Python Script which will produce an output containging the details regarding the common files and files that are not common, based on timestamp, checksum and distance between the output files.
 
 ### Prerequisites
 
 Python 2.7.5
-
-Give execute permission to the script
 
 ## Running the tests
 
