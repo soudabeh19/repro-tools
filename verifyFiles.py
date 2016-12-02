@@ -2,8 +2,8 @@
 
 # #verifyFiles.py
 #
-#Script to check whether the output files generated across different 
-#conditions are the same or not.
+#Script to check whether the output files generated across 
+#subject folders in different conditions are the same or not.
 #The conditions on which the script will check the match between two files are 
 #filename, size, content, modification time, distance etc.
 #
