@@ -53,9 +53,7 @@ def list_files_and_dirs(dir_path):
 def retrieve_file_attributes(list_files_and_dirs,dir_path):
         temp_dict=OrderedDict(defaultdict(list))
         for rel_path in list_files_and_dirs:
-	   md5_digest=generate_checksum(dir_path,rel_path)
            dir_details=os.stat(os.path.join(dir_path,rel_path))
-	   temp_dict.setdefault(rel_path, []).append(md5_digest)
 	   temp_dict.setdefault(rel_path, []).append(dir_details)
         return temp_dict
 
@@ -86,7 +84,8 @@ def read_contents_from_file(file_with_dir_details):
 	   directory_list=data.splitlines()
 	return directory_list
 
-#Method generate_checksum is used for generating checksum of individual files.
+#Method generate_checksum is used for generating checksum of individual files and directories
+#present in each subject folder
 #
 #Input parameters: root directory path , individual file name
 def generate_checksum(root_dir, file_name):
@@ -110,17 +109,14 @@ def file_hash(hasher,file_name):
     file_content.close()
     return hasher.hexdigest()
 
-#Method directory_hash recursively traverses in case a directory is found.
-#Then it sorts the contents and creates checksum on the entire read content.
+#Method directory_hash collects the directory and file names from the directory given as input.
+#Checksum is created on the basis of filenames and directories present in the file input directory.
 #
 #Input parameters: hashed content , path 
 def directory_hash(hasher, dir_path):
     if os.path.isdir(dir_path):
         for entry in sorted(os.listdir(dir_path)):
-            directory_hash(hasher, os.path.join(dir_path, entry))
-    elif os.path.isfile(dir_path):
-        hasher.update(file_hash(hasher,dir_path))
-    else: pass
+            hasher.update(entry)
     return hasher.hexdigest()
 
 #Method generate_common_files_list will create a list containing the common elements from the 
@@ -148,11 +144,12 @@ def generate_common_files_list(study_folder_details_dict_list,file_with_director
 	      else:
 		 common_set=common_set & keys_from_each_dictionary
 	      index+=1
+	#The union of all the files present in all the folders under different conditions
 	common_files_list=list(common_set)
     	return common_files_list
 
 #Method generate_missing_files will create a list containing the files 
-#that are not common to all the subject folders. 
+#that are not common to all the subject folders processed under various conditions. 
 #
 #Input parameters: study_folder_details_dict_list,file_with_directory_details and common_files_list
 def generate_missing_files_list(study_folder_details_dict_list,file_with_directory_details,common_files_list):
@@ -166,6 +163,8 @@ def generate_missing_files_list(study_folder_details_dict_list,file_with_directo
              #set union(|) to join all the values between a set of keys 
 	     keys_from_all_files=keys_from_all_files | keys_from_individual_files
 	     index+=1
+	#Missing files list is the files remaining when the common list of files is removed from the list of all the
+	#files processed under different conditions.
 	missing_files_list=list(keys_from_all_files - set(common_files_list))
 	return missing_files_list
 	     
@@ -173,7 +172,8 @@ def generate_missing_files_list(study_folder_details_dict_list,file_with_directo
 def main():
         parser=argparse.ArgumentParser(description='verifyFiles.py', usage='./verifyFiles.py <input_file_name>',formatter_class=argparse.RawTextHelpFormatter)
         parser.add_argument('file_in', help= textwrap.dedent('''Input the text file containing the path to the subject folders
-                                             Each directory contains subject folders which contains the output processed under different conditions
+                                             Each directory contains subject folders which contains the unprocessed data which will be processed under  different conditions
+					     Conditions refer to the operating system  on which the process is ran or the version of the pipeline which is used to process the data.
                                              An example would be a directory containing the files processed using CentOS6 operating system and PreFreeSurfer version 5.0.6
                                              Sample of the input file
                                              /home/$(USER)/CentOS6.FSL5.0.6
