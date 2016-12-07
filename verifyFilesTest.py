@@ -1,9 +1,8 @@
 import unittest
 import verifyFiles
-import tempfile
+import tempfile,shutil
 import sys
 import os
-import shutil
 import glob
 from io import StringIO
 
@@ -11,12 +10,19 @@ from io import StringIO
 #python script file
 
 class VerifyFilesTestCase(unittest.TestCase):
-  
+ 
+   def setUp(self):
+      self.test_dir = tempfile.mkdtemp()
+
+   def tearDown(self):
+      shutil.rmtree(self.test_dir)
+
+   #Test Case testReadContentsFromFile will test and ensure that read_contents_from_file method
+   # is working as expected
    def testReadContentsFromFile(self):
       read_file_content=[]
-      tmpdir=tempfile.mkdtemp()
-      predictable_filename='myfile'
-      path = os.path.join(tmpdir, predictable_filename)
+      filename='myfile'
+      path = os.path.join(self.test_dir, filename)
       read_file_content.append("/home/S1C1")
       read_file_content.append("/home/S2C2")
       try:
@@ -27,38 +33,28 @@ class VerifyFilesTestCase(unittest.TestCase):
          print 'IOError'
       else:
          os.remove(path)
-      finally:
-         os.rmdir(tmpdir)
       self.assertEqual(directory_list,read_file_content)
 
 
    def testListFilesAndDirs(self):
-      listFileAndDirs=[]
-      tmpDir=tempfile.mkdtemp()
-      tmpListFileAndDirs=[]
-      tmpFileName1='myFile1'
-      tmpFileName2='myFile2'
-      fileDir1=os.path.join(tmpDir,tmpFileName1)
-      fileDir2=os.path.join(tmpDir,tmpFileName2)
+      tmp_list_files_and_dirs=[]
+      file1_dir=os.path.join(self.test_dir, 'file1.txt')
+      file2_dir=os.path.join(self.test_dir, 'file2.txt')
       try:
-         with open(fileDir1, "w") as tmp:
-            tmp.write("/home/S1C1\n/home/S2C2\n")
-         with open(fileDir2, "w") as tmp:
-            tmp.write("/home/S1C1\n/home/S2C2\n")
-         listFileAndDirs=verifyFiles.list_files_and_dirs(tmpDir)
-         files = glob.glob(tmpDir + "*")
-         files.sort(key=lambda x: os.path.getmtime(x))
-         #dirs.sort(key=lambda s: os.path.getmtime(os.path.join(tmpDir, s)))
-         print files
+	 tmp_list_files_and_dirs.append('.')
+	 tmp_list_files_and_dirs.append('./file1.txt')
+	 tmp_list_files_and_dirs.append('./file2.txt')
+         file1=open(os.path.join(self.test_dir, 'file1.txt'), 'w')
+	 file1.write('The owls are silent')
+	 file2=open(os.path.join(self.test_dir,'file2.txt'),'w')
+	 file2.write('The owls are wise')
+	 list_files_and_dirs=verifyFiles.list_files_and_dirs(self.test_dir)
       except IOError as e:
          print 'IOError'
       else:
-         os.remove(fileDir1)
-         os.remove(fileDir2)
-      finally:
-         shutil.rmtree(tmpDir)
-      print listFileAndDirs
-      self.assertEqual(listFileAndDirs,tmpListFileAndDirs)
+         os.remove(file1_dir)
+         os.remove(file2_dir)
+      self.assertEqual(tmp_list_files_and_dirs,list_files_and_dirs)
 
   #def testPopulateFileDirDict(self):
   #assert True
