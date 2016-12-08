@@ -24,10 +24,6 @@ import argparse,textwrap
 import hashlib
 from collections import defaultdict,OrderedDict
 
-#study_folder_details_dict_list is a list for storing ordered dictionaries 
-#containing the details regarding the files of  individual subjects.
-study_folder_details_dict_list=[]
-
 #Method list_files_and_dirs is used for listing files and directories 
 #present in the input directory recursively.And it returns a list of files 
 #ordered by modification time.
@@ -172,7 +168,23 @@ def generate_missing_files_list(study_folder_details_dict_list,file_with_directo
 def main():
         parser=argparse.ArgumentParser(description='verifyFiles.py', usage='./verifyFiles.py <input_file_name>',formatter_class=argparse.RawTextHelpFormatter)
         parser.add_argument('file_in', help= textwrap.dedent('''Input the text file containing the path to the subject folders
-                                             Each directory contains subject folders which contains the unprocessed data which will be processed under  different conditions
+                                             Each directory contains subject folders containing subject-specific and modality-specific data categorirzed into different
+					     subdirectories.
+					     Sample:
+					     Format : <subject_id>/unprocessed/3T/
+					     Unprocessed data for exemplar subject 100307 unpacks to the following directory structure:
+					     100307/unprocessed/3T/
+					     100307_3T.csv
+    					     Diffusion
+    					     rfMRI_REST1_LR
+    					     rfMRI_REST1_RL
+    					     rfMRI_REST2_LR
+    					     rfMRI_REST2_RL
+    					     T1w_MPR1
+    					     T2w_SPC1
+					     ....
+					     ...
+					     These subdirectories will be processed under  different conditions.
 					     Conditions refer to the operating system  on which the process is ran or the version of the pipeline which is used to process the data.
                                              An example would be a directory containing the files processed using CentOS6 operating system and PreFreeSurfer version 5.0.6
                                              Sample of the input file
@@ -180,6 +192,9 @@ def main():
                                              /home/$(USER)/CentOS7.FSL5.0.6
                                              Each directory will contain subject folders like 100307,100308 etc'''))
         args=parser.parse_args()
+        #study_folder_details_dict_list is a list for storing ordered dictionaries 
+	#containing the details regarding the files of  individual subjects.
+	study_folder_details_dict_list=[]
         study_folder_details_dict_list=populate_study_folder_dict(sys.argv[1])
         common_files=generate_common_files_list(study_folder_details_dict_list,sys.argv[1])
 	missing_files=generate_missing_files_list(study_folder_details_dict_list,sys.argv[1],common_files)
