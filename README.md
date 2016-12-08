@@ -1,5 +1,5 @@
 # repro-tools
-A set of tools to evaluate the reproducibility of computations done using Human Connecome Project Pipelines.
+A set of tools to evaluate the reproducibility of computations.
 
 
 ## Getting Started
@@ -10,7 +10,7 @@ verifyFiles.py is a Python Script which will produce an output containging the d
 
 Python 2.7.5
 
-## Running the tests
+## Running the script
 
 ```
 ./verifyFiles.py /path/to/file/containing/directory/details
