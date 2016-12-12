@@ -23,35 +23,25 @@ import subprocess
 import argparse,textwrap
 import hashlib
 from collections import defaultdict,OrderedDict
+import operator
 
-#Method list_files_and_dirs is used for listing files and directories 
-#present in the input directory recursively.And it returns a list of files 
-#ordered by modification time.
-#
-#Input parameter : Directory Path
-def list_files_and_dirs(dir_path):
-        list_files_and_dirs=[]
-        for dir_, _, files in os.walk(dir_path):
-           list_files_and_dirs.append(os.path.relpath(dir_,dir_path))
-           for file_name in files:
-              rel_dir=os.path.relpath(dir_,dir_path)
-              rel_file=os.path.join(rel_dir, file_name)
-              list_files_and_dirs.append(rel_file)
-	#Sort the files and subdirectories according to the modification time.
-	list_files_and_dirs.sort(key=lambda x: os.path.getmtime(os.path.join(dir_path,x)))
-        return list_files_and_dirs
+#get_dict_with_file_and_dir_attributes reads the files and directories inside each directory recursively.
+#It collects the details like size, modificaiton time, access time etc.
+#These details are saved as a value and each relative file or directory name is used as the key value. 
+#The return type of the function is an ordered dictionary containing a list of dictionaries sorted on the 
+#basis of modification time(st_mtime) of the the file listed as the key value.
+#Input parameter : path_to_the_file_with_conditions_list
+def get_dict_with_file_and_dir_attributes(folder_path):
+	temp_dict=(defaultdict(list))
+	for dir_, _, files in os.walk(folder_path):
+           temp_dict.setdefault(os.path.relpath(dir_,folder_path), []).append(os.stat(dir_))
+	   for file_name in files:
+              rel_file=os.path.join(os.path.relpath(dir_,folder_path), file_name)
+	      temp_dict.setdefault(rel_file, []).append(os.stat(os.path.join(dir_,file_name)))
+	return OrderedDict(sorted(temp_dict.items(), key=lambda t:t[1][0].st_mtime))
+	      
+	
 
-#Method retrieve_file_attributes returns an ordered  python dictionary 
-#to save the status details of
-#each file and directory present in the list_files_and_dirs list
-#
-#Input parameter : List contianing the details of the path of each file and directory.
-def retrieve_file_attributes(list_files_and_dirs,dir_path):
-        temp_dict=OrderedDict(defaultdict(list))
-        for rel_path in list_files_and_dirs:
-           dir_details=os.stat(os.path.join(dir_path,rel_path))
-	   temp_dict.setdefault(rel_path, []).append(dir_details)
-        return temp_dict
 
 #Method populate_study_folder_dict will store the details regarding each subject 
 #folder in an ordered python dictionary. 
@@ -63,9 +53,8 @@ def populate_study_folder_dict(file_path):
 	#the study folders based on each condition and os
 	study_folders_list=read_contents_from_file(file_path)
 	for folder in study_folders_list:
-           temp_study_folder_dict=OrderedDict()	   
-	   file_names_and_dir_array=list_files_and_dirs(folder)
-	   temp_study_folder_dict[folder]=retrieve_file_attributes(file_names_and_dir_array,folder)
+           temp_study_folder_dict=OrderedDict()
+	   temp_study_folder_dict[folder]=get_dict_with_file_and_dir_attributes(folder_path)
 	   list_of_dictionaries_based_on_conditions.append(temp_study_folder_dict)
 	return list_of_dictionaries_based_on_conditions
 
@@ -118,10 +107,10 @@ def directory_hash(hasher, dir_path):
 #Method generate_common_files_list will create a list containing the common elements from the 
 #different dictionaries corresponding to the conditions in which it was created
 #
-#Input parameters: dictionary with details of files in each study folder , file containing details of directories in each condition
-def generate_common_files_list(study_folder_details_dict_list,file_with_directory_details):
+#Input parameters: dictionary with details of files in each study folder , conditions_list
+def generate_common_files_list(study_folder_details_dict_list,conditions_list):
 	common_files_list=[]
-	keys_list=read_contents_from_file(file_with_directory_details)
+	conditions_list=list(set().union(*(study_folder_details_dict.keys() for study_folder_details_dict in study_folder_details_dict_list)))
 	index=0
 	common_set=set()
 	#reference_dict is the dictionary which we take as a reference for ordering the list according 
@@ -129,16 +118,12 @@ def generate_common_files_list(study_folder_details_dict_list,file_with_director
 	reference_dict=study_folder_details_dict_list[index]
 	#reference_set is the set with the list of keys present in the reference dictionary. The keys here will
 	#be the absolute file name eg:"100307/T1w/T1w_acpc_dc.nii.gz"
-	reference_set=set(reference_dict[keys_list[0]].keys())
-	for item in study_folder_details_dict_list:
-              dictionary=item[keys_list[index]]
+	reference_set=set(reference_dict[conditions_list[0]].keys())
+        common_set=reference_set
+	for condition_dict in study_folder_details_dict_list:
+              dictionary=condition_dict[conditions_list[index]]
 	      keys_from_each_dictionary=set(dictionary.keys())
-	      #if common set is empty
-	      if not common_set:
-		 #set intersection(&) to find out the common values between a set of keys
-	         common_set=reference_set & keys_from_each_dictionary
-	      else:
-		 common_set=common_set & keys_from_each_dictionary
+	      common_set=common_set & keys_from_each_dictionary
 	      index+=1
 	#The union of all the files present in all the folders under different conditions
 	common_files_list=list(common_set)
@@ -147,14 +132,13 @@ def generate_common_files_list(study_folder_details_dict_list,file_with_director
 #Method generate_missing_files will create a list containing the files 
 #that are not common to all the subject folders processed under various conditions. 
 #
-#Input parameters: study_folder_details_dict_list,file_with_directory_details and common_files_list
-def generate_missing_files_list(study_folder_details_dict_list,file_with_directory_details,common_files_list):
+#Input parameters: study_folder_details_dict_list,conditions_list and common_files_list
+def generate_missing_files_list(study_folder_details_dict_list,conditions_list,common_files_list):
 	missing_files_list=[]
-	keys_list=read_contents_from_file(file_with_directory_details)
 	index=0;
 	keys_from_all_files=set()
-	for item in study_folder_details_dict_list:
-	     dictionary=item[keys_list[index]]
+	for condition_dict in study_folder_details_dict_list:
+	     dictionary=condition_dict[conditions_list[index]]
 	     keys_from_individual_files=set(dictionary.keys())
              #set union(|) to join all the values between a set of keys 
 	     keys_from_all_files=keys_from_all_files | keys_from_individual_files
@@ -193,11 +177,14 @@ def main():
                                              Each directory will contain subject folders like 100307,100308 etc'''))
         args=parser.parse_args()
         #study_folder_details_dict_list is a list for storing ordered dictionaries 
-	#containing the details regarding the files of  individual subjects.
+	#containing the details regarding the files of  individual subjects. Each condition 
+        #is a key and subject folder details are its conditions.
 	study_folder_details_dict_list=[]
-        study_folder_details_dict_list=populate_study_folder_dict(sys.argv[1])
-        common_files=generate_common_files_list(study_folder_details_dict_list,sys.argv[1])
-	missing_files=generate_missing_files_list(study_folder_details_dict_list,sys.argv[1],common_files)
+	file_with_conditions_list=sys.argv[1]
+        study_folder_details_dict_list=populate_study_folder_dict(file_with_conditions_list)
+        conditions_list=list(set().union(*(study_folder_details_dict.keys() for study_folder_details_dict in study_folder_details_dict_list)))
+        common_files=generate_common_files_list(study_folder_details_dict_list,conditions_list)
+	missing_files=generate_missing_files_list(study_folder_details_dict_list,conditions_list,common_files)
 	print "*******************Common Files**********************"
 	print common_files
         print "*******************Missing Files**********************"
