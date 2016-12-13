@@ -31,12 +31,12 @@ import operator
 #The return type of the function is an ordered dictionary containing a list of dictionaries sorted on the 
 #basis of modification time(st_mtime) of the the file listed as the key value.
 #Input parameter : path_to_the_file_with_conditions_list
-def get_dict_with_file_and_dir_attributes(folder_path):
+def get_dict_with_file_and_dir_attributes(conditions_dir_path,folder_name):
 	temp_dict=defaultdict(list)
-	for dir_, _, files in os.walk(folder_path):
-           temp_dict.setdefault(os.path.relpath(dir_,folder_path), []).append(os.stat(dir_))
+	for dir_, _, files in os.walk(os.path.join(conditions_dir_path,folder_name)):
+           temp_dict.setdefault(os.path.relpath(dir_,os.path.join(conditions_dir_path,folder_name)), []).append(os.stat(dir_))
 	   for file_name in files:
-              rel_file=os.path.join(os.path.relpath(dir_,folder_path), file_name)
+              rel_file=os.path.join(os.path.relpath(dir_,os.path.join(conditions_dir_path,folder_name)), file_name)
 	      temp_dict.setdefault(rel_file, []).append(os.stat(os.path.join(dir_,file_name)))
 	return OrderedDict(sorted(temp_dict.items(), key=lambda t:t[1][0].st_mtime))
 	      
@@ -52,9 +52,10 @@ def populate_study_folder_dict(file_path):
 	#study_folders_list : List contains path to the folders contianing 
 	#the study folders based on each condition and os
 	study_folders_list=read_contents_from_file(file_path)
-	for folder in study_folders_list:
+        conditions_dir_path=os.path.dirname(file_path)
+	for folder_name in study_folders_list:
            temp_study_folder_dict=OrderedDict()
-	   temp_study_folder_dict[folder]=get_dict_with_file_and_dir_attributes(folder)
+	   temp_study_folder_dict[folder_name]=get_dict_with_file_and_dir_attributes(conditions_dir_path,folder_name)
 	   list_of_dictionaries_based_on_conditions.append(temp_study_folder_dict)
 	return list_of_dictionaries_based_on_conditions
 
@@ -63,8 +64,12 @@ def populate_study_folder_dict(file_path):
 #Input parameter: file containing directory paths as its content
 def read_contents_from_file(file_with_dir_details): 
 # Open the file for reading.
+	print os.path.abspath(file_with_dir_details)
+	print "***dirname***"
+	print os.path.dirname(file_with_dir_details)
 	with open(file_with_dir_details, 'r') as infile:
 	   data=infile.read()  # Read the contents of the file into memory.
+           print data
 	   #Return a list of the lines, breaking at line boundaries.
 	   directory_list=data.splitlines()
 	return directory_list
@@ -183,13 +188,15 @@ def main():
 	file_with_conditions_list=sys.argv[1]
         study_folder_details_dict_list=populate_study_folder_dict(file_with_conditions_list)
         conditions_list=list(set().union(*(study_folder_details_dict.keys() for study_folder_details_dict in study_folder_details_dict_list)))
-        common_files=generate_common_files_list(study_folder_details_dict_list,conditions_list)
-	missing_files=generate_missing_files_list(study_folder_details_dict_list,conditions_list,common_files)
-	print "*******************Common Files**********************"
-	print common_files
-        print "*******************Missing Files**********************"
-	print missing_files
-	#print study_folder_details_dict_list
+	print "conditions"
+	print conditions_list
+        #common_files=generate_common_files_list(study_folder_details_dict_list,conditions_list)
+	#missing_files=generate_missing_files_list(study_folder_details_dict_list,conditions_list,common_files)
+	#print "*******************Common Files**********************"
+	#print common_files
+        #print "*******************Missing Files**********************"
+	#print missing_files
+	print study_folder_details_dict_list
 
 if __name__=='__main__':
 	main()
