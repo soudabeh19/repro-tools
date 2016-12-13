@@ -32,7 +32,7 @@ import operator
 #basis of modification time(st_mtime) of the the file listed as the key value.
 #Input parameter : path_to_the_file_with_conditions_list
 def get_dict_with_file_and_dir_attributes(folder_path):
-	temp_dict=(defaultdict(list))
+	temp_dict=defaultdict(list)
 	for dir_, _, files in os.walk(folder_path):
            temp_dict.setdefault(os.path.relpath(dir_,folder_path), []).append(os.stat(dir_))
 	   for file_name in files:
