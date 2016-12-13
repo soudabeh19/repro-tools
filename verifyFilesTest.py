@@ -28,6 +28,7 @@ class VerifyFilesTestCase(unittest.TestCase):
       inner_temp_dir = tempfile.mkdtemp(dir=inner_dir)
       inner_file1 = open(os.path.join(inner_temp_dir, 'inner_file.txt'), 'w')
       inner_file1.write('The owls are silent')
+   
    @classmethod
    def tearDownClass(self):
       shutil.rmtree(self.test_dir)
@@ -51,25 +52,16 @@ class VerifyFilesTestCase(unittest.TestCase):
       self.assertEqual(directory_list,read_file_content)
 
 
-   def test_list_files_and_dirs(self):
-      tmp_list_files_and_dirs=[]
+   def test_get_dict_with_file_and_dir_attributes(self):
+      temp_dict=defaultdict(list)
       try:
-	 tmp_list_files_and_dirs.append('.')
-	 tmp_list_files_and_dirs.append('./dummy_text.txt')
-	 tmp_list_files_and_dirs.append('./dummy1_text.txt')
-	 list_files_and_dirs=verifyFiles.list_files_and_dirs(self.test_dir)
+	 temp_dict.setdefault('./dummy1_text.txt',[]).append(os.stat(os.path.join(self.test_dir,'dummy1_text.txt')))
+         temp_dict.setdefault('./dummy_text.txt',[]).append(os.stat(os.path.join(self.test_dir,'dummy_text.txt')))
+         temp_dict.setdefault('.',[]).append(os.stat(os.path.join(self.test_dir,'.')))
+	 ordered_dict_from_script=verifyFiles.get_dict_with_file_and_dir_attributes(self.test_dir)
       except IOError as e:
          print 'IOError'
-      self.assertEqual(tmp_list_files_and_dirs,list_files_and_dirs)
-
-   def test_retrieve_file_attributes(self):
-       list_files_and_dirs=verifyFiles.list_files_and_dirs(self.test_dir)
-       temp_dict=OrderedDict(defaultdict(list))
-       for rel_path in list_files_and_dirs:
-          dir_details=os.stat(os.path.join(self.test_dir,rel_path))
-          temp_dict.setdefault(rel_path, []).append(dir_details)
-       dict_from_script=verifyFiles.retrieve_file_attributes(list_files_and_dirs,self.test_dir)
-       self.assertEqual(dict_from_script,temp_dict)
+      self.assertEqual(ordered_dict_from_script,OrderedDict(temp_dict))
   
   #def test_retrieve_file_attributes
 
