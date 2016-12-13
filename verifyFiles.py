@@ -54,7 +54,7 @@ def populate_study_folder_dict(file_path):
 	study_folders_list=read_contents_from_file(file_path)
 	for folder in study_folders_list:
            temp_study_folder_dict=OrderedDict()
-	   temp_study_folder_dict[folder]=get_dict_with_file_and_dir_attributes(folder_path)
+	   temp_study_folder_dict[folder]=get_dict_with_file_and_dir_attributes(folder)
 	   list_of_dictionaries_based_on_conditions.append(temp_study_folder_dict)
 	return list_of_dictionaries_based_on_conditions
 
