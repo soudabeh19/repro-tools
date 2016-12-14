@@ -31,32 +31,33 @@ import operator
 #The return type of the function is an ordered dictionary containing a list of dictionaries sorted on the 
 #basis of modification time(st_mtime) of the the file listed as the key value.
 #Input parameter : path_to_the_file_with_conditions_list
-def get_dict_with_file_and_dir_attributes(folder_path):
-	temp_dict=defaultdict(list)
-	for dir_, _, files in os.walk(folder_path):
-           temp_dict.setdefault(os.path.relpath(dir_,folder_path), []).append(os.stat(dir_))
-	   for file_name in files:
-              rel_file=os.path.join(os.path.relpath(dir_,folder_path), file_name)
-	      temp_dict.setdefault(rel_file, []).append(os.stat(os.path.join(dir_,file_name)))
-	return OrderedDict(sorted(temp_dict.items(), key=lambda t:t[1][0].st_mtime))
-	      
+def get_condition_dict(condition_name):
+        condition_dict=OrderedDict()
+	for subject_dir in os.listdir(condition_name):
+                if os.path.isdir(os.path.join(condition_name,subject_dir)):
+                        subject_dict=OrderedDict()
+                        for root,dirs,files in os.walk(os.path.join(condition_name,subject_dir)):
+	                        for file_name in files:
+                                        abs_file_path=os.path.join(root,file_name)
+                                        rel_path=abs_file_path.replace(root,condition_name+"/"+file_name)
+	                                subject_dict[rel_path]=1#os.stat(abs_file_path)
+                                        
+                        condition_dict[subject_dir]=subject_dict
+                else:
+                  print os.path.join(condition_name,subject_dir),"is not a directory"
+        return condition_dict
 	
-
-
 #Method populate_study_folder_dict will store the details regarding each subject 
 #folder in an ordered python dictionary. 
 #
 #Key : Folder or file name , Value : dictionary with details of the key value
-def populate_study_folder_dict(file_path):
-	list_of_dictionaries_based_on_conditions=[]
+def populate_study_folder_dict(condition_names):
+	conditions_dict=OrderedDict()
 	#study_folders_list : List contains path to the folders contianing 
 	#the study folders based on each condition and os
-	study_folders_list=read_contents_from_file(file_path)
-	for folder in study_folders_list:
-           temp_study_folder_dict=OrderedDict()
-	   temp_study_folder_dict[folder]=get_dict_with_file_and_dir_attributes(folder)
-	   list_of_dictionaries_based_on_conditions.append(temp_study_folder_dict)
-	return list_of_dictionaries_based_on_conditions
+	for condition in condition_names:
+	   conditions_dict[condition]=get_condition_dict(condition)
+	return conditions_dict
 
 #read_contents_from_file method is used to read the directory path containing the subject folders
 #
@@ -108,19 +109,18 @@ def directory_hash(hasher, dir_path):
 #different dictionaries corresponding to the conditions in which it was created
 #
 #Input parameters: dictionary with details of files in each study folder , conditions_list
-def generate_common_files_list(study_folder_details_dict_list,conditions_list):
+def generate_common_files_list(conditions_dict):
 	common_files_list=[]
-	conditions_list=list(set().union(*(study_folder_details_dict.keys() for study_folder_details_dict in study_folder_details_dict_list)))
-	index=0
 	common_set=set()
 	#reference_dict is the dictionary which we take as a reference for ordering the list according 
 	#to the modification time. From the list the dictionary according to condition S1C1 is by default taken as reference.
-	reference_dict=study_folder_details_dict_list[index]
+        conditions=conditions_dict.keys()
+	reference_dict=conditions_dict[conditions[0]]
 	#reference_set is the set with the list of keys present in the reference dictionary. The keys here will
 	#be the absolute file name eg:"100307/T1w/T1w_acpc_dc.nii.gz"
 	reference_set=set(reference_dict[conditions_list[0]].keys())
         common_set=reference_set
-	for condition_dict in study_folder_details_dict_list:
+	for condition_dict in conditions_list:
               dictionary=condition_dict[conditions_list[index]]
 	      keys_from_each_dictionary=set(dictionary.keys())
 	      common_set=common_set & keys_from_each_dictionary
@@ -148,6 +148,17 @@ def generate_missing_files_list(study_folder_details_dict_list,conditions_list,c
 	missing_files_list=list(keys_from_all_files - set(common_files_list))
 	return missing_files_list
 	     
+
+def check_file_differences(conditions_list,common_files,study_folder_details_dict_list):
+        # For each pair of conditions C1 and C1
+        product = ((i,j) for i in conditions_list for j in conditions_list)
+        for c, d in product:
+                if c < d:
+                        print "Comparing the following conditions: ",c,d
+                        for file in common_files:
+                                print "Testing file: ",file
+                                print study_folder_details_dict_list[c][file]
+
 
 def main():
         parser=argparse.ArgumentParser(description='verifyFiles.py', usage='./verifyFiles.py <input_file_name>',formatter_class=argparse.RawTextHelpFormatter)
@@ -181,15 +192,18 @@ def main():
         #is a key and subject folder details are its conditions.
 	study_folder_details_dict_list=[]
 	file_with_conditions_list=sys.argv[1]
-        study_folder_details_dict_list=populate_study_folder_dict(file_with_conditions_list)
-        conditions_list=list(set().union(*(study_folder_details_dict.keys() for study_folder_details_dict in study_folder_details_dict_list)))
-        common_files=generate_common_files_list(study_folder_details_dict_list,conditions_list)
-	missing_files=generate_missing_files_list(study_folder_details_dict_list,conditions_list,common_files)
+        conditions_list=read_contents_from_file(file_with_conditions_list)
+        conditions_dict=populate_study_folder_dict(conditions_list)
+        print conditions_dict
+#        common_files=generate_common_files_list(conditions_dict)
+#	missing_files=generate_missing_files_list(study_folder_details_dict_list,conditions_list,common_files)
 	print "*******************Common Files**********************"
-	print common_files
+#	print common_files
         print "*******************Missing Files**********************"
-	print missing_files
+#	print missing_files
 	#print study_folder_details_dict_list
-
+        print "*******************Condition pairs**********************"
+        check_file_differences(conditions_list,common_files,study_folder_details_dict_list)
+        
 if __name__=='__main__':
 	main()
