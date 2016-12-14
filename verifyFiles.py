@@ -23,7 +23,6 @@ import subprocess
 import argparse,textwrap
 import hashlib
 from collections import defaultdict,OrderedDict
-import operator
 
 #get_dict_with_file_and_dir_attributes reads the files and directories inside each directory recursively.
 #It collects the details like size, modificaiton time, access time etc.
@@ -47,13 +46,13 @@ def get_dict_with_file_and_dir_attributes(conditions_dir_path,folder_name):
 #folder in an ordered python dictionary. 
 #
 #Key : Folder or file name , Value : dictionary with details of the key value
-def populate_study_folder_dict(file_path):
+def populate_study_folder_dict(conditions_list,conditions_dir_path):
 	list_of_dictionaries_based_on_conditions=[]
 	#study_folders_list : List contains path to the folders contianing 
 	#the study folders based on each condition and os
-	study_folders_list=read_contents_from_file(file_path)
-        conditions_dir_path=os.path.dirname(file_path)
-	for folder_name in study_folders_list:
+	#study_folders_list=read_contents_from_file(file_path)
+        #conditions_dir_path=os.path.dirname(file_path)
+	for folder_name in conditions_list:
            temp_study_folder_dict=OrderedDict()
 	   temp_study_folder_dict[folder_name]=get_dict_with_file_and_dir_attributes(conditions_dir_path,folder_name)
 	   list_of_dictionaries_based_on_conditions.append(temp_study_folder_dict)
@@ -64,12 +63,8 @@ def populate_study_folder_dict(file_path):
 #Input parameter: file containing directory paths as its content
 def read_contents_from_file(file_with_dir_details): 
 # Open the file for reading.
-	print os.path.abspath(file_with_dir_details)
-	print "***dirname***"
-	print os.path.dirname(file_with_dir_details)
 	with open(file_with_dir_details, 'r') as infile:
 	   data=infile.read()  # Read the contents of the file into memory.
-           print data
 	   #Return a list of the lines, breaking at line boundaries.
 	   directory_list=data.splitlines()
 	return directory_list
@@ -115,7 +110,6 @@ def directory_hash(hasher, dir_path):
 #Input parameters: dictionary with details of files in each study folder , conditions_list
 def generate_common_files_list(study_folder_details_dict_list,conditions_list):
 	common_files_list=[]
-	conditions_list=list(set().union(*(study_folder_details_dict.keys() for study_folder_details_dict in study_folder_details_dict_list)))
 	index=0
 	common_set=set()
 	#reference_dict is the dictionary which we take as a reference for ordering the list according 
@@ -186,17 +180,18 @@ def main():
         #is a key and subject folder details are its conditions.
 	study_folder_details_dict_list=[]
 	file_with_conditions_list=sys.argv[1]
-        study_folder_details_dict_list=populate_study_folder_dict(file_with_conditions_list)
-        conditions_list=list(set().union(*(study_folder_details_dict.keys() for study_folder_details_dict in study_folder_details_dict_list)))
-	print "conditions"
-	print conditions_list
-        #common_files=generate_common_files_list(study_folder_details_dict_list,conditions_list)
-	#missing_files=generate_missing_files_list(study_folder_details_dict_list,conditions_list,common_files)
-	#print "*******************Common Files**********************"
-	#print common_files
-        #print "*******************Missing Files**********************"
-	#print missing_files
-	print study_folder_details_dict_list
+        #conditions_list : List contains path to the folders contianing 
+        #the study folders based on each condition and os
+        conditions_list=read_contents_from_file(file_with_conditions_list)
+        conditions_dir_path=os.path.dirname(file_with_conditions_list)
+        study_folder_details_dict_list=populate_study_folder_dict(conditions_list,conditions_dir_path)
+        common_files=generate_common_files_list(study_folder_details_dict_list,conditions_list)
+	missing_files=generate_missing_files_list(study_folder_details_dict_list,conditions_list,common_files)
+	print "*******************Common Files**********************"
+	print common_files
+        print "*******************Missing Files**********************"
+	print missing_files
+	#print study_folder_details_dict_list
 
 if __name__=='__main__':
 	main()
