@@ -173,8 +173,11 @@ def pretty_string(diff_dict,conditions_dict):
         output_string+=comparison+"\t"
     output_string+="\n"
     # Next lines
-    for path in path_list:
-        output_string+=path+"\t"
+    for path in sorted(path_list):
+        output_string+=path
+        for i in range(1,max_path_name_length-len(path)):
+            output_string+=" "
+        output_string+="\t"
         for comparison in diff_dict.keys():
             for i in range(1,max_comparison_key_length/2):
                 output_string+=" "
@@ -217,10 +220,13 @@ def main():
 	conditions_file_name=sys.argv[1]
         conditions_list=read_contents_from_file(conditions_file_name)
         root_dir=os.path.dirname(os.path.abspath(conditions_file_name))
+        print "."
         conditions_dict=get_conditions_dict(conditions_list,root_dir)
+        print "."
         common_paths=common_paths_list(conditions_dict)
-        print "*******************Number of Differences across Subjects**********************"
+        print "."
         diff=n_differences_across_subjects(conditions_dict,common_paths,root_dir)
+        print "."
         print pretty_string(diff,conditions_dict)
 
 if __name__=='__main__':
