@@ -147,32 +147,41 @@ def n_differences_across_subjects(conditions_dict,common_paths,root_dir):
 
 # Returns a string containing a 'pretty' matrix representation of the
 # dictionary returned by n_differences_across_subjects
-def pretty_string(diff_dict):
+def pretty_string(diff_dict,conditions_dict):
     output_string=""
     max_comparison_key_length=0
+    max_path_name_length=0
+    first=True
+    path_list=[]
+    first_condition=conditions_dict[conditions_dict.keys()[0]]
+    first_subject=first_condition[first_condition.keys()[0]]
     for comparison in diff_dict.keys():
         l = len(comparison)
         if l > max_comparison_key_length:
             max_comparison_key_length=l
-    first=True
-    max_path_name_length=0
-    for comparison in diff_dict.keys():
         if first:
-            for i in range(1,max_comparison_key_length):
-                output_string+=" "
-            output_string+=" \t"
             for path in diff_dict[comparison].keys():
-                output_string+=path+"\t"
+                path_list.append(path)
                 if len(path) > max_path_name_length:
-                        max_path_name_length = len(path)
-            output_string+="\n"
+                    max_path_name_length = len(path)
             first=False
+    # First line
+    for i in range(1,max_path_name_length):
+        output_string+=" "
+    output_string+="\t"
+    for comparison in diff_dict.keys():
         output_string+=comparison+"\t"
-        for path in diff_dict[comparison].keys():
+    output_string+="\n"
+    # Next lines
+    for path in path_list:
+        output_string+=path+"\t"
+        for comparison in diff_dict.keys():
+            for i in range(1,max_comparison_key_length/2):
+                output_string+=" "
             value=str(diff_dict[comparison][path])
             output_string+=value
-            for i in range(1,max_path_name_length-len(value)):
-              output_string+=" "
+            for i in range(1,max_comparison_key_length/2+1):
+                output_string+=" "
             output_string+="\t"
         output_string+="\n"
     return output_string
@@ -209,12 +218,10 @@ def main():
         conditions_list=read_contents_from_file(conditions_file_name)
         root_dir=os.path.dirname(os.path.abspath(conditions_file_name))
         conditions_dict=get_conditions_dict(conditions_list,root_dir)
-	print "*******************Common Paths**********************"
         common_paths=common_paths_list(conditions_dict)
-	print common_paths
         print "*******************Number of Differences across Subjects**********************"
         diff=n_differences_across_subjects(conditions_dict,common_paths,root_dir)
-        print pretty_string(diff)
+        print pretty_string(diff,conditions_dict)
 
 if __name__=='__main__':
 	main()
