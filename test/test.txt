@@ -1,2 +1,3 @@
-/home/glatard/code/repro-tools/test/condition1
-/home/glatard/code/repro-tools/test/condition2
+condition1
+condition2
+condition3
