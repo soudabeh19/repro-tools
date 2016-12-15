@@ -41,7 +41,7 @@ def get_condition_dict(condition_dir):
         if os.path.isdir(subject_dir_path):
             condition_dict[subject_name]=get_dir_dict(subject_dir_path)
     return condition_dict
-	
+
 # Returns a dictionary where the keys are the names in
 # 'condition_names' and the values are the corresponding condition
 # dictionaries (as returned by get_condition_dict)
@@ -55,7 +55,7 @@ def get_conditions_dict(condition_names,root_dir):
 def read_contents_from_file(file_name): 
     with open(file_name, 'r') as infile:
         data=infile.read()  
-	directory_list=data.splitlines()
+        directory_list=data.splitlines()
     return directory_list
 
 # Returns the checksum of path 'path_name'
@@ -145,6 +145,38 @@ def n_differences_across_subjects(conditions_dict,common_paths,root_dir):
                             diff[key][file_name]+=1
     return diff
 
+# Returns a string containing a 'pretty' matrix representation of the
+# dictionary returned by n_differences_across_subjects
+def pretty_string(diff_dict):
+    output_string=""
+    max_comparison_key_length=0
+    for comparison in diff_dict.keys():
+        l = len(comparison)
+        if l > max_comparison_key_length:
+            max_comparison_key_length=l
+    first=True
+    max_path_name_length=0
+    for comparison in diff_dict.keys():
+        if first:
+            for i in range(1,max_comparison_key_length):
+                output_string+=" "
+            output_string+=" \t"
+            for path in diff_dict[comparison].keys():
+                output_string+=path+"\t"
+                if len(path) > max_path_name_length:
+                        max_path_name_length = len(path)
+            output_string+="\n"
+            first=False
+        output_string+=comparison+"\t"
+        for path in diff_dict[comparison].keys():
+            value=str(diff_dict[comparison][path])
+            output_string+=value
+            for i in range(1,max_path_name_length-len(value)):
+              output_string+=" "
+            output_string+="\t"
+        output_string+="\n"
+    return output_string
+
 
 def main():
         parser=argparse.ArgumentParser(description='verifyFiles.py', usage='./verifyFiles.py <input_file_name>',formatter_class=argparse.RawTextHelpFormatter)
@@ -182,7 +214,7 @@ def main():
 	print common_paths
         print "*******************Number of Differences across Subjects**********************"
         diff=n_differences_across_subjects(conditions_dict,common_paths,root_dir)
-        print diff
-        
+        print pretty_string(diff)
+
 if __name__=='__main__':
 	main()
