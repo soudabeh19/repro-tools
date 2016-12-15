@@ -161,7 +161,7 @@ def pretty_string(diff_dict,conditions_dict):
             max_comparison_key_length=l
         if first:
             for path in diff_dict[comparison].keys():
-                path_list.append(path)
+                path_list.append({'name': path, 'mtime': first_subject[path].st_mtime})
                 if len(path) > max_path_name_length:
                     max_path_name_length = len(path)
             first=False
@@ -173,7 +173,9 @@ def pretty_string(diff_dict,conditions_dict):
         output_string+=comparison+"\t"
     output_string+="\n"
     # Next lines
-    for path in sorted(path_list):
+    path_list.sort(key=lambda x: x['mtime']) # the sort key (name or mtime) could be a parameter
+    for path_dict in path_list:
+        path=path_dict['name']
         output_string+=path
         for i in range(1,max_path_name_length-len(path)):
             output_string+=" "
