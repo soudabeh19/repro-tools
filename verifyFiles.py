@@ -12,6 +12,7 @@ import subprocess
 import argparse,textwrap
 import hashlib
 import operator
+import logging
 
 # Returns a dictionary where the keys are the paths in 'directory'
 # (relative to 'directory') and the values are the os.stat objects
@@ -141,7 +142,8 @@ def n_differences_across_subjects(conditions_dict,common_paths,root_dir):
                         # File sizes are identical: compute the checksums
                         abs_path_c=os.path.join(root_dir,c,subject,file_name)
                         abs_path_d=os.path.join(root_dir,d,subject,file_name)
-                        if checksum(abs_path_c) != checksum(abs_path_d):
+                        if checksum(abs_path_c) != checksum(abs_path_d): # TODO:when they are multiple conditions, we will compute checksums multiple times.
+                                                                         # We should avoid that.
                             diff[key][file_name]+=1
     return diff
 
@@ -191,6 +193,9 @@ def pretty_string(diff_dict,conditions_dict):
         output_string+="\n"
     return output_string
 
+# Prints a formatted log. There must be a better way of doing that in Python
+def log(message):
+    logging.info(message)
 
 def main():
         parser=argparse.ArgumentParser(description='verifyFiles.py', usage='./verifyFiles.py <input_file_name>',formatter_class=argparse.RawTextHelpFormatter)
@@ -219,16 +224,17 @@ def main():
                                              /home/$(USER)/CentOS7.FSL5.0.6
                                              Each directory will contain subject folders like 100307,100308 etc'''))
         args=parser.parse_args()
+        logging.basicConfig(level=logging.INFO,format='%(asctime)s %(message)s')
 	conditions_file_name=sys.argv[1]
         conditions_list=read_contents_from_file(conditions_file_name)
         root_dir=os.path.dirname(os.path.abspath(conditions_file_name))
-        print "."
+        log("Walking through files...")
         conditions_dict=get_conditions_dict(conditions_list,root_dir)
-        print "."
+        log("Finding common files across conditions and subjects...")
         common_paths=common_paths_list(conditions_dict)
-        print "."
+        log("Computing differences across subjects...")
         diff=n_differences_across_subjects(conditions_dict,common_paths,root_dir)
-        print "."
+        log("Pretty printing...")
         print pretty_string(diff,conditions_dict)
 
 if __name__=='__main__':
