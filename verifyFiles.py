@@ -1,4 +1,6 @@
-.py
+#!/usr/bin/env python
+
+# #verifyFiles.py
 #
 # Script to check whether the output files generated across 
 # subject folders in different conditions are the same or not.
