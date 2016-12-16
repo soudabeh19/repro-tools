@@ -1,20 +1,7 @@
-#!/usr/bin/env python
-
-# #verifyFiles.py
+.py
 #
-#Script to check whether the output files generated across 
-#subject folders in different conditions are the same or not.
-#The conditions on which the script will check the match between two files are 
-#filename, size, content, modification time, distance etc.
-#
-#
-#
-#
-# ##Maintainters
-#
-# * Big Data Lab Team, Concordia University.
-# * email : tristan.glatard@concordia.ca, laletscaria@yahoo.co.in
-#
+# Script to check whether the output files generated across 
+# subject folders in different conditions are the same or not.
 #
 
 import os
@@ -22,131 +9,191 @@ import sys
 import subprocess
 import argparse,textwrap
 import hashlib
-from collections import defaultdict,OrderedDict
+import operator
+import logging
 
-#get_dict_with_file_and_dir_attributes reads the files and directories inside each directory recursively.
-#It collects the details like size, modificaiton time, access time etc.
-#These details are saved as a value and each relative file or directory name is used as the key value. 
-#The return type of the function is an ordered dictionary containing a list of dictionaries sorted on the 
-#basis of modification time(st_mtime) of the the file listed as the key value.
-#Input parameter : path_to_the_file_with_conditions_list
-def get_dict_with_file_and_dir_attributes(conditions_dir_path,folder_name):
-	temp_dict=defaultdict(list)
-	for dir_, _, files in os.walk(os.path.join(conditions_dir_path,folder_name)):
-           temp_dict.setdefault(os.path.relpath(dir_,os.path.join(conditions_dir_path,folder_name)), []).append(os.stat(dir_))
-	   for file_name in files:
-              rel_file=os.path.join(os.path.relpath(dir_,os.path.join(conditions_dir_path,folder_name)), file_name)
-	      temp_dict.setdefault(rel_file, []).append(os.stat(os.path.join(dir_,file_name)))
-	return OrderedDict(sorted(temp_dict.items(), key=lambda t:t[1][0].st_mtime))
-	      
-	
+# Returns a dictionary where the keys are the paths in 'directory'
+# (relative to 'directory') and the values are the os.stat objects
+# associated with these paths. By convention, keys representing
+# directories have a trailing '/'.
+def get_dir_dict(directory): 
+    result_dict={}
+    result_dict['./']=os.stat(directory)
+    for root,dirs,files in os.walk(directory):
+        for file_name in files:
+            abs_file_path=os.path.join(root,file_name)
+            rel_path=abs_file_path.replace(os.path.join(directory+"/"),"")
+            result_dict[rel_path]=os.stat(abs_file_path)
+        for dir_name in dirs:
+            abs_path=os.path.join(root,dir_name)
+            rel_path=abs_path.replace(os.path.join(directory+"/"),"")+"/"
+            result_dict[rel_path]=os.stat(abs_path)
+    return result_dict
 
+# Returns a dictionary where the keys are the directories in
+# 'condition_dir' and the values are the directory dictionaries (as
+# returned by get_dir_dict) associated to these directories.
+def get_condition_dict(condition_dir):
+    condition_dict={}
+    for subject_name in os.listdir(condition_dir):
+        subject_dir_path=os.path.join(condition_dir,subject_name)
+        if os.path.isdir(subject_dir_path):
+            condition_dict[subject_name]=get_dir_dict(subject_dir_path)
+    return condition_dict
 
-#Method populate_study_folder_dict will store the details regarding each subject 
-#folder in an ordered python dictionary. 
-#
-#Key : Folder or file name , Value : dictionary with details of the key value
-def populate_study_folder_dict(conditions_list,conditions_dir_path):
-	list_of_dictionaries_based_on_conditions=[]
-	#study_folders_list : List contains path to the folders contianing 
-	#the study folders based on each condition and os
-	#study_folders_list=read_contents_from_file(file_path)
-        #conditions_dir_path=os.path.dirname(file_path)
-	for folder_name in conditions_list:
-           temp_study_folder_dict=OrderedDict()
-	   temp_study_folder_dict[folder_name]=get_dict_with_file_and_dir_attributes(conditions_dir_path,folder_name)
-	   list_of_dictionaries_based_on_conditions.append(temp_study_folder_dict)
-	return list_of_dictionaries_based_on_conditions
+# Returns a dictionary where the keys are the names in
+# 'condition_names' and the values are the corresponding condition
+# dictionaries (as returned by get_condition_dict)
+def get_conditions_dict(condition_names,root_dir):
+    conditions_dict={}
+    for condition in condition_names:
+        conditions_dict[condition]=get_condition_dict(os.path.join(root_dir,condition))
+    return conditions_dict
 
-#read_contents_from_file method is used to read the directory path containing the subject folders
-#
-#Input parameter: file containing directory paths as its content
-def read_contents_from_file(file_with_dir_details): 
-# Open the file for reading.
-	with open(file_with_dir_details, 'r') as infile:
-	   data=infile.read()  # Read the contents of the file into memory.
-	   #Return a list of the lines, breaking at line boundaries.
-	   directory_list=data.splitlines()
-	return directory_list
+# Returns a list where each element is a line in 'file_name'
+def read_contents_from_file(file_name): 
+    with open(file_name, 'r') as infile:
+        data=infile.read()  
+        directory_list=data.splitlines()
+    return directory_list
 
-#Method generate_checksum is used for generating checksum of individual files and directories
-#present in each subject folder
-#
-#Input parameters: root directory path , individual file name
-def generate_checksum(root_dir, file_name):
-        hasher=hashlib.md5()
-        if os.path.isfile(os.path.join(root_dir, file_name)):
-            md5_sum=file_hash(hasher,os.path.join(root_dir, file_name))
-	elif os.path.isdir(os.path.join(root_dir, file_name)):
-            md5_sum=directory_hash(hasher,os.path.join(root_dir, file_name))
-	return md5_sum
+# Returns the checksum of path 'path_name'
+def checksum(path_name):
+    hasher=hashlib.md5()
+    if os.path.isfile(path_name):
+        md5_sum=file_hash(hasher,path_name)
+    elif os.path.isdir(path_name):
+        md5_sum=directory_hash(hasher,path_name)
+    return md5_sum
 
-#Method file_hash is used for generating md5 checksum of a file 
-#
-#Input parameters: file name and hasher
+# Method file_hash is used for generating md5 checksum of a file 
+# Input parameters: file name and hasher
 def file_hash(hasher,file_name):
     file_content=open(file_name)
     while True:
         read_buffer=file_content.read(2**20)
         if len(read_buffer)==0: 
-	   break
+            break
         hasher.update(read_buffer)
     file_content.close()
     return hasher.hexdigest()
 
-#Method directory_hash collects the directory and file names from the directory given as input.
-#Checksum is created on the basis of filenames and directories present in the file input directory.
-#
-#Input parameters: hashed content , path 
+# Method directory_hash collects the directory and file names from the directory given as input.
+# Checksum is created on the basis of filenames and directories present in the file input directory.
+# #Input parameters: hashed content , path 
 def directory_hash(hasher, dir_path):
     if os.path.isdir(dir_path):
         for entry in sorted(os.listdir(dir_path)):
             hasher.update(entry)
     return hasher.hexdigest()
 
-#Method generate_common_files_list will create a list containing the common elements from the 
-#different dictionaries corresponding to the conditions in which it was created
-#
-#Input parameters: dictionary with details of files in each study folder , conditions_list
-def generate_common_files_list(study_folder_details_dict_list,conditions_list):
-	common_files_list=[]
-	index=0
-	common_set=set()
-	#reference_dict is the dictionary which we take as a reference for ordering the list according 
-	#to the modification time. From the list the dictionary according to condition S1C1 is by default taken as reference.
-	reference_dict=study_folder_details_dict_list[index]
-	#reference_set is the set with the list of keys present in the reference dictionary. The keys here will
-	#be the absolute file name eg:"100307/T1w/T1w_acpc_dc.nii.gz"
-	reference_set=set(reference_dict[conditions_list[0]].keys())
-        common_set=reference_set
-	for condition_dict in study_folder_details_dict_list:
-              dictionary=condition_dict[conditions_list[index]]
-	      keys_from_each_dictionary=set(dictionary.keys())
-	      common_set=common_set & keys_from_each_dictionary
-	      index+=1
-	#The union of all the files present in all the folders under different conditions
-	common_files_list=list(common_set)
-    	return common_files_list
+# Returns True if and only if 'path_name' is present in all subjects
+# of all conditions in 'conditions_dict'. 'conditions_dict' is the
+# dictionary returned by 'get_conditions_dict'.
+def is_common_path(conditions_dict,path_name):
+    for condition in conditions_dict.keys():
+        for subject in conditions_dict[condition].keys():
+            if not path_name in conditions_dict[condition][subject].keys():
+                return False
+    return True
+              
+# Returns a list of path names that are present in all subjects of all
+# conditions in 'conditions_dict'. 'conditions_dict' is the dictionary
+# returned by 'get_conditions_dict'.
+def common_paths_list(conditions_dict):
+    common_paths=[]
+    # Iterate over the files in the first subject of the first condition
+    first_condition=conditions_dict.keys()[0]
+    first_subject=conditions_dict[first_condition].keys()[0]
+    for path_name in conditions_dict[first_condition][first_subject].keys():
+        if is_common_path(conditions_dict,path_name):
+            # Note: in is_common_path we also check if the
+            # path is in the first subject of the first
+            # condition while this is not necessary
+            common_paths.append(path_name)
+    return common_paths
 
-#Method generate_missing_files will create a list containing the files 
-#that are not common to all the subject folders processed under various conditions. 
-#
-#Input parameters: study_folder_details_dict_list,conditions_list and common_files_list
-def generate_missing_files_list(study_folder_details_dict_list,conditions_list,common_files_list):
-	missing_files_list=[]
-	index=0;
-	keys_from_all_files=set()
-	for condition_dict in study_folder_details_dict_list:
-	     dictionary=condition_dict[conditions_list[index]]
-	     keys_from_individual_files=set(dictionary.keys())
-             #set union(|) to join all the values between a set of keys 
-	     keys_from_all_files=keys_from_all_files | keys_from_individual_files
-	     index+=1
-	#Missing files list is the files remaining when the common list of files is removed from the list of all the
-	#files processed under different conditions.
-	missing_files_list=list(keys_from_all_files - set(common_files_list))
-	return missing_files_list
-	     
+# Returns a dictionary where the keys identifies two conditions
+# (e.g. "condition1 vs condition2") and the values are dictionaries
+# where the keys are path names common to these two conditions and the
+# values are the number of times that this path differs among all
+# subjects of the two conditions.
+# For instance:
+#  {'condition1 vs condition2': {'c/c.txt': 0, 'a.txt': 2}}
+#  means that 'c/c.txt' is identical for all subjects in conditions condition1 and condition2 while 'a.txt' differs in two subjects.
+def n_differences_across_subjects(conditions_dict,common_paths,root_dir):
+    # For each pair of conditions C1 and C1
+    product = ((i,j) for i in conditions_dict.keys() for j in conditions_dict.keys())
+    diff={} # Will be the return value
+    # Go through all pairs of conditions
+    for c, d in product:
+        if c < d: # Makes sure that pairs are not ordered, i.e. {a,b} and {b,a} are the same
+            key=c+" vs "+d
+            diff[key]={}
+            for file_name in common_paths:
+                diff[key][file_name]=0
+                for subject in conditions_dict[c].keys():
+                # Here we assume that both conditions will have the same set of subjects
+                    if(conditions_dict[c][subject][file_name].st_size != conditions_dict[d][subject][file_name].st_size):
+                        diff[key][file_name]+=1
+                    else:
+                        # File sizes are identical: compute the checksums
+                        abs_path_c=os.path.join(root_dir,c,subject,file_name)
+                        abs_path_d=os.path.join(root_dir,d,subject,file_name)
+                        if checksum(abs_path_c) != checksum(abs_path_d): # TODO:when they are multiple conditions, we will compute checksums multiple times.
+                                                                         # We should avoid that.
+                            diff[key][file_name]+=1
+    return diff
+
+# Returns a string containing a 'pretty' matrix representation of the
+# dictionary returned by n_differences_across_subjects
+def pretty_string(diff_dict,conditions_dict):
+    output_string=""
+    max_comparison_key_length=0
+    max_path_name_length=0
+    first=True
+    path_list=[]
+    first_condition=conditions_dict[conditions_dict.keys()[0]]
+    first_subject=first_condition[first_condition.keys()[0]]
+    for comparison in diff_dict.keys():
+        l = len(comparison)
+        if l > max_comparison_key_length:
+            max_comparison_key_length=l
+        if first:
+            for path in diff_dict[comparison].keys():
+                path_list.append({'name': path, 'mtime': first_subject[path].st_mtime})
+                if len(path) > max_path_name_length:
+                    max_path_name_length = len(path)
+            first=False
+    # First line
+    for i in range(1,max_path_name_length):
+        output_string+=" "
+    output_string+="\t"
+    for comparison in diff_dict.keys():
+        output_string+=comparison+"\t"
+    output_string+="\n"
+    # Next lines
+    path_list.sort(key=lambda x: x['mtime']) # the sort key (name or mtime) could be a parameter
+    for path_dict in path_list:
+        path=path_dict['name']
+        output_string+=path
+        for i in range(1,max_path_name_length-len(path)):
+            output_string+=" "
+        output_string+="\t"
+        for comparison in diff_dict.keys():
+            for i in range(1,max_comparison_key_length/2):
+                output_string+=" "
+            value=str(diff_dict[comparison][path])
+            output_string+=value
+            for i in range(1,max_comparison_key_length/2+1):
+                output_string+=" "
+            output_string+="\t"
+        output_string+="\n"
+    return output_string
+
+# Prints a formatted log. There must be a better way of doing that in Python
+def log(message):
+    logging.info(message)
 
 def main():
         parser=argparse.ArgumentParser(description='verifyFiles.py', usage='./verifyFiles.py <input_file_name>',formatter_class=argparse.RawTextHelpFormatter)
@@ -175,23 +222,19 @@ def main():
                                              /home/$(USER)/CentOS7.FSL5.0.6
                                              Each directory will contain subject folders like 100307,100308 etc'''))
         args=parser.parse_args()
-        #study_folder_details_dict_list is a list for storing ordered dictionaries 
-	#containing the details regarding the files of  individual subjects. Each condition 
-        #is a key and subject folder details are its conditions.
-	study_folder_details_dict_list=[]
-	file_with_conditions_list=sys.argv[1]
-        #conditions_list : List contains path to the folders contianing 
-        #the study folders based on each condition and os
-        conditions_list=read_contents_from_file(file_with_conditions_list)
-        conditions_dir_path=os.path.dirname(file_with_conditions_list)
-        study_folder_details_dict_list=populate_study_folder_dict(conditions_list,conditions_dir_path)
-        common_files=generate_common_files_list(study_folder_details_dict_list,conditions_list)
-	missing_files=generate_missing_files_list(study_folder_details_dict_list,conditions_list,common_files)
-	print "*******************Common Files**********************"
-	print common_files
-        print "*******************Missing Files**********************"
-	print missing_files
-	#print study_folder_details_dict_list
+        logging.basicConfig(level=logging.INFO,format='%(asctime)s %(message)s')
+	conditions_file_name=sys.argv[1]
+        conditions_list=read_contents_from_file(conditions_file_name)
+        root_dir=os.path.dirname(os.path.abspath(conditions_file_name))
+        log("Walking through files...")
+        conditions_dict=get_conditions_dict(conditions_list,root_dir)
+        log("Finding common files across conditions and subjects...")
+        common_paths=common_paths_list(conditions_dict)
+        log("Computing differences across subjects...")
+        diff=n_differences_across_subjects(conditions_dict,common_paths,root_dir)
+        log("Pretty printing...")
+        print pretty_string(diff,conditions_dict)
 
 if __name__=='__main__':
 	main()
+
