@@ -96,7 +96,8 @@ def is_common_path(conditions_dict,path_name):
     for condition in conditions_dict.keys():
         for subject in conditions_dict[condition].keys():
             if not path_name in conditions_dict[condition][subject].keys():
-                return False
+                print "Under condition",condition, "folder", subject, "is missing the file" , path_name
+		return False
     return True
               
 # Returns a list of path names that are present in all subjects of all
@@ -137,14 +138,18 @@ def n_differences_across_subjects(conditions_dict,common_paths,root_dir):
                 for subject in conditions_dict[c].keys():
                 # Here we assume that both conditions will have the same set of subjects
                     if(conditions_dict[c][subject][file_name].st_size != conditions_dict[d][subject][file_name].st_size):
-                        diff[key][file_name]+=1
+                        #diff[key][file_name]["binary_content"]+=1
+			diff[key][file_name]+=1
                     else:
                         # File sizes are identical: compute the checksums
                         abs_path_c=os.path.join(root_dir,c,subject,file_name)
                         abs_path_d=os.path.join(root_dir,d,subject,file_name)
                         if checksum(abs_path_c) != checksum(abs_path_d): # TODO:when they are multiple conditions, we will compute checksums multiple times.
                                                                          # We should avoid that.
-                            diff[key][file_name]+=1
+                            #diff[key][file_name]["binary_content"]+=1
+			    diff[key][file_name]+=1
+                            # if there is a metric or more associated with this file name, compute it here.
+                            #diff[key][file_name][metric_name]+= # result of the metric execution
     return diff
 
 # Returns a string containing a 'pretty' matrix representation of the
