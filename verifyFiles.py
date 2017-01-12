@@ -211,10 +211,10 @@ def is_subject_folders_same(conditions_list,root_dir):
             if not are_equal(subject_folders_ref_list, subject_folders_list):
                missing_folder_list = list(set(subject_folders_ref_list) -  set(subject_folders_list))
                if len(missing_folder_list) != 0:
-                  print "Subject folder/(s) are not the same in all the conditions.",missing_folder_list,"is missing under condition",os.path.join(root_dir,conditions_list[0])
+                  print "Subject folder/(s) are not the same in all the conditions.",missing_folder_list,"is missing under condition",os.path.join(root_dir,condition)
                else:
                   missing_folder_list=list(set(subject_folders_list) -  set(subject_folders_ref_list))
-                  print "Subject folder/(s) are not the same in all the conditions.",missing_folder_list,"is missing under condition",os.path.join(root_dir,condition)
+                  print "Subject folder/(s) are not the same in all the conditions.",missing_folder_list,"is missing under condition",os.path.join(root_dir,conditions_list[0])
                sys.exit(1)
             
             
