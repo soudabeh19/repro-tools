@@ -260,13 +260,13 @@ def main():
         root_dir=os.path.dirname(os.path.abspath(conditions_file_name))
         log("Walking through files...")
         is_subject_folders_same(conditions_list,root_dir)
-        #conditions_dict=get_conditions_dict(conditions_list,root_dir)
+        conditions_dict=get_conditions_dict(conditions_list,root_dir)
         log("Finding common files across conditions and subjects...")
-        #common_paths=common_paths_list(conditions_dict)
+        common_paths=common_paths_list(conditions_dict)
         log("Computing differences across subjects...")
-        #diff=n_differences_across_subjects(conditions_dict,common_paths,root_dir)
+        diff=n_differences_across_subjects(conditions_dict,common_paths,root_dir)
         log("Pretty printing...")
-        #print pretty_string(diff,conditions_dict)
+        print pretty_string(diff,conditions_dict)
 
 if __name__=='__main__':
 	main()
