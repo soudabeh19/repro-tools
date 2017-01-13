@@ -253,7 +253,8 @@ def main():
                                              /home/$(USER)/CentOS6.FSL5.0.6
                                              /home/$(USER)/CentOS7.FSL5.0.6
                                              Each directory will contain subject folders like 100307,100308 etc'''))
-        parser.add_argument("-c", "--checksumfile",action="store_true",help="Reads checksum from files. Doesn't compute checksums locally") 
+        parser.add_argument("-c", "--checksumfile",action="store_true",help="Reads checksum from files. Doesn't compute checksums locally")
+	parser.add_argument("-d", "--fileDiff", help="Writes the difference matrix into a file") 
         args=parser.parse_args()
         logging.basicConfig(level=logging.INFO,format='%(asctime)s %(message)s')
 	conditions_file_name=sys.argv[1]
@@ -266,8 +267,13 @@ def main():
         common_paths=common_paths_list(conditions_dict)
         log("Computing differences across subjects...")
         diff=n_differences_across_subjects(conditions_dict,common_paths,root_dir)
-        log("Pretty printing...")
-        print pretty_string(diff,conditions_dict)
+	if args.fileDiff is not None:
+           diff_file = open(args.fileDiff,'w')
+	   diff_file.write(pretty_string(diff,conditions_dict))
+	   diff_file.close()
+        else:
+	   log("Pretty printing...")
+           print pretty_string(diff,conditions_dict)
 
 if __name__=='__main__':
 	main()
