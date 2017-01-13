@@ -228,8 +228,8 @@ def log(message):
     logging.info(message)
 
 def main():
-        parser=argparse.ArgumentParser(description='verifyFiles.py', usage='./verifyFiles.py <input_file_name>',formatter_class=argparse.RawTextHelpFormatter)
-        parser.add_argument('file_in', help= textwrap.dedent('''Input the text file containing the path to the subject folders
+        parser=argparse.ArgumentParser(description="verifyFiles.py", usage="./verifyFiles.py <input_file_name> [-c]",formatter_class=argparse.RawTextHelpFormatter)
+        parser.add_argument("file_in", help= textwrap.dedent('''Input the text file containing the path to the subject folders
                                              Each directory contains subject folders containing subject-specific and modality-specific data categorirzed into different
 					     subdirectories.
 					     Sample:
@@ -253,6 +253,7 @@ def main():
                                              /home/$(USER)/CentOS6.FSL5.0.6
                                              /home/$(USER)/CentOS7.FSL5.0.6
                                              Each directory will contain subject folders like 100307,100308 etc'''))
+        parser.add_argument("-c", "--checksumfile",action="store_true",help="Reads checksum from files. Doesn't compute checksums locally") 
         args=parser.parse_args()
         logging.basicConfig(level=logging.INFO,format='%(asctime)s %(message)s')
 	conditions_file_name=sys.argv[1]
