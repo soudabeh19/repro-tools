@@ -96,7 +96,8 @@ def is_common_path(conditions_dict,path_name):
     for condition in conditions_dict.keys():
         for subject in conditions_dict[condition].keys():
             if not path_name in conditions_dict[condition][subject].keys():
-                return False
+                log_error("File " + path_name  + " is missing in subject " + subject +  " of condition " + condition)
+		return False
     return True
               
 # Returns a list of path names that are present in all subjects of all
@@ -137,14 +138,18 @@ def n_differences_across_subjects(conditions_dict,common_paths,root_dir):
                 for subject in conditions_dict[c].keys():
                 # Here we assume that both conditions will have the same set of subjects
                     if(conditions_dict[c][subject][file_name].st_size != conditions_dict[d][subject][file_name].st_size):
-                        diff[key][file_name]+=1
+                        #diff[key][file_name]["binary_content"]+=1
+			diff[key][file_name]+=1
                     else:
                         # File sizes are identical: compute the checksums
                         abs_path_c=os.path.join(root_dir,c,subject,file_name)
                         abs_path_d=os.path.join(root_dir,d,subject,file_name)
                         if checksum(abs_path_c) != checksum(abs_path_d): # TODO:when they are multiple conditions, we will compute checksums multiple times.
                                                                          # We should avoid that.
-                            diff[key][file_name]+=1
+                            #diff[key][file_name]["binary_content"]+=1
+			    diff[key][file_name]+=1
+                            # if there is a metric or more associated with this file name, compute it here.
+                            #diff[key][file_name][metric_name]+= # result of the metric execution
     return diff
 
 # Returns a string containing a 'pretty' matrix representation of the
@@ -193,13 +198,35 @@ def pretty_string(diff_dict,conditions_dict):
         output_string+="\n"
     return output_string
 
+#Method is_subject_folders_same checks if the subject_folders under different conditions are the same. If not , it stops the execution of the script.
+def is_subject_folders_same(conditions_dict):
+    set_of_subjects=set()
+    for condition in conditions_dict.keys():
+	set_of_subjects.update(conditions_dict[condition].keys())
+	
+   # Iterate over each subject in every condition and stop the execution if some subject is missing
+    for subject in set_of_subjects:
+       for condition in conditions_dict.keys():
+          if not subject in conditions_dict[condition].keys():
+	     log_error("Subject: " + subject + " is missing under condition "+ condition )
+            
+            
+
+def are_equal(subject_list_ref, subject_list_under_condition):
+    return set(subject_list_ref) == set(subject_list_under_condition)       
+   
+
 # Prints a formatted log. There must be a better way of doing that in Python
-def log(message):
+def log_info(message):
     logging.info(message)
 
+def log_error(message):
+    logging.error("ERROR: " + message)
+    sys.exit(1)
+
 def main():
-        parser=argparse.ArgumentParser(description='verifyFiles.py', usage='./verifyFiles.py <input_file_name>',formatter_class=argparse.RawTextHelpFormatter)
-        parser.add_argument('file_in', help= textwrap.dedent('''Input the text file containing the path to the subject folders
+        parser=argparse.ArgumentParser(description="verifyFiles.py" ,formatter_class=argparse.RawTextHelpFormatter)
+        parser.add_argument("file_in", help= textwrap.dedent('''Input the text file containing the path to the subject folders
                                              Each directory contains subject folders containing subject-specific and modality-specific data categorirzed into different
 					     subdirectories.
 					     Sample:
@@ -223,19 +250,29 @@ def main():
                                              /home/$(USER)/CentOS6.FSL5.0.6
                                              /home/$(USER)/CentOS7.FSL5.0.6
                                              Each directory will contain subject folders like 100307,100308 etc'''))
+        parser.add_argument("-c", "--checksumfile",action="store_true",help="Reads checksum from files. Doesn't compute checksums locally")
+	parser.add_argument("-d", "--fileDiff", help="Writes the difference matrix into a file") 
         args=parser.parse_args()
         logging.basicConfig(level=logging.INFO,format='%(asctime)s %(message)s')
 	conditions_file_name=sys.argv[1]
         conditions_list=read_contents_from_file(conditions_file_name)
         root_dir=os.path.dirname(os.path.abspath(conditions_file_name))
-        log("Walking through files...")
+        log_info("Walking through files...")
         conditions_dict=get_conditions_dict(conditions_list,root_dir)
-        log("Finding common files across conditions and subjects...")
+        log_info("Checking if subject folders are missing in any condition")
+	is_subject_folders_same(conditions_dict)
+	log_info("Finding common files across conditions and subjects...")
         common_paths=common_paths_list(conditions_dict)
-        log("Computing differences across subjects...")
+        log_info("Computing differences across subjects...")
         diff=n_differences_across_subjects(conditions_dict,common_paths,root_dir)
-        log("Pretty printing...")
-        print pretty_string(diff,conditions_dict)
+	if args.fileDiff is not None:
+           diff_file = open(args.fileDiff,'w')
+	   diff_file.write(pretty_string(diff,conditions_dict))
+	   diff_file.close()
+        else:
+	   log_info("Pretty printing...")
+           print pretty_string(diff,conditions_dict)
 
 if __name__=='__main__':
 	main()
+
