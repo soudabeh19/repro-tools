@@ -9,10 +9,12 @@
 import os
 import sys
 import subprocess
+import commands
 import argparse,textwrap
 import hashlib
 import operator
 import logging
+import csv
 
 # Returns a dictionary where the keys are the paths in 'directory'
 # (relative to 'directory') and the values are the os.stat objects
@@ -53,11 +55,27 @@ def get_conditions_dict(condition_names,root_dir):
     return conditions_dict
 
 # Returns a list where each element is a line in 'file_name'
-def read_contents_from_file(file_name): 
+def read_conditions_file(file_name): 
     with open(file_name, 'r') as infile:
         data=infile.read()  
         directory_list=data.splitlines()
     return directory_list
+
+# Parses the metrics from the metrics file
+def read_metrics_file(file_name):
+    metrics = {}
+    if file_name is None:
+        return metrics
+    with open(file_name, 'r') as csvfile:
+        linereader = csv.reader(csvfile,delimiter=',')
+        for row in linereader:
+            metric = {}
+            metric['name']=row[0]
+            metric['extension']=row[1]
+            metric['command']=row[2]
+            metric['output_file']=row[3]
+            metrics[metric['name']]=metric
+    return metrics
 
 # Returns the checksum of path 'path_name'
 def checksum(path_name):
@@ -110,10 +128,11 @@ def check_files(conditions_dict):
 # For instance:
 #  {'condition1 vs condition2': {'c/c.txt': 0, 'a.txt': 2}}
 #  means that 'c/c.txt' is identical for all subjects in conditions condition1 and condition2 while 'a.txt' differs in two subjects.
-def n_differences_across_subjects(conditions_dict,root_dir):
+def n_differences_across_subjects(conditions_dict,root_dir,metrics):
     # For each pair of conditions C1 and C1
     product = ((i,j) for i in conditions_dict.keys() for j in conditions_dict.keys())
     diff={} # Will be the return value
+    metric_values={}
     path_names = conditions_dict.values()[0].values()[0].keys()
     # Go through all pairs of conditions
     for c, d in product:
@@ -124,20 +143,49 @@ def n_differences_across_subjects(conditions_dict,root_dir):
                 diff[key][file_name]=0
                 for subject in conditions_dict[c].keys():
                 # Here we assume that both conditions will have the same set of subjects
+                    files_are_different=False
                     if(conditions_dict[c][subject][file_name].st_size != conditions_dict[d][subject][file_name].st_size):
                         #diff[key][file_name]["binary_content"]+=1
 			diff[key][file_name]+=1
+                        files_are_different=True
                     else:
                         # File sizes are identical: compute the checksums
                         abs_path_c=os.path.join(root_dir,c,subject,file_name)
                         abs_path_d=os.path.join(root_dir,d,subject,file_name)
                         if checksum(abs_path_c) != checksum(abs_path_d): # TODO:when they are multiple conditions, we will compute checksums multiple times.
                                                                          # We should avoid that.
-                            #diff[key][file_name]["binary_content"]+=1
 			    diff[key][file_name]+=1
-                            # if there is a metric or more associated with this file name, compute it here.
-                            #diff[key][file_name][metric_name]+= # result of the metric execution
-    return diff
+                            files_are_different=True
+                    if files_are_different:
+                        metrics_to_evaluate = get_metrics(metrics,file_name)
+                        if len(metrics_to_evaluate) != 0:
+                            for metric in metrics.values():
+                                if metric['name'] not in metric_values.keys():
+                                    metric_values[metric['name']]={}
+                                if key not in metric_values[metric['name']].keys():
+                                    metric_values[metric['name']][key] = {}
+                                if file_name not in metric_values[metric['name']][key].keys():
+                                    metric_values[metric['name']][key][file_name]=0
+                                metric_values[metric['name']][key][file_name] += float(run_command(metric['command'],file_name,c,d,subject,root_dir))
+    return diff,metric_values
+
+# Returns the list of metrics associated with a given file name, if any
+def get_metrics(metrics,file_name):
+    matching_metrics = []
+    for metric in metrics.values():
+        if file_name.endswith(metric['extension']):
+            matching_metrics.append(metric)
+    return matching_metrics
+
+# Executes the following command:
+#    'command condition1/subject_name/file_name condition2/subject_name/file_name'
+# and returns the stdout if and only if command was successful
+def run_command(command,file_name,condition1,condition2,subject_name,root_dir):
+    command_string = command+" "+os.path.join(root_dir,condition1,subject_name,file_name)+" "+os.path.join(root_dir,condition2,subject_name,file_name)
+    return_value,output = commands.getstatusoutput(command_string)
+    if return_value != 0:
+        log_error("Command "+command+" failed.")
+    return output
 
 # Returns a string containing a 'pretty' matrix representation of the
 # dictionary returned by n_differences_across_subjects
@@ -207,7 +255,7 @@ def log_error(message):
 
 def main():
         parser=argparse.ArgumentParser(description="verifyFiles.py" ,formatter_class=argparse.RawTextHelpFormatter)
-        parser.add_argument("file_in", help= textwrap.dedent('''Input the text file containing the path to the subject folders
+        parser.add_argument("file_in", help= textwrap.dedent('''Input the text file containing the path to the condition folders
                                              Each directory contains subject folders containing subject-specific and modality-specific data categorirzed into different
 					     subdirectories.
 					     Sample:
@@ -231,12 +279,13 @@ def main():
                                              /home/$(USER)/CentOS6.FSL5.0.6
                                              /home/$(USER)/CentOS7.FSL5.0.6
                                              Each directory will contain subject folders like 100307,100308 etc'''))
-        parser.add_argument("-c", "--checksumfile",action="store_true",help="Reads checksum from files. Doesn't compute checksums locally")
-	parser.add_argument("-d", "--fileDiff", help="Writes the difference matrix into a file") 
+        parser.add_argument("-c", "--checksumFile",action="store_true",help="Reads checksum from files. Doesn't compute checksums locally")
+	parser.add_argument("-d", "--fileDiff", help="Writes the difference matrix into a file")
+        parser.add_argument("-m", "--metricsFile", help="CSV file containing metrics definition. Every line contains 4 elements: metric_name,file_extension,command_to_run,output_file_name") 
         args=parser.parse_args()
         logging.basicConfig(level=logging.INFO,format='%(asctime)s %(message)s')
-	conditions_file_name=sys.argv[1]
-        conditions_list=read_contents_from_file(conditions_file_name)
+	conditions_file_name=args.file_in
+        conditions_list=read_conditions_file(conditions_file_name)
         root_dir=os.path.dirname(os.path.abspath(conditions_file_name))
         log_info("Walking through files...")
         conditions_dict=get_conditions_dict(conditions_list,root_dir)
@@ -244,8 +293,10 @@ def main():
 	check_subjects(conditions_dict)
 	log_info("Checking if files are missing in any subject of any condition...")
         check_files(conditions_dict)
+        log_info("Reading the metrics file...")
+        metrics = read_metrics_file(args.metricsFile)
         log_info("Computing differences across subjects...")
-        diff=n_differences_across_subjects(conditions_dict,root_dir)
+        diff,metric_values=n_differences_across_subjects(conditions_dict,root_dir,metrics)
 	if args.fileDiff is not None:
             log_info("Writing difference matrix to file "+args.fileDiff)
             diff_file = open(args.fileDiff,'w')
@@ -254,6 +305,11 @@ def main():
         else:
 	    log_info("Pretty printing...")
             print pretty_string(diff,conditions_dict)
+        for metric_name in metric_values.keys():
+            log_info("Writing values of metric \""+metric_name+"\" to file \""+metrics[metric_name]["output_file"]+"\"")
+            metric_file = open(metrics[metric_name]["output_file"],'w')
+	    metric_file.write(pretty_string(metric_values[metric_name],conditions_dict))
+	    metric_file.close()
 
 if __name__=='__main__':
 	main()
