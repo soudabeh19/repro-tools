@@ -96,7 +96,7 @@ def is_common_path(conditions_dict,path_name):
     for condition in conditions_dict.keys():
         for subject in conditions_dict[condition].keys():
             if not path_name in conditions_dict[condition][subject].keys():
-                print "Under condition",condition, "folder", subject, "is missing the file" , path_name
+                log_error("File " + path_name  + " is missing in subject " + subject +  " of condition " + condition)
 		return False
     return True
               
@@ -199,23 +199,16 @@ def pretty_string(diff_dict,conditions_dict):
     return output_string
 
 #Method is_subject_folders_same checks if the subject_folders under different conditions are the same. If not , it stops the execution of the script.
-def is_subject_folders_same(conditions_list,root_dir):
-   if len(conditions_list) > 1:
-      subject_folders_ref_list=[subject_name for subject_name in sorted(os.listdir(os.path.join(root_dir,conditions_list[0]))) if os.path.isdir(os.path.join(root_dir,conditions_list[0],subject_name))]
-      if len(subject_folders_ref_list) != 0:
-         for condition in conditions_list[1:]:
-            subject_folders_list=[]
-            for subject_name in sorted(os.listdir(os.path.join(root_dir,condition))):
-                if os.path.isdir(os.path.join(root_dir,condition,subject_name)):
-                   subject_folders_list.append(subject_name)
-            if not are_equal(subject_folders_ref_list, subject_folders_list):
-               missing_folder_list = list(set(subject_folders_ref_list) -  set(subject_folders_list))
-               if len(missing_folder_list) != 0:
-                  print "Subject folder/(s) are not the same in all the conditions.",missing_folder_list,"is missing under condition",os.path.join(root_dir,condition)
-               else:
-                  missing_folder_list=list(set(subject_folders_list) -  set(subject_folders_ref_list))
-                  print "Subject folder/(s) are not the same in all the conditions.",missing_folder_list,"is missing under condition",os.path.join(root_dir,conditions_list[0])
-               sys.exit(1)
+def is_subject_folders_same(conditions_dict):
+    set_of_subjects=set()
+    for condition in conditions_dict.keys():
+	set_of_subjects.update(conditions_dict[condition].keys())
+	
+   # Iterate over each subject in every condition and stop the execution if some subject is missing
+    for subject in set_of_subjects:
+       for condition in conditions_dict.keys():
+          if not subject in conditions_dict[condition].keys():
+	     log_error("Subject: " + subject + " is missing under condition "+ condition )
             
             
 
@@ -224,11 +217,15 @@ def are_equal(subject_list_ref, subject_list_under_condition):
    
 
 # Prints a formatted log. There must be a better way of doing that in Python
-def log(message):
+def log_info(message):
     logging.info(message)
 
+def log_error(message):
+    logging.error("ERROR: " + message)
+    sys.exit(1)
+
 def main():
-        parser=argparse.ArgumentParser(description="verifyFiles.py", usage="./verifyFiles.py <input_file_name> [-c]",formatter_class=argparse.RawTextHelpFormatter)
+        parser=argparse.ArgumentParser(description="verifyFiles.py" ,formatter_class=argparse.RawTextHelpFormatter)
         parser.add_argument("file_in", help= textwrap.dedent('''Input the text file containing the path to the subject folders
                                              Each directory contains subject folders containing subject-specific and modality-specific data categorirzed into different
 					     subdirectories.
@@ -260,19 +257,20 @@ def main():
 	conditions_file_name=sys.argv[1]
         conditions_list=read_contents_from_file(conditions_file_name)
         root_dir=os.path.dirname(os.path.abspath(conditions_file_name))
-        log("Walking through files...")
-        is_subject_folders_same(conditions_list,root_dir)
+        log_info("Walking through files...")
         conditions_dict=get_conditions_dict(conditions_list,root_dir)
-        log("Finding common files across conditions and subjects...")
+        log_info("Checking if subject folders are missing in any condition")
+	is_subject_folders_same(conditions_dict)
+	log_info("Finding common files across conditions and subjects...")
         common_paths=common_paths_list(conditions_dict)
-        log("Computing differences across subjects...")
+        log_info("Computing differences across subjects...")
         diff=n_differences_across_subjects(conditions_dict,common_paths,root_dir)
 	if args.fileDiff is not None:
            diff_file = open(args.fileDiff,'w')
 	   diff_file.write(pretty_string(diff,conditions_dict))
 	   diff_file.close()
         else:
-	   log("Pretty printing...")
+	   log_info("Pretty printing...")
            print pretty_string(diff,conditions_dict)
 
 if __name__=='__main__':
