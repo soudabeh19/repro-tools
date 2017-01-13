@@ -89,32 +89,18 @@ def directory_hash(hasher, dir_path):
             hasher.update(entry)
     return hasher.hexdigest()
 
-# Returns True if and only if 'path_name' is present in all subjects
-# of all conditions in 'conditions_dict'. 'conditions_dict' is the
-# dictionary returned by 'get_conditions_dict'.
-def is_common_path(conditions_dict,path_name):
-    for condition in conditions_dict.keys():
-        for subject in conditions_dict[condition].keys():
-            if not path_name in conditions_dict[condition][subject].keys():
-                log_error("File " + path_name  + " is missing in subject " + subject +  " of condition " + condition)
-		return False
-    return True
-              
-# Returns a list of path names that are present in all subjects of all
-# conditions in 'conditions_dict'. 'conditions_dict' is the dictionary
-# returned by 'get_conditions_dict'.
-def common_paths_list(conditions_dict):
-    common_paths=[]
-    # Iterate over the files in the first subject of the first condition
-    first_condition=conditions_dict.keys()[0]
-    first_subject=conditions_dict[first_condition].keys()[0]
-    for path_name in conditions_dict[first_condition][first_subject].keys():
-        if is_common_path(conditions_dict,path_name):
-            # Note: in is_common_path we also check if the
-            # path is in the first subject of the first
-            # condition while this is not necessary
-            common_paths.append(path_name)
-    return common_paths
+# Stops the execution if not all the subjects of all the conditions
+# have the same list of files
+def check_files(conditions_dict):
+    path_names=set()
+    for condition in conditions_dict:
+        for subject in conditions_dict[condition]:
+            path_names.update(conditions_dict[condition][subject].keys())
+    for path_name in path_names:
+        for condition in conditions_dict.keys():
+            for subject in conditions_dict[condition].keys():
+                if not path_name in conditions_dict[condition][subject].keys():
+                    log_error("File \"" + path_name  + "\" is missing in subject \"" + subject + "\" of condition \"" + condition+"\".")
 
 # Returns a dictionary where the keys identifies two conditions
 # (e.g. "condition1 vs condition2") and the values are dictionaries
@@ -124,16 +110,17 @@ def common_paths_list(conditions_dict):
 # For instance:
 #  {'condition1 vs condition2': {'c/c.txt': 0, 'a.txt': 2}}
 #  means that 'c/c.txt' is identical for all subjects in conditions condition1 and condition2 while 'a.txt' differs in two subjects.
-def n_differences_across_subjects(conditions_dict,common_paths,root_dir):
+def n_differences_across_subjects(conditions_dict,root_dir):
     # For each pair of conditions C1 and C1
     product = ((i,j) for i in conditions_dict.keys() for j in conditions_dict.keys())
     diff={} # Will be the return value
+    path_names = conditions_dict.values()[0].values()[0].values()
     # Go through all pairs of conditions
     for c, d in product:
         if c < d: # Makes sure that pairs are not ordered, i.e. {a,b} and {b,a} are the same
             key=c+" vs "+d
             diff[key]={}
-            for file_name in common_paths:
+            for file_name in path_names:
                 diff[key][file_name]=0
                 for subject in conditions_dict[c].keys():
                 # Here we assume that both conditions will have the same set of subjects
@@ -198,25 +185,19 @@ def pretty_string(diff_dict,conditions_dict):
         output_string+="\n"
     return output_string
 
-#Method is_subject_folders_same checks if the subject_folders under different conditions are the same. If not , it stops the execution of the script.
-def is_subject_folders_same(conditions_dict):
-    set_of_subjects=set()
+# Method check_subjects checks if the subject_folders under different conditions are the same. If not , it stops the execution of the script.
+def check_subjects(conditions_dict):
+    subject_names=set()
     for condition in conditions_dict.keys():
-	set_of_subjects.update(conditions_dict[condition].keys())
-	
-   # Iterate over each subject in every condition and stop the execution if some subject is missing
-    for subject in set_of_subjects:
+	subject_names.update(conditions_dict[condition].keys())
+   # Iterate over each soubject in every condition and stop the execution if some subject is missing
+    for subject in subject_names:
        for condition in conditions_dict.keys():
           if not subject in conditions_dict[condition].keys():
-	     log_error("Subject: " + subject + " is missing under condition "+ condition )
-            
-            
+	     log_error("Subject \"" + subject + "\" is missing under condition \""+ condition +"\"." )
 
-def are_equal(subject_list_ref, subject_list_under_condition):
-    return set(subject_list_ref) == set(subject_list_under_condition)       
-   
+# Logging functions
 
-# Prints a formatted log. There must be a better way of doing that in Python
 def log_info(message):
     logging.info(message)
 
@@ -259,12 +240,12 @@ def main():
         root_dir=os.path.dirname(os.path.abspath(conditions_file_name))
         log_info("Walking through files...")
         conditions_dict=get_conditions_dict(conditions_list,root_dir)
-        log_info("Checking if subject folders are missing in any condition")
-	is_subject_folders_same(conditions_dict)
-	log_info("Finding common files across conditions and subjects...")
-        common_paths=common_paths_list(conditions_dict)
+        log_info("Checking if subject folders are missing in any condition...")
+	check_subjects(conditions_dict)
+	log_info("Checking if files are missing in any subject of any condition...")
+        check_files(conditions_dict)
         log_info("Computing differences across subjects...")
-        diff=n_differences_across_subjects(conditions_dict,common_paths,root_dir)
+        diff=n_differences_across_subjects(conditions_dictroot_dir)
 	if args.fileDiff is not None:
            diff_file = open(args.fileDiff,'w')
 	   diff_file.write(pretty_string(diff,conditions_dict))
