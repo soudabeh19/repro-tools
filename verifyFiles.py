@@ -114,7 +114,7 @@ def n_differences_across_subjects(conditions_dict,root_dir):
     # For each pair of conditions C1 and C1
     product = ((i,j) for i in conditions_dict.keys() for j in conditions_dict.keys())
     diff={} # Will be the return value
-    path_names = conditions_dict.values()[0].values()[0].values()
+    path_names = conditions_dict.values()[0].values()[0].keys()
     # Go through all pairs of conditions
     for c, d in product:
         if c < d: # Makes sure that pairs are not ordered, i.e. {a,b} and {b,a} are the same
@@ -245,14 +245,15 @@ def main():
 	log_info("Checking if files are missing in any subject of any condition...")
         check_files(conditions_dict)
         log_info("Computing differences across subjects...")
-        diff=n_differences_across_subjects(conditions_dictroot_dir)
+        diff=n_differences_across_subjects(conditions_dict,root_dir)
 	if args.fileDiff is not None:
-           diff_file = open(args.fileDiff,'w')
-	   diff_file.write(pretty_string(diff,conditions_dict))
-	   diff_file.close()
+            log_info("Writing difference matrix to file "+args.fileDiff)
+            diff_file = open(args.fileDiff,'w')
+	    diff_file.write(pretty_string(diff,conditions_dict))
+	    diff_file.close()
         else:
-	   log_info("Pretty printing...")
-           print pretty_string(diff,conditions_dict)
+	    log_info("Pretty printing...")
+            print pretty_string(diff,conditions_dict)
 
 if __name__=='__main__':
 	main()
