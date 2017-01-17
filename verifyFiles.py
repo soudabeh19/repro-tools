@@ -147,12 +147,21 @@ def n_differences_across_subjects(conditions_dict,root_dir,metrics):
                     if(conditions_dict[c][subject][file_name].st_size != conditions_dict[d][subject][file_name].st_size):
                         #diff[key][file_name]["binary_content"]+=1
 			diff[key][file_name]+=1
-                        files_are_different=True
+                        files_are_different=True 
                     else:
-                        # File sizes are identical: compute the checksums
-                        abs_path_c=os.path.join(root_dir,c,subject,file_name)
+			abs_path_c=os.path.join(root_dir,c,subject,file_name)
                         abs_path_d=os.path.join(root_dir,d,subject,file_name)
-                        if checksum(abs_path_c) != checksum(abs_path_d): # TODO:when they are multiple conditions, we will compute checksums multiple times.
+                        # File sizes are identical: compute the checksums
+	                if checksums_flag:
+			    #print "Checksum True"
+                            folder_c_checksums_file=os.path.join(root_dir,c,subject,"checksums-after.txt")
+			    folder_d_checksums_file=os.path.join(root_dir,d,subject,"checksums-after.txt")
+			    #print folder_c_checksums_file,folder_d_checksums_file
+                            if os.path.isfile(folder_c_checksums_file) and os.path.isfile(folder_d_checksums_file):
+    			        if not is_checksum_equal(folder_c_checksums_file,folder_d_checksums_file,subject,file_name):
+				    diff[key][file_name]+=1
+                                    files_are_different=True                            
+                        elif checksum(abs_path_c) != checksum(abs_path_d): # TODO:when they are multiple conditions, we will compute checksums multiple times.
                                                                          # We should avoid that.
 			    diff[key][file_name]+=1
                             files_are_different=True
@@ -186,6 +195,27 @@ def run_command(command,file_name,condition1,condition2,subject_name,root_dir):
     if return_value != 0:
         log_error("Command "+command+" failed.")
     return output
+
+
+#Method read_checksums_from_file reads the checksum
+#and returns true if the checksums are matching.
+def is_checksum_equal(checksums_after_file_condition1,checksums_after_file_condition2,subject,file_name):
+    file_dir = "./"+subject+"/"+file_name
+    checksum_second_file = None
+    checksum_first_file = None
+    with open(checksums_after_file_condition1) as file1:
+        for line in file1:
+            if file_dir in line:
+	        checksum_first_file = line.split(' ', 1)[0]
+                print checksum_first_file
+    
+    with open(checksums_after_file_condition2) as file2:
+        for line in file2:
+	    if file_dir in line:
+                checksum_second_file = line.split(' ',1)[0]
+		print checksum_second_file
+    
+    return checksum_second_file==checksum_first_file
 
 # Returns a string containing a 'pretty' matrix representation of the
 # dictionary returned by n_differences_across_subjects
@@ -288,6 +318,10 @@ def main():
         conditions_list=read_conditions_file(conditions_file_name)
         root_dir=os.path.dirname(os.path.abspath(conditions_file_name))
         log_info("Walking through files...")
+	global checksums_flag
+	checksums_flag = False
+	if args.checksumFile is not None:
+            checksums_flag = True
         conditions_dict=get_conditions_dict(conditions_list,root_dir)
         log_info("Checking if subject folders are missing in any condition...")
 	check_subjects(conditions_dict)
