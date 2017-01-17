@@ -153,7 +153,7 @@ def n_differences_across_subjects(conditions_dict,root_dir,metrics):
                         abs_path_d=os.path.join(root_dir,d,subject,file_name)
                         # File sizes are identical: compute the checksums
 	                if checksums_flag:
-			    #print "Checksum True"
+			    print "Checksum True"
                             folder_c_checksums_file=os.path.join(root_dir,c,subject,"checksums-after.txt")
 			    folder_d_checksums_file=os.path.join(root_dir,d,subject,"checksums-after.txt")
 			    #print folder_c_checksums_file,folder_d_checksums_file
@@ -309,7 +309,7 @@ def main():
                                              /home/$(USER)/CentOS6.FSL5.0.6
                                              /home/$(USER)/CentOS7.FSL5.0.6
                                              Each directory will contain subject folders like 100307,100308 etc'''))
-        parser.add_argument("-c", "--checksumFile",action="store_true",help="Reads checksum from files. Doesn't compute checksums locally")
+        parser.add_argument("-c", "--checksumFile",help="Reads checksum from files. Doesn't compute checksums locally")
 	parser.add_argument("-d", "--fileDiff", help="Writes the difference matrix into a file")
         parser.add_argument("-m", "--metricsFile", help="CSV file containing metrics definition. Every line contains 4 elements: metric_name,file_extension,command_to_run,output_file_name") 
         args=parser.parse_args()
