@@ -153,7 +153,6 @@ def n_differences_across_subjects(conditions_dict,root_dir,metrics):
                         abs_path_d=os.path.join(root_dir,d,subject,file_name)
                         # File sizes are identical: compute the checksums
 	                if checksums_flag:
-			    print "Checksum True"
                             folder_c_checksums_file=os.path.join(root_dir,c,subject,"checksums-after.txt")
 			    folder_d_checksums_file=os.path.join(root_dir,d,subject,"checksums-after.txt")
 			    #print folder_c_checksums_file,folder_d_checksums_file
@@ -161,8 +160,7 @@ def n_differences_across_subjects(conditions_dict,root_dir,metrics):
     			        if not is_checksum_equal(folder_c_checksums_file,folder_d_checksums_file,subject,file_name):
 				    diff[key][file_name]+=1
                                     files_are_different=True                            
-                        elif checksum(abs_path_c) != checksum(abs_path_d): # TODO:when they are multiple conditions, we will compute checksums multiple times.
-                                                                         # We should avoid that.
+                        elif checksum(abs_path_c) != checksum(abs_path_d): # TODO:when they are multiple conditions, we will compute checksums multiple times.We should avoid that.
 			    diff[key][file_name]+=1
                             files_are_different=True
                     if files_are_different:
@@ -197,7 +195,7 @@ def run_command(command,file_name,condition1,condition2,subject_name,root_dir):
     return output
 
 
-#Method read_checksums_from_file reads the checksum
+#Method is_checksum_equal reads the checksum
 #and returns true if the checksums are matching.
 def is_checksum_equal(checksums_after_file_condition1,checksums_after_file_condition2,subject,file_name):
     file_dir = "./"+subject+"/"+file_name
@@ -207,15 +205,13 @@ def is_checksum_equal(checksums_after_file_condition1,checksums_after_file_condi
         for line in file1:
             if file_dir in line:
 	        checksum_first_file = line.split(' ', 1)[0]
-                print checksum_first_file
     
     with open(checksums_after_file_condition2) as file2:
         for line in file2:
 	    if file_dir in line:
                 checksum_second_file = line.split(' ',1)[0]
-		print checksum_second_file
     
-    return checksum_second_file==checksum_first_file
+    return checksum_second_file==checksum_first_file and (checksum_second_file != None and checksum_first_file != None)
 
 # Returns a string containing a 'pretty' matrix representation of the
 # dictionary returned by n_differences_across_subjects
