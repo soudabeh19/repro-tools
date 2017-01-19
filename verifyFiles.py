@@ -22,16 +22,18 @@ import csv
 # directories have a trailing '/'.
 def get_dir_dict(directory): 
     result_dict={}
+    exclude = set(["unprocessed",".xdlm"])
     result_dict['./']=os.stat(directory)
     for root,dirs,files in os.walk(directory):
+	dirs[:]=[d for d in dirs if d not in exclude]
         for file_name in files:
-            abs_file_path=os.path.join(root,file_name)
-            rel_path=abs_file_path.replace(os.path.join(directory+"/"),"")
-            result_dict[rel_path]=os.stat(abs_file_path)
+                abs_file_path=os.path.join(root,file_name)
+                rel_path=abs_file_path.replace(os.path.join(directory+"/"),"")
+                result_dict[rel_path]=os.stat(abs_file_path)
         for dir_name in dirs:
-            abs_path=os.path.join(root,dir_name)
-            rel_path=abs_path.replace(os.path.join(directory+"/"),"")+"/"
-            result_dict[rel_path]=os.stat(abs_path)
+                abs_path=os.path.join(root,dir_name)
+                rel_path=abs_path.replace(os.path.join(directory+"/"),"")+"/"
+                result_dict[rel_path]=os.stat(abs_path)
     return result_dict
 
 # Returns a dictionary where the keys are the directories in
@@ -198,7 +200,7 @@ def run_command(command,file_name,condition1,condition2,subject_name,root_dir):
 #Method is_checksum_equal reads the checksum
 #and returns true if the checksums are matching.
 def is_checksum_equal(checksums_after_file_condition1,checksums_after_file_condition2,subject,file_name):
-    file_dir = "./"+subject+"/"+file_name
+    file_dir = "exec/"+subject+"/"+file_name
     checksum_second_file = None
     checksum_first_file = None
     with open(checksums_after_file_condition1) as file1:
