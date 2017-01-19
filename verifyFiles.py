@@ -205,7 +205,8 @@ def is_checksum_equal(condition_one_checksums_after_file,condition_two_checksums
     checksum_first_file=read_checksum_from_file(condition_one_checksums_after_file,file_name)
     return checksum_second_file==checksum_first_file and (checksum_second_file != None and checksum_first_file != None)
 
-
+#Method read_checksum_from_file gets the file path containing the checksum and the file name.
+#It reads the content line by line and if a match is found, it returns the checksum value.
 def read_checksum_from_file(checksums_after_file_path,file_name):
     checksum=None
     with open(checksums_after_file_path) as file:
