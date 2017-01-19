@@ -199,21 +199,20 @@ def run_command(command,file_name,condition1,condition2,subject_name,root_dir):
 
 #Method is_checksum_equal reads the checksum
 #and returns true if the checksums are matching.
-def is_checksum_equal(checksums_after_file_condition1,checksums_after_file_condition2,subject,file_name):
-    file_dir = "exec/"+subject+"/"+file_name
-    checksum_second_file = None
-    checksum_first_file = None
-    with open(checksums_after_file_condition1) as file1:
-        for line in file1:
-            if file_dir in line:
-	        checksum_first_file = line.split(' ', 1)[0]
-    
-    with open(checksums_after_file_condition2) as file2:
-        for line in file2:
-	    if file_dir in line:
-                checksum_second_file = line.split(' ',1)[0]
-    
+def is_checksum_equal(condition_one_checksums_after_file,condition_two_checksums_after_file,subject,file_name):
+    file_name = "exec/"+subject+"/"+file_name
+    checksum_second_file=read_checksum_from_file(condition_two_checksums_after_file,file_name)
+    checksum_first_file=read_checksum_from_file(condition_one_checksums_after_file,file_name)
     return checksum_second_file==checksum_first_file and (checksum_second_file != None and checksum_first_file != None)
+
+
+def read_checksum_from_file(checksums_after_file_path,file_name):
+    checksum=None
+    with open(checksums_after_file_path) as file:
+         for line in file:
+	     if file_name in line:
+	         checksum = line.split(' ', 1)[0]
+    return checksum
 
 # Returns a string containing a 'pretty' matrix representation of the
 # dictionary returned by n_differences_across_subjects
