@@ -22,18 +22,18 @@ import csv
 # directories have a trailing '/'.
 def get_dir_dict(directory): 
     result_dict={}
-    exclude = set(["unprocessed",".xdlm"])
     result_dict['./']=os.stat(directory)
     for root,dirs,files in os.walk(directory):
-	dirs[:]=[d for d in dirs if d not in exclude]
+	if exclude_folders is not None:
+	    dirs[:]=[d for d in dirs if d not in exclude_folders]
         for file_name in files:
-                abs_file_path=os.path.join(root,file_name)
-                rel_path=abs_file_path.replace(os.path.join(directory+"/"),"")
-                result_dict[rel_path]=os.stat(abs_file_path)
+            abs_file_path=os.path.join(root,file_name)
+            rel_path=abs_file_path.replace(os.path.join(directory+"/"),"")
+            result_dict[rel_path]=os.stat(abs_file_path)
         for dir_name in dirs:
-                abs_path=os.path.join(root,dir_name)
-                rel_path=abs_path.replace(os.path.join(directory+"/"),"")+"/"
-                result_dict[rel_path]=os.stat(abs_path)
+            abs_path=os.path.join(root,dir_name)
+            rel_path=abs_path.replace(os.path.join(directory+"/"),"")+"/"
+            result_dict[rel_path]=os.stat(abs_path)
     return result_dict
 
 # Returns a dictionary where the keys are the directories in
@@ -310,16 +310,21 @@ def main():
         parser.add_argument("-c", "--checksumFile",help="Reads checksum from files. Doesn't compute checksums locally")
 	parser.add_argument("-d", "--fileDiff", help="Writes the difference matrix into a file")
         parser.add_argument("-m", "--metricsFile", help="CSV file containing metrics definition. Every line contains 4 elements: metric_name,file_extension,command_to_run,output_file_name") 
-        args=parser.parse_args()
+        parser.add_argument("-e","--excludeFolders",nargs='*',help="The list of folders to be ignored while parsing the files and directories")
+	args=parser.parse_args()
         logging.basicConfig(level=logging.INFO,format='%(asctime)s %(message)s')
 	conditions_file_name=args.file_in
         conditions_list=read_conditions_file(conditions_file_name)
         root_dir=os.path.dirname(os.path.abspath(conditions_file_name))
         log_info("Walking through files...")
 	global checksums_flag
+        global exclude_folders
+	exclude_folders=None
 	checksums_flag = False
 	if args.checksumFile is not None:
-            checksums_flag = True
+            checksums_flag=True
+	if args.excludeFolders is not None:
+	    exclude_folders=args.excludeFolders
         conditions_dict=get_conditions_dict(conditions_list,root_dir)
         log_info("Checking if subject folders are missing in any condition...")
 	check_subjects(conditions_dict)
