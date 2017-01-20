@@ -158,10 +158,11 @@ def n_differences_across_subjects(conditions_dict,root_dir,metrics):
                             folder_c_checksums_file=os.path.join(root_dir,c,subject,"checksums-after.txt")
 			    folder_d_checksums_file=os.path.join(root_dir,d,subject,"checksums-after.txt")
 			    #print folder_c_checksums_file,folder_d_checksums_file
-                            if os.path.isfile(folder_c_checksums_file) and os.path.isfile(folder_d_checksums_file):
-    			        if not is_checksum_equal(folder_c_checksums_file,folder_d_checksums_file,subject,file_name):
-				    diff[key][file_name]+=1
-                                    files_are_different=True                            
+                            if ((os.path.isfile(folder_c_checksums_file) and os.path.isfile(folder_d_checksums_file))):
+				if not ((os.path.isdir(abs_path_c) and os.path.isdir(abs_path_d))):
+    			            if not is_checksum_equal(folder_c_checksums_file,folder_d_checksums_file,subject,file_name):
+				        diff[key][file_name]+=1
+                                        files_are_different=True                            
                         elif checksum(abs_path_c) != checksum(abs_path_d): # TODO:when they are multiple conditions, we will compute checksums multiple times.We should avoid that.
 			    diff[key][file_name]+=1
                             files_are_different=True
@@ -201,8 +202,8 @@ def run_command(command,file_name,condition1,condition2,subject_name,root_dir):
 #and returns true if the checksums are matching.
 def is_checksum_equal(condition_one_checksums_after_file,condition_two_checksums_after_file,subject,file_name):
     file_name = "exec/"+subject+"/"+file_name
-    checksum_second_file=read_checksum_from_file(condition_two_checksums_after_file,file_name)
     checksum_first_file=read_checksum_from_file(condition_one_checksums_after_file,file_name)
+    checksum_second_file=read_checksum_from_file(condition_two_checksums_after_file,file_name)
     return checksum_second_file==checksum_first_file and (checksum_second_file != None and checksum_first_file != None)
 
 #Method read_checksum_from_file gets the file path containing the checksum and the file name.
