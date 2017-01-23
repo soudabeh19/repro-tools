@@ -164,10 +164,6 @@ def n_differences_across_subjects(conditions_dict,root_dir,metrics):
 				        diff[key][file_name]+=1
                                         files_are_different=True                            
                         elif checksum(abs_path_c) != checksum(abs_path_d): # TODO:when they are multiple conditions, we will compute checksums multiple times.We should avoid that.
-			    if ("T1w/AverageT1wImages" or "T2w/AverageT1wImages") in file_name:
-			        print file_name
-			        print "first_file",checksum(abs_path_c)
- 			        print "second_file",checksum(abs_path_d)
 			    diff[key][file_name]+=1
                             files_are_different=True
                     if files_are_different:
