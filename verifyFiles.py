@@ -164,6 +164,10 @@ def n_differences_across_subjects(conditions_dict,root_dir,metrics):
 				        diff[key][file_name]+=1
                                         files_are_different=True                            
                         elif checksum(abs_path_c) != checksum(abs_path_d): # TODO:when they are multiple conditions, we will compute checksums multiple times.We should avoid that.
+			    if ("T1w/AverageT1wImages" or "T2w/AverageT1wImages") in file_name:
+			        print file_name
+			        print "first_file",checksum(abs_path_c)
+ 			        print "second_file",checksum(abs_path_d)
 			    diff[key][file_name]+=1
                             files_are_different=True
                     if files_are_different:
@@ -204,7 +208,9 @@ def is_checksum_equal(condition_one_checksums_after_file,condition_two_checksums
     file_name = "exec/"+subject+"/"+file_name
     checksum_first_file=read_checksum_from_file(condition_one_checksums_after_file,file_name)
     checksum_second_file=read_checksum_from_file(condition_two_checksums_after_file,file_name)
-    return checksum_second_file==checksum_first_file and (checksum_second_file != None and checksum_first_file != None)
+    if checksum_first_file == None or checksum_second_file == None:
+        return True
+    return checksum_second_file==checksum_first_file
 
 #Method read_checksum_from_file gets the file path containing the checksum and the file name.
 #It reads the content line by line and if a match is found, it returns the checksum value.
