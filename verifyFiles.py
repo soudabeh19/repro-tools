@@ -155,6 +155,10 @@ def n_differences_across_subjects(conditions_dict,root_dir,metrics,checksums_fro
 		    	    if (checksums_from_file_dict[c][subject][file_name_checksum] != checksums_from_file_dict[d][subject][file_name_checksum]):
                                 diff[key][file_name]+=1
                                 files_are_different=True
+		    elif conditions_dict[c][subject][file_name].st_size != conditions_dict[d][subject][file_name].st_size :
+                        #diff[key][file_name]["binary_content"]+=1
+			diff[key][file_name]+=1
+                        files_are_different=True
 	   	    elif checksum(abs_path_c) != checksum(abs_path_d):# TODO:when there are multiple conditions, we will compute checksums multiple times.We should avoid that.
 		        #Condition below makes sure that the checksums in the file after processing and in local are equal
 			diff[key][file_name]+=1
@@ -194,8 +198,6 @@ def run_command(command,file_name,condition1,condition2,subject_name,root_dir):
     if return_value != 0:
         log_error("Command "+command+" failed.")
     return output
-
-
 
 #Method read_checksum_from_file gets the file path containing the checksum and the file name.
 #It reads the content line by line and if a match is found, it adds the file name as key and checksum as the value and returns dictionary after 
