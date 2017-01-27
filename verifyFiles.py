@@ -27,9 +27,8 @@ def get_dir_dict(directory,exclude_folders):
 	    dirs[:]=[d for d in dirs if d not in exclude_folders]
         for file_name in files:
             abs_file_path=os.path.join(root,file_name)
-	    if not os.path.islink(abs_file_path):
-		rel_path=abs_file_path.replace(os.path.join(directory+"/"),"")
-            	result_dict[rel_path]=os.stat(abs_file_path)
+	    rel_path=abs_file_path.replace(os.path.join(directory+"/"),"")
+            result_dict[rel_path]=os.stat(abs_file_path)
     return result_dict
 
 # Returns a dictionary where the keys are the directories in
