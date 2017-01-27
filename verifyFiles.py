@@ -22,18 +22,19 @@ import csv
 # directories have a trailing '/'.
 def get_dir_dict(directory,exclude_folders): 
     result_dict={}
-    result_dict['./']=os.stat(directory)
+    #result_dict['./']=os.stat(directory)
     for root,dirs,files in os.walk(directory):
 	if exclude_folders is not None:
 	    dirs[:]=[d for d in dirs if d not in exclude_folders]
         for file_name in files:
             abs_file_path=os.path.join(root,file_name)
-            rel_path=abs_file_path.replace(os.path.join(directory+"/"),"")
-            result_dict[rel_path]=os.stat(abs_file_path)
-        for dir_name in dirs:
-            abs_path=os.path.join(root,dir_name)
-            rel_path=abs_path.replace(os.path.join(directory+"/"),"")+"/"
-            result_dict[rel_path]=os.stat(abs_path)
+	    if not os.path.islink(abs_file_path):
+		rel_path=abs_file_path.replace(os.path.join(directory+"/"),"")
+            	result_dict[rel_path]=os.stat(abs_file_path)
+        #for dir_name in dirs:
+            #abs_path=os.path.join(root,dir_name)
+            #rel_path=abs_path.replace(os.path.join(directory+"/"),"")+"/"
+            #result_dict[rel_path]=os.stat(abs_path)
     return result_dict
 
 # Returns a dictionary where the keys are the directories in
@@ -134,14 +135,13 @@ def check_files(conditions_dict):
 # subjects of the two conditions.
 # For instance:
 #  {'condition1 vs condition2': {'c/c.txt': 0, 'a.txt': 2}}
-#  means that 'c/c.txt' is identical for all subjects in conditions condition1 and condition2 while 'a.txt' differs in two #i3subjects.
-def n_differences_across_subjects(conditions_dict,root_dir,metrics,checksums_flag,checksums_from_file_dict):
+#  means that 'c/c.txt' is identical for all subjects in conditions condition1 and condition2 while 'a.txt' differs in two subjects.
+def n_differences_across_subjects(conditions_dict,root_dir,metrics,checksums_from_file_dict):
     # For each pair of conditions C1 and C1
     product = ((i,j) for i in conditions_dict.keys() for j in conditions_dict.keys())
     diff={} # Will be the return value
     metric_values={}
     path_names = conditions_dict.values()[0].values()[0].keys()
-    checksums_dict_from_file={}
     # Go through all pairs of conditions
     for c, d in product:
         if c < d: # Makes sure that pairs are not ordered, i.e. {a,b} and {b,a} are the same
@@ -159,14 +159,19 @@ def n_differences_across_subjects(conditions_dict,root_dir,metrics,checksums_fla
                     else:
 			abs_path_c=os.path.join(root_dir,c,subject,file_name)
                         abs_path_d=os.path.join(root_dir,d,subject,file_name)
-			file_name_checksum = "exec/"+subject+"/"+file_name
-    			if checksums_flag:
-			#  if not ((os.path.isdir(abs_path_c) and os.path.isdir(abs_path_d))):
+    			if checksums_from_file_dict:
+			    file_name_checksum = subject+"/"+file_name
+			  #if not ((os.path.isdir(abs_path_c) and os.path.isdir(abs_path_d))):
 			    if (checksums_from_file_dict[c][subject][file_name_checksum] != checksums_from_file_dict[d][subject][file_name_checksum]):
 		                diff[key][file_name]+=1
                                 files_are_different=True                            
                         elif checksum(abs_path_c) != checksum(abs_path_d): # TODO:when they are multiple conditions, we will compute checksums multiple times.We should avoid that.
 			    log_error("Checksum of file\"" + abs_path_c  + "\" is not equal to file\"" + abs_path_d + "\" under conditions\"" + c + d +"\".")
+			#Condition below makes sure that the checksums in the file after processing and in local are equal"
+			if checksums_from_file_dict and (checksum(abs_path_c) != checksums_from_file_dict[c][subject][file_name_checksum]) and "checksums-after.txt" not in file_name_checksum: 
+   			    log_error("Checksum of\"" + abs_path_c + "\"in checksum file is different from what is computed here.") 
+			if checksums_from_file_dict and (checksum(abs_path_d) != checksums_from_file_dict[d][subject][file_name_checksum]) and "checksums-after.txt" not in file_name_checksum:
+     			    log_error("Checksum of\"" + abs_path_d + "\"in checksum file is different from what is computed here.")
                     if files_are_different:
                         metrics_to_evaluate = get_metrics(metrics,file_name)
                         if len(metrics_to_evaluate) != 0:
@@ -207,8 +212,10 @@ def read_checksum_from_file(checksums_after_file_path):
     checksum_from_file_dict={}
     with open(checksums_after_file_path) as file:
          for line in file:
-	     if "exec" in line:
-	         checksum_from_file_dict[(line.split(' ', 1)[1]).strip()]=(line.split(' ', 1)[0]).strip()
+	     if (len(line.split(' ', 1)) == 2) and '/' in line:
+		 filename=((line.split(' ', 1)[1]).strip())
+		 filename=filename.split('/', 1)[1]
+	         checksum_from_file_dict[filename]=(line.split(' ', 1)[0]).strip()
     return checksum_from_file_dict
 
 #Method get_conditions_checksum_dict creates a dictionary containing , the dictionaries under different condition with the condition as the key and subject
@@ -332,7 +339,6 @@ def main():
         root_dir=os.path.dirname(os.path.abspath(conditions_file_name))
         log_info("Walking through files...")
 	exclude_folders=None
-	checksums_flag = False
 	checksums_from_file_dict={}
 	if args.excludeFolders is not None:
 	    exclude_folders=args.excludeFolders
@@ -345,12 +351,9 @@ def main():
         metrics = read_metrics_file(args.metricsFile)
         log_info("Computing differences across subjects...")
 	if args.checksumFile is not None:
-            checksums_flag=True
             log_info("Reading checksums from files...")
             checksums_from_file_dict=get_conditions_checksum_dict(conditions_dict,root_dir)
-	    print  checksums_from_file_dict
-
-        diff,metric_values=n_differences_across_subjects(conditions_dict,root_dir,metrics,checksums_flag,checksums_from_file_dict)
+        diff,metric_values=n_differences_across_subjects(conditions_dict,root_dir,metrics,checksums_from_file_dict)
 	if args.fileDiff is not None:
             log_info("Writing difference matrix to file "+args.fileDiff)
             diff_file = open(args.fileDiff,'w')
@@ -359,11 +362,11 @@ def main():
         else:
 	    log_info("Pretty printing...")
             print pretty_string(diff,conditions_dict)
-        #for metric_name in metric_values.keys():
-            #log_info("Writing values of metric \""+metric_name+"\" to file \""+metrics[metric_name]["output_file"]+"\"")
-            #metric_file = open(metrics[metric_name]["output_file"],'w')
-	    #metric_file.write(pretty_string(metric_values[metric_name],conditions_dict))
-	    #metric_file.close()
+        for metric_name in metric_values.keys():
+            log_info("Writing values of metric \""+metric_name+"\" to file \""+metrics[metric_name]["output_file"]+"\"")
+            metric_file = open(metrics[metric_name]["output_file"],'w')
+	    metric_file.write(pretty_string(metric_values[metric_name],conditions_dict))
+	    metric_file.close()
 
 if __name__=='__main__':
 	main()
