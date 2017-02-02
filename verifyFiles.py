@@ -162,9 +162,13 @@ def n_differences_across_subjects(conditions_dict,root_dir,metrics,checksums_fro
                         files_are_different=True
 
                     if files_are_different:
-			if checksums_from_file_dict and (checksum(abs_path_c) != checksums_from_file_dict[c][subject][file_name]) and checksum_after_file_path not in file_name:
+			#Below condition is making sure that the checksums are getting read from the file and also that we are not computing the checksum of the checksums-after file.
+			if checksums_from_file_dict and checksum_after_file_path not in file_name:
+			  #If the checksum of the file computed locally is different from the one in the file, the file got corrupted and hence throw error. 
+			  if (checksum(abs_path_c) != checksums_from_file_dict[c][subject][file_name]):
                             log_error("Checksum of\"" + abs_path_c + "\"in checksum file is different from what is computed here.")
-                        if checksums_from_file_dict and (checksum(abs_path_d) != checksums_from_file_dict[d][subject][file_name]) and checksum_after_file_path not in file_name:
+			  #If the checksum of the file computed locally is different from the one in the file, the file got corrupted and hence throw error.
+                          if (checksum(abs_path_d) != checksums_from_file_dict[d][subject][file_name]):
                             log_error("Checksum of\"" + abs_path_d + "\"in checksum file is different from what is computed here.")
                         metrics_to_evaluate = get_metrics(metrics,file_name)
                         if len(metrics_to_evaluate) != 0:
