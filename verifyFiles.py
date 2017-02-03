@@ -15,16 +15,18 @@ import hashlib
 import operator
 import logging
 import csv
+import time
 
 # Returns a dictionary where the keys are the paths in 'directory'
 # (relative to 'directory') and the values are the os.stat objects
 # associated with these paths. By convention, keys representing
 # directories have a trailing '/'.
-def get_dir_dict(directory,exclude_folders): 
+def get_dir_dict(directory,exclude_items): 
     result_dict={}
     for root,dirs,files in os.walk(directory):
-	if exclude_folders is not None:
-	    dirs[:]=[d for d in dirs if d not in exclude_folders]
+	if exclude_items is not None:
+	    dirs[:]=[d for d in dirs if d not in exclude_items]
+            files[:]=[f for f in files if f not in exclude_items] 
         for file_name in files:
             abs_file_path=os.path.join(root,file_name)
 	    rel_path=abs_file_path.replace(os.path.join(directory+"/"),"")
@@ -34,31 +36,31 @@ def get_dir_dict(directory,exclude_folders):
 # Returns a dictionary where the keys are the directories in
 # 'condition_dir' and the values are the directory dictionaries (as
 # returned by get_dir_dict) associated to these directories.
-def get_condition_dict(condition_dir,exclude_folders):
+def get_condition_dict(condition_dir,exclude_items):
     condition_dict={}
     subject_names_list=[]
     subject_names_list[:]=[subject_name for subject_name in os.listdir(condition_dir)]
-    if exclude_folders is not None:
-        subject_names_list[:]=[subject_name for subject_name in subject_names_list if subject_name not in exclude_folders]
+    if exclude_items is not None:
+        subject_names_list[:]=[subject_name for subject_name in subject_names_list if subject_name not in exclude_items]
     for subject_name in subject_names_list:
         subject_dir_path=os.path.join(condition_dir,subject_name)
         if os.path.isdir(subject_dir_path):
-            condition_dict[subject_name]=get_dir_dict(subject_dir_path,exclude_folders)
+            condition_dict[subject_name]=get_dir_dict(subject_dir_path,exclude_items)
     return condition_dict
 
 # Returns a dictionary where the keys are the names in
 # 'condition_names' and the values are the corresponding condition
 # dictionaries (as returned by get_condition_dict)
-def get_conditions_dict(condition_names,root_dir,exclude_folders):
+def get_conditions_dict(condition_names,root_dir,exclude_items):
     conditions_dict={}
-    if exclude_folders is not None:
-        condition_names[:]=[condition for condition in condition_names if condition not in exclude_folders]
+    if exclude_items is not None:
+        condition_names[:]=[condition for condition in condition_names if condition not in exclude_items]
     for condition in condition_names:
-        conditions_dict[condition]=get_condition_dict(os.path.join(root_dir,condition),exclude_folders)
+        conditions_dict[condition]=get_condition_dict(os.path.join(root_dir,condition),exclude_items)
     return conditions_dict
 
 # Returns a list where each element is a line in 'file_name'
-def read_conditions_file(file_name): 
+def read_file_contents(file_name):
     with open(file_name, 'r') as infile:
         data=infile.read()  
         directory_list=data.splitlines()
@@ -131,7 +133,7 @@ def check_files(conditions_dict):
 # For instance:
 #  {'condition1 vs condition2': {'c/c.txt': 0, 'a.txt': 2}}
 #  means that 'c/c.txt' is identical for all subjects in conditions condition1 and condition2 while 'a.txt' differs in two subjects.
-def n_differences_across_subjects(conditions_dict,root_dir,metrics,checksums_from_file_dict,checksum_after_file_path):
+def n_differences_across_subjects(conditions_dict,root_dir,metrics,checksums_from_file_dict,checksum_after_file_path,check_corruption):
     # For each pair of conditions C1 and C1
     product = ((i,j) for i in conditions_dict.keys() for j in conditions_dict.keys())
     diff={} # Will be the return value
@@ -150,26 +152,26 @@ def n_differences_across_subjects(conditions_dict,root_dir,metrics,checksums_fro
 		    abs_path_c=os.path.join(root_dir,c,subject,file_name)
                     abs_path_d=os.path.join(root_dir,d,subject,file_name)
 		    if checksums_from_file_dict:
-		    	    if (checksums_from_file_dict[c][subject][file_name] != checksums_from_file_dict[d][subject][file_name]):
-                                diff[key][file_name]+=1
-                                files_are_different=True
+		      if (checksums_from_file_dict[c][subject][file_name] != checksums_from_file_dict[d][subject][file_name]):
+                        diff[key][file_name]+=1
+                        files_are_different=True
 		    elif conditions_dict[c][subject][file_name].st_size != conditions_dict[d][subject][file_name].st_size :
-			diff[key][file_name]+=1
-                        files_are_different=True
+		      diff[key][file_name]+=1
+                      files_are_different=True
 	   	    elif checksum(abs_path_c) != checksum(abs_path_d):# TODO:when there are multiple conditions, we will compute checksums multiple times.We should avoid that.
-		        #Condition below makes sure that the checksums in the file after processing and in local are equal
-			diff[key][file_name]+=1
-                        files_are_different=True
+		      #Condition below makes sure that the checksums in the file after processing and in local are equal
+		      diff[key][file_name]+=1
+                      files_are_different=True
 
                     if files_are_different:
 			#Below condition is making sure that the checksums are getting read from the file and also that we are not computing the checksum of the checksums-after file.
-			if checksums_from_file_dict and checksum_after_file_path not in file_name:
-			  #If the checksum of the file computed locally is different from the one in the file, the file got corrupted and hence throw error. 
-			  if (checksum(abs_path_c) != checksums_from_file_dict[c][subject][file_name]):
-                            log_error("Checksum of\"" + abs_path_c + "\"in checksum file is different from what is computed here.")
-			  #If the checksum of the file computed locally is different from the one in the file, the file got corrupted and hence throw error.
-                          if (checksum(abs_path_d) != checksums_from_file_dict[d][subject][file_name]):
-                            log_error("Checksum of\"" + abs_path_d + "\"in checksum file is different from what is computed here.")
+			if check_corruption and checksums_from_file_dict and checksum_after_file_path not in file_name:
+			     #If the checksum of the file computed locally is different from the one in the file, the file got corrupted and hence throw error. 
+			     if (checksum(abs_path_c) != checksums_from_file_dict[c][subject][file_name]):
+                               log_error("Checksum of\"" + abs_path_c + "\"in checksum file is different from what is computed here.")
+			     #If the checksum of the file computed locally is different from the one in the file, the file got corrupted and hence throw error.
+                             if (checksum(abs_path_d) != checksums_from_file_dict[d][subject][file_name]):
+                               log_error("Checksum of\"" + abs_path_d + "\"in checksum file is different from what is computed here.")
                         metrics_to_evaluate = get_metrics(metrics,file_name)
                         if len(metrics_to_evaluate) != 0:
                             for metric in metrics.values():
@@ -197,7 +199,7 @@ def run_command(command,file_name,condition1,condition2,subject_name,root_dir):
     command_string = command+" "+os.path.join(root_dir,condition1,subject_name,file_name)+" "+os.path.join(root_dir,condition2,subject_name,file_name)
     return_value,output = commands.getstatusoutput(command_string)
     if return_value != 0:
-        log_error("Command "+command+" failed.")
+        log_error("Command "+ command +" failed.")
     return output
 
 #Method read_checksum_from_file gets the file path containing the checksum and the file name.
@@ -326,28 +328,35 @@ def main():
         parser.add_argument("-c", "--checksumFile",help="Reads checksum from files. Doesn't compute checksums locally")
 	parser.add_argument("-d", "--fileDiff", help="Writes the difference matrix into a file")
         parser.add_argument("-m", "--metricsFile", help="CSV file containing metrics definition. Every line contains 4 elements: metric_name,file_extension,command_to_run,output_file_name") 
-        parser.add_argument("-e","--excludeFolders",nargs='*',help="The list of folders to be ignored while parsing the files and directories")
+        parser.add_argument("-e","--excludeItems",help="The list of items to be ignored while parsing the files and directories")
+	parser.add_argument("-k","--checkCorruption",help="If this flag is kept 'TRUE', it checks whether the file is corrupted")
 	args=parser.parse_args()
         logging.basicConfig(level=logging.INFO,format='%(asctime)s %(message)s')
-	conditions_file_name=args.file_in
-        conditions_list=read_conditions_file(conditions_file_name)
-        root_dir=os.path.dirname(os.path.abspath(conditions_file_name))
+	if not os.path.isfile(args.file_in):
+	  log_error("The input file path of conditions file is not correct")
+        conditions_list=read_file_contents(args.file_in)
+        root_dir=os.path.dirname(os.path.abspath(args.file_in))
         log_info("Walking through files...")
 	checksums_from_file_dict={}
-	exclude_folders=args.excludeFolders
-        conditions_dict=get_conditions_dict(conditions_list,root_dir,exclude_folders)
+	#exclude_items is a list containing the folders and files which should be ignored while traversing 
+	#through the directories
+	exclude_items=None
+	if args.excludeItems:
+	  if not os.path.isfile(args.excludeItems):
+	    log_error("The input file path of exclude items file is not correct")
+        exclude_items=read_file_contents(args.excludeItems)
+        conditions_dict=get_conditions_dict(conditions_list,root_dir,exclude_items)
         log_info("Checking if subject folders are missing in any condition...")
 	check_subjects(conditions_dict)
 	log_info("Checking if files are missing in any subject of any condition...")
-        check_files(conditions_dict)
+	check_files(conditions_dict)
         log_info("Reading the metrics file...")
         metrics = read_metrics_file(args.metricsFile)
         log_info("Computing differences across subjects...")
-	checksum_after_file_path=args.checksumFile
-	if checksum_after_file_path:
+	if args.checksumFile:
             log_info("Reading checksums from files...")
-            checksums_from_file_dict=get_conditions_checksum_dict(conditions_dict,root_dir,checksum_after_file_path)
-        diff,metric_values=n_differences_across_subjects(conditions_dict,root_dir,metrics,checksums_from_file_dict,checksum_after_file_path)
+            checksums_from_file_dict=get_conditions_checksum_dict(conditions_dict,root_dir,args.checksumFile)
+        diff,metric_values=n_differences_across_subjects(conditions_dict,root_dir,metrics,checksums_from_file_dict,args.checksumFile,args.checkCorruption)
 	if args.fileDiff is not None:
             log_info("Writing difference matrix to file "+args.fileDiff)
             diff_file = open(args.fileDiff,'w')
