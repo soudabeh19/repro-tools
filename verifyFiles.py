@@ -150,12 +150,10 @@ def n_differences_across_subjects(conditions_dict,root_dir,metrics,checksums_fro
 		    abs_path_c=os.path.join(root_dir,c,subject,file_name)
                     abs_path_d=os.path.join(root_dir,d,subject,file_name)
 		    if checksums_from_file_dict:
-                            file_name_checksum = subject+"/"+file_name
-		    	    if (checksums_from_file_dict[c][subject][file_name_checksum] != checksums_from_file_dict[d][subject][file_name_checksum]):
+		    	    if (checksums_from_file_dict[c][subject][file_name] != checksums_from_file_dict[d][subject][file_name]):
                                 diff[key][file_name]+=1
                                 files_are_different=True
 		    elif conditions_dict[c][subject][file_name].st_size != conditions_dict[d][subject][file_name].st_size :
-                        #diff[key][file_name]["binary_content"]+=1
 			diff[key][file_name]+=1
                         files_are_different=True
 	   	    elif checksum(abs_path_c) != checksum(abs_path_d):# TODO:when there are multiple conditions, we will compute checksums multiple times.We should avoid that.
@@ -164,9 +162,13 @@ def n_differences_across_subjects(conditions_dict,root_dir,metrics,checksums_fro
                         files_are_different=True
 
                     if files_are_different:
-			if checksums_from_file_dict and (checksum(abs_path_c) != checksums_from_file_dict[c][subject][file_name_checksum]) and checksum_after_file_path not in file_name_checksum:
+			#Below condition is making sure that the checksums are getting read from the file and also that we are not computing the checksum of the checksums-after file.
+			if checksums_from_file_dict and checksum_after_file_path not in file_name:
+			  #If the checksum of the file computed locally is different from the one in the file, the file got corrupted and hence throw error. 
+			  if (checksum(abs_path_c) != checksums_from_file_dict[c][subject][file_name]):
                             log_error("Checksum of\"" + abs_path_c + "\"in checksum file is different from what is computed here.")
-                        if checksums_from_file_dict and (checksum(abs_path_d) != checksums_from_file_dict[d][subject][file_name_checksum]) and checksum_after_file_path not in file_name_checksum:
+			  #If the checksum of the file computed locally is different from the one in the file, the file got corrupted and hence throw error.
+                          if (checksum(abs_path_d) != checksums_from_file_dict[d][subject][file_name]):
                             log_error("Checksum of\"" + abs_path_d + "\"in checksum file is different from what is computed here.")
                         metrics_to_evaluate = get_metrics(metrics,file_name)
                         if len(metrics_to_evaluate) != 0:
@@ -207,7 +209,7 @@ def read_checksum_from_file(checksums_after_file_path):
          for line in file:
 	     if (len(line.split(' ', 1)) == 2) and '/' in line:
 		 filename=((line.split(' ', 1)[1]).strip())
-		 filename=filename.split('/', 1)[1]
+		 filename=filename.split('/', 2)[2]
 	         checksum_from_file_dict[filename]=(line.split(' ', 1)[0]).strip()
     return checksum_from_file_dict
 
