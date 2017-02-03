@@ -15,7 +15,6 @@ import hashlib
 import operator
 import logging
 import csv
-import time
 
 # Returns a dictionary where the keys are the paths in 'directory'
 # (relative to 'directory') and the values are the os.stat objects
