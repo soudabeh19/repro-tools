@@ -155,9 +155,7 @@ def n_differences_across_subjects(conditions_dict,root_dir,metrics,checksums_fro
 	    is_intra_condition_run=False
 	    if "RUN" in c and "RUN" in d:
 	      condition_c=c.split("-")
-	      print condition_c
 	      condition_d=d.split("-")
-	      print condition_d
 
 	    if condition_c and condition_d:
 	      if condition_c[0]==condition_d[0]:
