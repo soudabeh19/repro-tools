@@ -15,6 +15,7 @@ import hashlib
 import operator
 import logging
 import csv
+import sqlite3
 
 # Returns a dictionary where the keys are the paths in 'directory'
 # (relative to 'directory') and the values are the os.stat objects
@@ -143,6 +144,30 @@ def n_differences_across_subjects(conditions_dict,root_dir,metrics,checksums_fro
         if c < d: # Makes sure that pairs are not ordered, i.e. {a,b} and {b,a} are the same
             key=c+" vs "+d
             diff[key]={}
+            # if c and d both start with x-RUN-y (same x, different
+            # y), then assume that they are different runs from the
+            # same condition. In this case, if there are differences
+            # for a given file name below, the reprozip trace should
+            # be inspected to determine the executable that created
+            # such inter-run differences in the same condition. Also,
+            # print a log_info saying "Identified c1 and c2 as two
+            # different runs of the same condition".
+	    is_intra_condition_run=False
+	    if "RUN" in c and "RUN" in d:
+	      condition_c=c.split("-")
+	      print condition_c
+	      condition_d=d.split("-")
+	      print condition_d
+
+	    if condition_c and condition_d:
+	      if condition_c[0]==condition_d[0]:
+	        print condition_c[0],condition_d[0]
+		is_intra_condition_run=True
+		#Should change the hardcoded path to a parameter	 
+		conn = sqlite3.connect("/home/lscaria/BigDataLab/.reprozip-trace/trace.sqlite3")
+	        sqlite_connection = conn.cursor()
+	        
+   
             for file_name in path_names:
                 diff[key][file_name]=0
                 for subject in conditions_dict[c].keys():
@@ -181,6 +206,15 @@ def n_differences_across_subjects(conditions_dict,root_dir,metrics,checksums_fro
                                 if file_name not in metric_values[metric['name']][key].keys():
                                     metric_values[metric['name']][key][file_name]=0
                                 metric_values[metric['name']][key][file_name] += float(run_command(metric['command'],file_name,c,d,subject,root_dir))
+                        # if we are in different runs of the same
+                        # condition (see previous comment) then
+                        # inspect the reprozip trace here to get the
+                        # list of executables that created such
+                        # differences
+		        if is_intra_condition_run:
+			  sqlite_connection.execute('SELECT * FROM opened_files where name like ?',('%/'+file_name,))
+			  data = sqlite_connection.fetchone()
+			  print data 
     return diff,metric_values
 
 # Returns the list of metrics associated with a given file name, if any
