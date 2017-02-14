@@ -156,10 +156,10 @@ def n_differences_across_subjects(conditions_dict,root_dir,metrics,checksums_fro
 	    if "RUN" in c and "RUN" in d:
 	      condition_c=c.split("-")
 	      condition_d=d.split("-")
-
+	    
+	    #Checking if the runs are intra runs on the same condition(Operating System).
 	    if condition_c and condition_d:
 	      if condition_c[0]==condition_d[0]:
-	        print condition_c[0],condition_d[0]
 		is_intra_condition_run=True
 		#Should change the hardcoded path to a parameter	 
 		conn = sqlite3.connect("/home/lscaria/BigDataLab/.reprozip-trace/trace.sqlite3")
