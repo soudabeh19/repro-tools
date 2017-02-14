@@ -216,7 +216,7 @@ def n_differences_across_subjects(conditions_dict,root_dir,metrics,checksums_fro
 			    process = data[1]
 			    sqlite_connection.execute('select name from executed_files where process=?',(process,))
 			    name = sqlite_connection.fetchone()[0]
-			    print name
+			    print file_name," was created by the process ",name
     conn.close() 
     return diff,metric_values
 
