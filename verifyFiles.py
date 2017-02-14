@@ -210,9 +210,14 @@ def n_differences_across_subjects(conditions_dict,root_dir,metrics,checksums_fro
                         # list of executables that created such
                         # differences
 		        if is_intra_condition_run:
-			  sqlite_connection.execute('SELECT * FROM opened_files where name like ?',('%/'+file_name,))
+			  sqlite_connection.execute('SELECT name,process FROM opened_files where name like ? and mode!=1 and mode!=4 and mode !=8 and mode!=16 and is_directory=0',('%/'+file_name,))
 			  data = sqlite_connection.fetchone()
-			  print data 
+			  if data:
+			    process = data[1]
+			    sqlite_connection.execute('select name from executed_files where process=?',(process,))
+			    name = sqlite_connection.fetchone()[0]
+			    print name
+    conn.close() 
     return diff,metric_values
 
 # Returns the list of metrics associated with a given file name, if any
