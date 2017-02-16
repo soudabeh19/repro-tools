@@ -161,10 +161,6 @@ def n_differences_across_subjects(conditions_dict,root_dir,metrics,checksums_fro
 	    if condition_c and condition_d:
 	      if condition_c[0]==condition_d[0]:
 		is_intra_condition_run=True
-		#Should change the hardcoded path to a parameter
-		if sqlite_db_path:	 
-		  conn = sqlite3.connect(sqlite_db_path)
-	          sqlite_connection = conn.cursor()
 	        
    
             for file_name in path_names:
@@ -210,15 +206,19 @@ def n_differences_across_subjects(conditions_dict,root_dir,metrics,checksums_fro
                         # inspect the reprozip trace here to get the
                         # list of executables that created such
                         # differences
-		        if is_intra_condition_run and sqlite_db_path:
-			  sqlite_connection.execute('SELECT name,process FROM opened_files where name like ? and mode!=1 and mode!=4 and mode !=8 and mode!=16 and is_directory=0',('%/'+file_name,))
-			  data = sqlite_connection.fetchone()
-			  if data:
-			    process = data[1]
-			    sqlite_connection.execute('select name from executed_files where process=?',(process,))
-			    name = sqlite_connection.fetchone()[0]
-			    print file_name," was created by the process ",name
-    conn.close() 
+		        if is_intra_condition_run and sqlite_db_path and files_are_different:
+                            conn = sqlite3.connect(sqlite_db_path)
+                            sqlite_connection = conn.cursor()
+			    sqlite_connection.execute('SELECT name,process FROM opened_files where name like ? and mode!=1 and mode!=4 and mode !=8 and mode!=16 and is_directory=0',('%/'+file_name,))
+			    data = sqlite_connection.fetchone()
+			    if data:
+			      process = data[1]
+			      sqlite_connection.execute('select name from executed_files where process=?',(process,))
+			      results = sqlite_connection.fetchall()
+			    if results:
+			      for row in results:
+                                print "File:",file_name," was created by the process ",row[0]
+                            conn.close() 
     return diff,metric_values
 
 # Returns the list of metrics associated with a given file name, if any
@@ -367,7 +367,7 @@ def main():
         parser.add_argument("-m", "--metricsFile", help="CSV file containing metrics definition. Every line contains 4 elements: metric_name,file_extension,command_to_run,output_file_name") 
         parser.add_argument("-e","--excludeItems",help="The list of items to be ignored while parsing the files and directories")
 	parser.add_argument("-k","--checkCorruption",help="If this flag is kept 'TRUE', it checks whether the file is corrupted")
-	parser.add_argument("-s","--sqLiteFile",help="The path to the sqlite file")
+	parser.add_argument("-s","--sqLiteFile",help="The path to the sqlite file which is used as the reference file for identifying the processes which created the files")
 	args=parser.parse_args()
         logging.basicConfig(level=logging.INFO,format='%(asctime)s %(message)s')
 	if not os.path.isfile(args.file_in):
