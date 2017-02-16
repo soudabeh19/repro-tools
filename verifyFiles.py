@@ -133,7 +133,7 @@ def check_files(conditions_dict):
 # For instance:
 #  {'condition1 vs condition2': {'c/c.txt': 0, 'a.txt': 2}}
 #  means that 'c/c.txt' is identical for all subjects in conditions condition1 and condition2 while 'a.txt' differs in two subjects.
-def n_differences_across_subjects(conditions_dict,root_dir,metrics,checksums_from_file_dict,checksum_after_file_path,check_corruption):
+def n_differences_across_subjects(conditions_dict,root_dir,metrics,checksums_from_file_dict,checksum_after_file_path,check_corruption,sqlite_db_path):
     # For each pair of conditions C1 and C1
     product = ((i,j) for i in conditions_dict.keys() for j in conditions_dict.keys())
     diff={} # Will be the return value
@@ -161,9 +161,10 @@ def n_differences_across_subjects(conditions_dict,root_dir,metrics,checksums_fro
 	    if condition_c and condition_d:
 	      if condition_c[0]==condition_d[0]:
 		is_intra_condition_run=True
-		#Should change the hardcoded path to a parameter	 
-		conn = sqlite3.connect("/home/lscaria/BigDataLab/.reprozip-trace/trace.sqlite3")
-	        sqlite_connection = conn.cursor()
+		#Should change the hardcoded path to a parameter
+		if sqlite_db_path:	 
+		  conn = sqlite3.connect(sqlite_db_path)
+	          sqlite_connection = conn.cursor()
 	        
    
             for file_name in path_names:
@@ -209,7 +210,7 @@ def n_differences_across_subjects(conditions_dict,root_dir,metrics,checksums_fro
                         # inspect the reprozip trace here to get the
                         # list of executables that created such
                         # differences
-		        if is_intra_condition_run:
+		        if is_intra_condition_run and sqlite_db_path:
 			  sqlite_connection.execute('SELECT name,process FROM opened_files where name like ? and mode!=1 and mode!=4 and mode !=8 and mode!=16 and is_directory=0',('%/'+file_name,))
 			  data = sqlite_connection.fetchone()
 			  if data:
@@ -366,6 +367,7 @@ def main():
         parser.add_argument("-m", "--metricsFile", help="CSV file containing metrics definition. Every line contains 4 elements: metric_name,file_extension,command_to_run,output_file_name") 
         parser.add_argument("-e","--excludeItems",help="The list of items to be ignored while parsing the files and directories")
 	parser.add_argument("-k","--checkCorruption",help="If this flag is kept 'TRUE', it checks whether the file is corrupted")
+	parser.add_argument("-s","--sqLiteFile",help="The path to the sqlite file")
 	args=parser.parse_args()
         logging.basicConfig(level=logging.INFO,format='%(asctime)s %(message)s')
 	if not os.path.isfile(args.file_in):
@@ -392,7 +394,9 @@ def main():
 	if args.checksumFile:
             log_info("Reading checksums from files...")
             checksums_from_file_dict=get_conditions_checksum_dict(conditions_dict,root_dir,args.checksumFile)
-        diff,metric_values=n_differences_across_subjects(conditions_dict,root_dir,metrics,checksums_from_file_dict,args.checksumFile,args.checkCorruption)
+	#Differences across subjects needs the conditions dictionary, root directory, checksums_from_file_dictionary,
+	#and the file checksumFile,checkCorruption and the path to the sqlite file.
+        diff,metric_values=n_differences_across_subjects(conditions_dict,root_dir,metrics,checksums_from_file_dict,args.checksumFile,args.checkCorruption,args.sqLiteFile)
 	if args.fileDiff is not None:
             log_info("Writing difference matrix to file "+args.fileDiff)
             diff_file = open(args.fileDiff,'w')
