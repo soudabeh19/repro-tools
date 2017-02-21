@@ -22,7 +22,7 @@ file_in,                                   Mandatory parameter.Directory path to
 -m METRICSFILE, --metricsFile METRICSFILE  CSV file containing metrics definition. Every line contains 4 elements: metric_name,file_extension,command_to_run,output_file_name
 -e EXCLUDEFOLDERS, --excludeFolders        The path to the file containing the folders and files that should be excluded from creating checksums.
 -k CHECKCORRUPTION, --checkCorruption      The script verifies if any files are corrupted ,when this flag is set as true
--s SQLITEFILE, --sqLiteFile		   The path to the SQLITE file,having the reprozip trace details.
+-s SQLITEFILE,      --sqLiteFile           The path to the SQLITE file,having the reprozip trace details.
  
 ```
 
