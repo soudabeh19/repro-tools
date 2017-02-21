@@ -209,11 +209,11 @@ def n_differences_across_subjects(conditions_dict,root_dir,metrics,checksums_fro
 		        if is_intra_condition_run and sqlite_db_path and files_are_different:
                             conn = sqlite3.connect(sqlite_db_path)
                             sqlite_connection = conn.cursor()
-			    sqlite_connection.execute('SELECT DISTINCT executed_files.name from executed_files INNER JOIN opened_files where opened_files.process = executed_files.process and opened_files.name like ? and opened_files.mode!=1 and opened_files.mode!=4 and opened_files.mode !=8 and opened_files.mode!=16 and opened_files.is_directory=0',('%/'+file_name,))
+			    sqlite_connection.execute('SELECT DISTINCT executed_files.name,executed_files.argv,executed_files.envp,executed_files.timestamp from executed_files INNER JOIN opened_files where opened_files.process = executed_files.process and opened_files.name like ? and opened_files.mode!=1 and opened_files.mode!=4 and opened_files.mode !=8 and opened_files.mode!=16 and opened_files.is_directory=0',('%/'+file_name,))
 			    data = sqlite_connection.fetchall()
 			    if data:
                               for row in data:
-                                print "File:",file_name," was created by the process ",row[0]
+                                print "File:",file_name," was used by the process ",row[0],"\n******* argv\n",row[1],"\n****** envp\n",row[2],"\n****** timestamp\n",row[3]
                             conn.close() 
     return diff,metric_values
 
