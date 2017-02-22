@@ -160,6 +160,7 @@ def n_differences_across_subjects(conditions_dict,root_dir,metrics,checksums_fro
 	    #Checking if the runs are intra runs on the same condition(Operating System).
 	    if condition_c and condition_d:
 	      if condition_c[0]==condition_d[0]:
+		log_info("Identified " + c +" and " + d +" as two different runs of the same condition")
 		is_intra_condition_run=True
 	        
    
@@ -206,26 +207,30 @@ def n_differences_across_subjects(conditions_dict,root_dir,metrics,checksums_fro
                         # inspect the reprozip trace here to get the
                         # list of executables that created such
                         # differences
-		        if is_intra_condition_run and sqlite_db_path and files_are_different:
-			  get_executable_details(sqlite_db_path,file_name)
+		        if sqlite_db_path and files_are_different:
+			  get_executable_details(sqlite_db_path,file_name,is_intra_condition_run)
     return diff,metric_values
 
 
 #Method is used for finding out the details of the various processes and the input parameters that are used for running these processes.
-def get_executable_details(sqlite_db_path,file_name):
+def get_executable_details(sqlite_db_path,file_name,is_intra_condition_run):
     conn = sqlite3.connect(sqlite_db_path)
     sqlite_connection = conn.cursor()
-    #MODE
-    #FILE_READ =0x01=1
-    #FILE_WRITE =0x02=2
-    #FILE_WDIR =0x04=4
-    #FILE_STAT =0x08=8
-    #FILE_LINK =0x10=16
-    sqlite_connection.execute('SELECT DISTINCT executed_files.name,executed_files.argv,executed_files.envp,executed_files.timestamp,executed_files.workingdir from executed_files INNER JOIN opened_files where opened_files.process = executed_files.process and opened_files.name like ? and opened_files.mode!=1 and opened_files.mode!=4 and opened_files.mode !=8 and opened_files.mode!=16 and opened_files.is_directory=0',('%/'+file_name,))
+    #opened_files table has a column named MODE
+    # The definition of the values are as described below
+    #FILE_READ =1
+    #FILE_WRITE=2
+    #FILE_WDIR=4
+    #FILE_STAT=8
+    #FILE_LINK=16
+    sqlite_connection.execute('SELECT DISTINCT executed_files.name,executed_files.argv,executed_files.envp,executed_files.timestamp,executed_files.workingdir from executed_files INNER JOIN opened_files where opened_files.process = executed_files.process and opened_files.name like ? and opened_files.mode=2 and opened_files.is_directory=0',('%/'+file_name,))
     data = sqlite_connection.fetchall()
     if data:
       for row in data:
-        print "\nFile:",file_name," was used by the process ",row[0],"\n\nargv:",row[1],"\n\nenvp:",row[2],"\n\ntimestamp:",row[3],"\n\nworking directory:",row[4]
+	if is_intra_condition_run:
+          print "\n** File:",file_name," was used by the process ",row[0],"\n\nargv:",row[1],"\n\nenvp:",row[2],"\n\ntimestamp:",row[3],"\n\nworking directory:",row[4]
+	else:
+	  print "\nFile:",file_name," was used by the process ",row[0],"\n\nargv:",row[1],"\n\nenvp:",row[2],"\n\ntimestamp:",row[3],"\n\nworking directory:",row[4]
     conn.close()
 
 # Returns the list of metrics associated with a given file name, if any
