@@ -207,15 +207,26 @@ def n_differences_across_subjects(conditions_dict,root_dir,metrics,checksums_fro
                         # list of executables that created such
                         # differences
 		        if is_intra_condition_run and sqlite_db_path and files_are_different:
-                            conn = sqlite3.connect(sqlite_db_path)
-                            sqlite_connection = conn.cursor()
-			    sqlite_connection.execute('SELECT DISTINCT executed_files.name,executed_files.argv,executed_files.envp,executed_files.timestamp from executed_files INNER JOIN opened_files where opened_files.process = executed_files.process and opened_files.name like ? and opened_files.mode!=1 and opened_files.mode!=4 and opened_files.mode !=8 and opened_files.mode!=16 and opened_files.is_directory=0',('%/'+file_name,))
-			    data = sqlite_connection.fetchall()
-			    if data:
-                              for row in data:
-                                print "File:",file_name," was used by the process ",row[0],"\n******* argv\n",row[1],"\n****** envp\n",row[2],"\n****** timestamp\n",row[3]
-                            conn.close() 
+			  get_executable_details(sqlite_db_path,file_name)
     return diff,metric_values
+
+
+#Method is used for finding out the details of the various processes and the input parameters that are used for running these processes.
+def get_executable_details(sqlite_db_path,file_name):
+    conn = sqlite3.connect(sqlite_db_path)
+    sqlite_connection = conn.cursor()
+    #MODE
+    #FILE_READ =0x01=1
+    #FILE_WRITE =0x02=2
+    #FILE_WDIR =0x04=4
+    #FILE_STAT =0x08=8
+    #FILE_LINK =0x10=16
+    sqlite_connection.execute('SELECT DISTINCT executed_files.name,executed_files.argv,executed_files.envp,executed_files.timestamp,executed_files.workingdir from executed_files INNER JOIN opened_files where opened_files.process = executed_files.process and opened_files.name like ? and opened_files.mode!=1 and opened_files.mode!=4 and opened_files.mode !=8 and opened_files.mode!=16 and opened_files.is_directory=0',('%/'+file_name,))
+    data = sqlite_connection.fetchall()
+    if data:
+      for row in data:
+        print "\nFile:",file_name," was used by the process ",row[0],"\n\nargv:",row[1],"\n\nenvp:",row[2],"\n\ntimestamp:",row[3],"\n\nworking directory:",row[4]
+    conn.close()
 
 # Returns the list of metrics associated with a given file name, if any
 def get_metrics(metrics,file_name):
