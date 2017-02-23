@@ -222,7 +222,8 @@ def n_differences_across_subjects(conditions_dict,root_dir,metrics,checksums_fro
                         # list of executables that created such
                         # differences
 		        if sqlite_db_path and files_are_different:
-			  if file_name not in dictionary_executables and file_name != "monitor.txt":
+			  #Monitor.txt seems not to have entry in sqlite table
+			  if file_name not in dictionary_executables:
 			   dictionary_executables[file_name]=get_executable_details(conn,sqlite_db_path,file_name,is_intra_condition_run)
     if sqlite_db_path:
       conn.close()
@@ -445,8 +446,9 @@ def main():
           exec_file = open(args.execFile,'w')
           for key in dictionary_executables:
             executable_details_list=dictionary_executables[key]
-	    for row in executable_details_list:
-              exec_file.write("\n" + "File:" + key + " was used by the process " + row[0] + "\n\n" + "argv:" + row[1] + "\n\n" + "envp:" + row[2] + "\n\n" + "timestamp:" + str(row[3]) +"\n\n" + "working directory:" + row[4])
+	    if executable_details_list:
+	      for row in executable_details_list:
+                exec_file.write("\n" + "File:" + key + " was used by the process " + row[0] + "\n\n" + "argv:" + row[1] + "\n\n" + "envp:" + row[2] + "\n\n" + "timestamp:" + str(row[3]) +"\n\n" + "working directory:" + row[4])
           exec_file.close()
 
 if __name__=='__main__':
