@@ -452,13 +452,14 @@ def main():
           for key in dictionary_executables:
             executable_details_list=dictionary_executables[key]		
 	    if executable_details_list:
+	      str_file ="File:"
 	      #Below condition is in order to distinguish the intra-condition runs and append ** to the executable details. 
 	      if executable_details_list[0] == True:
-                for row in executable_details_list[1:]:
-		  exec_file.write("\n" + "**File:" + key + " was used by the process " + row[0] + "\n\n" + "argv:" + row[1] + "\n\n" + "envp:" + row[2] + "\n\n" + "timestamp:" + str(row[3]) +"\n\n" + "working directory:" + row[4] + "\n")
-	      else:
-	        for row in executable_details_list:
-                  exec_file.write("\n" + "File:" + key + " was used by the process " + row[0] + "\n\n" + "argv:" + row[1] + "\n\n" + "envp:" + row[2] + "\n\n" + "timestamp:" + str(row[3]) +"\n\n" + "working directory:" + row[4] + "\n")
+	        str_file = "**File:"
+		#Removing the intra_run_indicator flag
+		executable_details_list.pop(0)
+            for row in executable_details_list:
+	      exec_file.write("\n" + str_file + key + " was used by the process " + row[0] + "\n\n" + "argv:" + row[1] + "\n\n" + "envp:" + row[2] + "\n\n" + "timestamp:" + str(row[3]) +"\n\n" + "working directory:" + row[4] + "\n")
           exec_file.close()
 
 if __name__=='__main__':
