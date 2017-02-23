@@ -16,6 +16,7 @@ import operator
 import logging
 import csv
 import sqlite3
+import re
 
 # Returns a dictionary where the keys are the paths in 'directory'
 # (relative to 'directory') and the values are the os.stat objects
@@ -143,9 +144,12 @@ def n_differences_across_subjects(conditions_dict,root_dir,metrics,checksums_fro
     dictionary_checksum={}
     #dictionary_executables is used for tracking the files that we have already found the executables for
     dictionary_executables={}
-    #Initialize sqlite connection(Not sure if it is the best way)
+    #Initialize sqlite connection
     if sqlite_db_path:
-      conn = sqlite3.connect(sqlite_db_path)
+      try:
+        conn = sqlite3.connect(sqlite_db_path)
+      except sqlite3.Error, e:
+        log_error(e)
     # Go through all pairs of conditions
     for c, d in product:
         if c < d: # Makes sure that pairs are not ordered, i.e. {a,b} and {b,a} are the same
@@ -160,13 +164,13 @@ def n_differences_across_subjects(conditions_dict,root_dir,metrics,checksums_fro
             # print a log_info saying "Identified c1 and c2 as two
             # different runs of the same condition".
 	    is_intra_condition_run=False
-	    if "RUN" in c and "RUN" in d:
+	    pattern = re.compile('.*-RUN-[0-9]*')
+	    if pattern.match(c) and pattern.match(d):
 	      condition_c=c.split("-")
 	      condition_d=d.split("-")
 	    
 	    #Checking if the runs are intra runs on the same condition(Operating System).
-	    if condition_c and condition_d:
-	      if condition_c[0]==condition_d[0]:
+	      if (condition_c and condition_d) and (condition_c[0]==condition_d[0]):
 		log_info("Identified " + c +" and " + d +" as two different runs of the same condition")
 		is_intra_condition_run=True
 	        
@@ -185,20 +189,29 @@ def n_differences_across_subjects(conditions_dict,root_dir,metrics,checksums_fro
 		    elif conditions_dict[c][subject][file_name].st_size != conditions_dict[d][subject][file_name].st_size :
 		      diff[key][file_name]+=1
                       files_are_different=True
-	   	    elif abs_path_c in dictionary_checksum and  abs_path_d in dictionary_checksum:# Added dictionary to avoid computing checksums multiple times.
-		      #Condition below makes sure that the checksums in the file after processing and in local are equal
-		      if dictionary_checksum[abs_path_c] != dictionary_checksum[abs_path_d]:
+		    elif abs_path_c in dictionary_checksum and  abs_path_d in dictionary_checksum:
+		      if is_checksum_equal(dictionary_checksum,abs_path_c,abs_path_d):
 		        diff[key][file_name]+=1
-                        files_are_different=True
+			files_are_different=True
+		    elif abs_path_c not in dictionary_checksum and abs_path_d in dictionary_checksum:
+		      dictionary_checksum[abs_path_c]=checksum(abs_path_c)
+		      if is_checksum_equal(dictionary_checksum,abs_path_c,abs_path_d):
+			diff[key][file_name]+=1
+			files_are_different=True
+		    elif abs_path_c in dictionary_checksum and abs_path_d not in dictionary_checksum:
+		      dictionary_checksum[abs_path_d] = checksum(abs_path_d)
+		      if is_checksum_equal(dictionary_checksum,abs_path_c,abs_path_d):
+			diff[key][file_name]+=1
+			files_are_different=True
 		    else:
-			dictionary_checksum[abs_path_c] = checksum(abs_path_c)
-			dictionary_checksum[abs_path_d] = checksum(abs_path_d)
-			if dictionary_checksum[abs_path_c] != dictionary_checksum[abs_path_d]:
-                          diff[key][file_name]+=1
-                          files_are_different=True
+		      dictionary_checksum[abs_path_d] = checksum(abs_path_d)
+		      dictionary_checksum[abs_path_c] = checksum(abs_path_c)
+                      if is_checksum_equal(dictionary_checksum,abs_path_c,abs_path_d):
+                        diff[key][file_name]+=1
+                        files_are_different=True
 
                     if files_are_different:
-			#Below condition is making sure that the checksums are getting read from the file and also that we are not computing the checksum of the checksums-after file.
+			#Below condition is making sure that the checksums are getting read from the file.Also that we are not computing the checksum of the checksums-after file.
 			if check_corruption and checksums_from_file_dict and checksum_after_file_path not in file_name:
 			     #If the checksum of the file computed locally is different from the one in the file, the file got corrupted and hence throw error. 
 			     if (checksum(abs_path_c) != checksums_from_file_dict[c][subject][file_name]):
@@ -221,13 +234,16 @@ def n_differences_across_subjects(conditions_dict,root_dir,metrics,checksums_fro
                         # inspect the reprozip trace here to get the
                         # list of executables that created such
                         # differences
-		        if sqlite_db_path and files_are_different:
+		        if sqlite_db_path and files_are_different and file_name not in dictionary_executables:
 			  #Monitor.txt seems not to have entry in sqlite table
-			  if file_name not in dictionary_executables:
 			   dictionary_executables[file_name]=get_executable_details(conn,sqlite_db_path,file_name,is_intra_condition_run)
     if sqlite_db_path:
       conn.close()
     return diff,metric_values,dictionary_executables
+
+#Method is_checksum_equal will return True if the checksums are not equal
+def is_checksum_equal(dictionary_checksum,abs_path_c,abs_path_d):
+    return dictionary_checksum[abs_path_c] != dictionary_checksum[abs_path_d]
 
 #Method get_executable_details is used for finding out the details of the processes that created or modified the specified file.
 def get_executable_details(conn,sqlite_db_path,file_name,is_intra_condition_run):#TODO Intra condition run is not taken into account while the executable details are getting written to the file
