@@ -139,6 +139,13 @@ def n_differences_across_subjects(conditions_dict,root_dir,metrics,checksums_fro
     diff={} # Will be the return value
     metric_values={}
     path_names = conditions_dict.values()[0].values()[0].keys()
+    #dictionary_checksum is used for storing the computed checksum values and to avoid computing the checksums for the files multiple times
+    dictionary_checksum={}
+    #dictionary_executables is used for tracking the files that we have already found the executables for
+    dictionary_executables={}
+    #Initialize sqlite connection(Not sure if it is the best way)
+    if sqlite_db_path:
+      conn = sqlite3.connect(sqlite_db_path)
     # Go through all pairs of conditions
     for c, d in product:
         if c < d: # Makes sure that pairs are not ordered, i.e. {a,b} and {b,a} are the same
@@ -178,10 +185,17 @@ def n_differences_across_subjects(conditions_dict,root_dir,metrics,checksums_fro
 		    elif conditions_dict[c][subject][file_name].st_size != conditions_dict[d][subject][file_name].st_size :
 		      diff[key][file_name]+=1
                       files_are_different=True
-	   	    elif checksum(abs_path_c) != checksum(abs_path_d):# TODO:when there are multiple conditions, we will compute checksums multiple times.We should avoid that.
+	   	    elif abs_path_c in dictionary_checksum and  abs_path_d in dictionary_checksum:# Added dictionary to avoid computing checksums multiple times.
 		      #Condition below makes sure that the checksums in the file after processing and in local are equal
-		      diff[key][file_name]+=1
-                      files_are_different=True
+		      if dictionary_checksum[abs_path_c] != dictionary_checksum[abs_path_d]:
+		        diff[key][file_name]+=1
+                        files_are_different=True
+		    else:
+			dictionary_checksum[abs_path_c] = checksum(abs_path_c)
+			dictionary_checksum[abs_path_d] = checksum(abs_path_d)
+			if dictionary_checksum[abs_path_c] != dictionary_checksum[abs_path_d]:
+                          diff[key][file_name]+=1
+                          files_are_different=True
 
                     if files_are_different:
 			#Below condition is making sure that the checksums are getting read from the file and also that we are not computing the checksum of the checksums-after file.
@@ -208,16 +222,17 @@ def n_differences_across_subjects(conditions_dict,root_dir,metrics,checksums_fro
                         # list of executables that created such
                         # differences
 		        if sqlite_db_path and files_are_different:
-			  get_executable_details(sqlite_db_path,file_name,is_intra_condition_run)
-    return diff,metric_values
+			  if file_name not in dictionary_executables and file_name != "monitor.txt":
+			   dictionary_executables[file_name]=get_executable_details(conn,sqlite_db_path,file_name,is_intra_condition_run)
+    if sqlite_db_path:
+      conn.close()
+    return diff,metric_values,dictionary_executables
 
-
-#Method is used for finding out the details of the various processes and the input parameters that are used for running these processes.
-def get_executable_details(sqlite_db_path,file_name,is_intra_condition_run):
-    conn = sqlite3.connect(sqlite_db_path)
+#Method get_executable_details is used for finding out the details of the processes that created or modified the specified file.
+def get_executable_details(conn,sqlite_db_path,file_name,is_intra_condition_run):#TODO Intra condition run is not taken into account while the executable details are getting written to the file
     sqlite_connection = conn.cursor()
     #opened_files table has a column named MODE
-    # The definition of the values are as described below
+    # The definition of the mode values are as described below
     #FILE_READ =1
     #FILE_WRITE=2
     #FILE_WDIR=4
@@ -225,13 +240,12 @@ def get_executable_details(sqlite_db_path,file_name,is_intra_condition_run):
     #FILE_LINK=16
     sqlite_connection.execute('SELECT DISTINCT executed_files.name,executed_files.argv,executed_files.envp,executed_files.timestamp,executed_files.workingdir from executed_files INNER JOIN opened_files where opened_files.process = executed_files.process and opened_files.name like ? and opened_files.mode=2 and opened_files.is_directory=0',('%/'+file_name,))
     data = sqlite_connection.fetchall()
+    executable_details_list=[]
     if data:
       for row in data:
-	if is_intra_condition_run:
-          print "\n** File:",file_name," was used by the process ",row[0],"\n\nargv:",row[1],"\n\nenvp:",row[2],"\n\ntimestamp:",row[3],"\n\nworking directory:",row[4]
-	else:
-	  print "\nFile:",file_name," was used by the process ",row[0],"\n\nargv:",row[1],"\n\nenvp:",row[2],"\n\ntimestamp:",row[3],"\n\nworking directory:",row[4]
-    conn.close()
+	#Adding to a list, all the processes and the details which operated on the given file
+	executable_details_list.append(row)
+    return executable_details_list
 
 # Returns the list of metrics associated with a given file name, if any
 def get_metrics(metrics,file_name):
@@ -380,6 +394,7 @@ def main():
         parser.add_argument("-e","--excludeItems",help="The list of items to be ignored while parsing the files and directories")
 	parser.add_argument("-k","--checkCorruption",help="If this flag is kept 'TRUE', it checks whether the file is corrupted")
 	parser.add_argument("-s","--sqLiteFile",help="The path to the sqlite file which is used as the reference file for identifying the processes which created the files")
+	parser.add_argument("-x","--execFile",help="Writes the executable details to a file")
 	args=parser.parse_args()
         logging.basicConfig(level=logging.INFO,format='%(asctime)s %(message)s')
 	if not os.path.isfile(args.file_in):
@@ -406,9 +421,12 @@ def main():
 	if args.checksumFile:
             log_info("Reading checksums from files...")
             checksums_from_file_dict=get_conditions_checksum_dict(conditions_dict,root_dir,args.checksumFile)
+	#Checking whether sqlite file path alone or executable file name alone is given. In case only one is given, throw error.
+	if (args.sqLiteFile and args.execFile is None) or (args.execFile and args.sqLiteFile is None):
+          log_error("Input the SQLite file path and the name of the file to which the executable details should be saved")
 	#Differences across subjects needs the conditions dictionary, root directory, checksums_from_file_dictionary,
 	#and the file checksumFile,checkCorruption and the path to the sqlite file.
-        diff,metric_values=n_differences_across_subjects(conditions_dict,root_dir,metrics,checksums_from_file_dict,args.checksumFile,args.checkCorruption,args.sqLiteFile)
+        diff,metric_values,dictionary_executables=n_differences_across_subjects(conditions_dict,root_dir,metrics,checksums_from_file_dict,args.checksumFile,args.checkCorruption,args.sqLiteFile)
 	if args.fileDiff is not None:
             log_info("Writing difference matrix to file "+args.fileDiff)
             diff_file = open(args.fileDiff,'w')
@@ -422,6 +440,14 @@ def main():
             metric_file = open(metrics[metric_name]["output_file"],'w')
 	    metric_file.write(pretty_string(metric_values[metric_name],conditions_dict))
 	    metric_file.close()
+	if args.execFile is not None:
+	  log_info("Writing executable details to file")
+          exec_file = open(args.execFile,'w')
+          for key in dictionary_executables:
+            executable_details_list=dictionary_executables[key]
+	    for row in executable_details_list:
+              exec_file.write("\n" + "File:" + key + " was used by the process " + row[0] + "\n\n" + "argv:" + row[1] + "\n\n" + "envp:" + row[2] + "\n\n" + "timestamp:" + str(row[3]) +"\n\n" + "working directory:" + row[4])
+          exec_file.close()
 
 if __name__=='__main__':
 	main()
