@@ -23,7 +23,7 @@ file_in,                                   Mandatory parameter.Directory path to
 -e EXCLUDEFOLDERS, --excludeFolders        The path to the file containing the folders and files that should be excluded from creating checksums.
 -k CHECKCORRUPTION, --checkCorruption      The script verifies if any files are corrupted ,when this flag is set as true
 -s SQLITEFILE,      --sqLiteFile           The path to the SQLITE file,having the reprozip trace details.
- 
+-x EXECFILE ,       --execFile             Writes the executable details to a file.
 ```
 
 ### Test Cases
