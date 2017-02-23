@@ -244,6 +244,10 @@ def get_executable_details(conn,sqlite_db_path,file_name,is_intra_condition_run)
     sqlite_cursor.close()    
     executable_details_list=[]
     if data:
+      if is_intra_condition_run:
+	#To distinguish between intra-condition run , this flag is added to the list of executable details list.
+	#It helps at the time of writing to the file , to have an indicator that it is from intra condition run
+        executable_details_list.append(is_intra_condition_run)
       for row in data:
 	#Adding to a list, all the processes and the details which operated on the given file
 	executable_details_list.append(row)
@@ -446,10 +450,15 @@ def main():
 	  log_info("Writing executable details to file")
           exec_file = open(args.execFile,'w')
           for key in dictionary_executables:
-            executable_details_list=dictionary_executables[key]
+            executable_details_list=dictionary_executables[key]		
 	    if executable_details_list:
-	      for row in executable_details_list:
-                exec_file.write("\n" + "File:" + key + " was used by the process " + row[0] + "\n\n" + "argv:" + row[1] + "\n\n" + "envp:" + row[2] + "\n\n" + "timestamp:" + str(row[3]) +"\n\n" + "working directory:" + row[4])
+	      #Below condition is in order to distinguish the intra-condition runs and append ** to the executable details. 
+	      if executable_details_list[0] == True:
+                for row in executable_details_list[1:]:
+		  exec_file.write("\n" + "**File:" + key + " was used by the process " + row[0] + "\n\n" + "argv:" + row[1] + "\n\n" + "envp:" + row[2] + "\n\n" + "timestamp:" + str(row[3]) +"\n\n" + "working directory:" + row[4] + "\n")
+	      else:
+	        for row in executable_details_list:
+                  exec_file.write("\n" + "File:" + key + " was used by the process " + row[0] + "\n\n" + "argv:" + row[1] + "\n\n" + "envp:" + row[2] + "\n\n" + "timestamp:" + str(row[3]) +"\n\n" + "working directory:" + row[4] + "\n")
           exec_file.close()
 
 if __name__=='__main__':
