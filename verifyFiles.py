@@ -236,7 +236,11 @@ def n_differences_across_subjects(conditions_dict,root_dir,metrics,checksums_fro
                         # differences
 		        if sqlite_db_path and files_are_different and file_name not in dictionary_executables:
 			  #Monitor.txt seems not to have entry in sqlite table
-			   dictionary_executables[file_name]=get_executable_details(conn,sqlite_db_path,file_name,is_intra_condition_run)
+			   if is_intra_condition_run:
+			     #** indicates that the entries are the result of an intra-condition run
+			     dictionary_executables["**"+file_name]=get_executable_details(conn,sqlite_db_path,file_name)
+			   else:
+			     dictionary_executables[file_name]=get_executable_details(conn,sqlite_db_path,file_name)
     if sqlite_db_path:
       conn.close()
     return diff,metric_values,dictionary_executables
@@ -246,7 +250,7 @@ def is_checksum_equal(dictionary_checksum,abs_path_c,abs_path_d):
     return dictionary_checksum[abs_path_c] != dictionary_checksum[abs_path_d]
 
 #Method get_executable_details is used for finding out the details of the processes that created or modified the specified file.
-def get_executable_details(conn,sqlite_db_path,file_name,is_intra_condition_run):#TODO Intra condition run is not taken into account while the executable details are getting written to the file
+def get_executable_details(conn,sqlite_db_path,file_name):#TODO Intra condition run is not taken into account while the executable details are getting written to the file
     sqlite_cursor = conn.cursor()
     #opened_files table has a column named MODE
     # The definition of the mode values are as described below
@@ -260,10 +264,6 @@ def get_executable_details(conn,sqlite_db_path,file_name,is_intra_condition_run)
     sqlite_cursor.close()    
     executable_details_list=[]
     if data:
-      if is_intra_condition_run:
-	#To distinguish between intra-condition run , this flag is added to the list of executable details list.
-	#It helps at the time of writing to the file , to have an indicator that it is from intra condition run
-        executable_details_list.append(is_intra_condition_run)
       for row in data:
 	#Adding to a list, all the processes and the details which operated on the given file
 	executable_details_list.append(row)
