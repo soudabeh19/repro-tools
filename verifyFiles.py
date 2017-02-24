@@ -463,20 +463,19 @@ def main():
 	    metric_file.write(pretty_string(metric_values[metric_name],conditions_dict))
 	    metric_file.close()
 	if args.execFile is not None:
-	  log_info("Writing executable details to file")
-          exec_file = open(args.execFile,'w')
-          for key in dictionary_executables:
-            executable_details_list=dictionary_executables[key]		
-	    if executable_details_list:
-	      str_file ="File:"
-	      #Below condition is in order to distinguish the intra-condition runs and append ** to the executable details. 
-	      if executable_details_list[0] == True:
-	        str_file = "**File:"
-		#Removing the intra_run_indicator flag
-		executable_details_list.pop(0)
-            for row in executable_details_list:
-	      exec_file.write("\n" + str_file + key + " was used by the process " + row[0] + "\n\n" + "argv:" + row[1] + "\n\n" + "envp:" + row[2] + "\n\n" + "timestamp:" + str(row[3]) +"\n\n" + "working directory:" + row[4] + "\n")
-          exec_file.close()
+	  log_info("Writing executable details to csv file")
+	  with open(args.execFile, 'wb') as csvfile:
+	    fieldnames = ['File Name', 'Process','ArgV','EnvP','Timestamp','Working Directory']
+	    writer=csv.DictWriter(csvfile,fieldnames=fieldnames)
+	    writer.writeheader()
+            for key in dictionary_executables:
+              executable_details_list=dictionary_executables[key]
+              for row in executable_details_list:
+		#Writing the contents of the dictionary having the executable details to the csv file. ** If I keep [row[2]], only then all the data is getting written to 
+	        #the csv column. If I keep it as row[2],only first line is getting written. For now , the csv has an addition u'....' for row 1 and row 2 values. Need to analyze more.
+	        writer.writerow({'File Name':key, 'Process':row[0],'ArgV':[row[1]],'EnvP':[row[2]],'Timestamp':row[3],'Working Directory':row[4]})
+		csvfile.flush()
+          
 
 if __name__=='__main__':
 	main()
