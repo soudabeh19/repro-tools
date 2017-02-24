@@ -190,7 +190,7 @@ def n_differences_across_subjects(conditions_dict,root_dir,metrics,checksums_fro
 		      diff[key][file_name]+=1
                       files_are_different=True
 		    else:
-		      #Conputing the checksum if not present in the dictionary and adding it to the dictionary to avoid multiple checksum computation.
+		      #Computing the checksum if not present in the dictionary and adding it to the dictionary to avoid multiple checksum computation.
 		      for filename in {abs_path_d,abs_path_c}:
                         if filename not in dictionary_checksum:
                           dictionary_checksum[filename] = checksum(filename)
