@@ -189,24 +189,12 @@ def n_differences_across_subjects(conditions_dict,root_dir,metrics,checksums_fro
 		    elif conditions_dict[c][subject][file_name].st_size != conditions_dict[d][subject][file_name].st_size :
 		      diff[key][file_name]+=1
                       files_are_different=True
-		    elif abs_path_c in dictionary_checksum and  abs_path_d in dictionary_checksum:
-		      if is_checksum_equal(dictionary_checksum,abs_path_c,abs_path_d):
-		        diff[key][file_name]+=1
-			files_are_different=True
-		    elif abs_path_c not in dictionary_checksum and abs_path_d in dictionary_checksum:
-		      dictionary_checksum[abs_path_c]=checksum(abs_path_c)
-		      if is_checksum_equal(dictionary_checksum,abs_path_c,abs_path_d):
-			diff[key][file_name]+=1
-			files_are_different=True
-		    elif abs_path_c in dictionary_checksum and abs_path_d not in dictionary_checksum:
-		      dictionary_checksum[abs_path_d] = checksum(abs_path_d)
-		      if is_checksum_equal(dictionary_checksum,abs_path_c,abs_path_d):
-			diff[key][file_name]+=1
-			files_are_different=True
 		    else:
-		      dictionary_checksum[abs_path_d] = checksum(abs_path_d)
-		      dictionary_checksum[abs_path_c] = checksum(abs_path_c)
-                      if is_checksum_equal(dictionary_checksum,abs_path_c,abs_path_d):
+		      #Conputing the checksum if not present in the dictionary and adding it to the dictionary to avoid multiple checksum computation.
+		      for filename in {abs_path_d,abs_path_c}:
+                        if filename not in dictionary_checksum:
+                          dictionary_checksum[filename] = checksum(filename)
+                      if dictionary_checksum[abs_path_c] != dictionary_checksum[abs_path_d]:
                         diff[key][file_name]+=1
                         files_are_different=True
 
@@ -245,9 +233,6 @@ def n_differences_across_subjects(conditions_dict,root_dir,metrics,checksums_fro
       conn.close()
     return diff,metric_values,dictionary_executables
 
-#Method is_checksum_equal will return True if the checksums are not equal
-def is_checksum_equal(dictionary_checksum,abs_path_c,abs_path_d):
-    return dictionary_checksum[abs_path_c] != dictionary_checksum[abs_path_d]
 
 #Method get_executable_details is used for finding out the details of the processes that created or modified the specified file.
 def get_executable_details(conn,sqlite_db_path,file_name):#TODO Intra condition run is not taken into account while the executable details are getting written to the file
