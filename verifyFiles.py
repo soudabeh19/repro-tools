@@ -214,9 +214,10 @@ def n_differences_across_subjects(conditions_dict,root_dir,metrics,checksums_fro
                                     metric_values[metric['name']]={}
                                 if key not in metric_values[metric['name']].keys():
                                     metric_values[metric['name']][key] = {}
-                                if file_name not in metric_values[metric['name']][key].keys():
+                                if file_name not in metric_values[metric['name']][key].keys() and file_name.endswith(metric['extension']):
                                     metric_values[metric['name']][key][file_name]=0
-                                metric_values[metric['name']][key][file_name] += float(run_command(metric['command'],file_name,c,d,subject,root_dir))
+				if file_name.endswith(metric['extension']):
+                                    metric_values[metric['name']][key][file_name] += float(run_command(metric['command'],file_name,c,d,subject,root_dir))
                         # if we are in different runs of the same
                         # condition (see previous comment) then
                         # inspect the reprozip trace here to get the
@@ -458,7 +459,7 @@ def main():
               for row in executable_details_list:
 		#Writing the contents of the dictionary having the executable details to the csv file. ** If I keep [row[2]], only then all the data is getting written to 
 	        #the csv column. If I keep it as row[2],only first line is getting written. For now , the csv has an addition u'....' for row 1 and row 2 values. Need to analyze more.
-	        writer.writerow({'File Name':key, 'Process':row[0],'ArgV':[row[1]],'EnvP':[row[2]],'Timestamp':row[3],'Working Directory':row[4]})
+	        writer.writerow({'File Name':key, 'Process':row[0],'ArgV': [row[1]],'EnvP':[row[2]],'Timestamp':row[3],'Working Directory':row[4]})
 		csvfile.flush()
           
 
