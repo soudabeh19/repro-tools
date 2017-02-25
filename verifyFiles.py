@@ -459,7 +459,7 @@ def main():
               for row in executable_details_list:
 		#Writing the contents of the dictionary having the executable details to the csv file. ** If I keep [row[2]], only then all the data is getting written to 
 	        #the csv column. If I keep it as row[2],only first line is getting written. For now , the csv has an addition u'....' for row 1 and row 2 values. Need to analyze more.
-	        writer.writerow({'File Name':key, 'Process':row[0],'ArgV': [row[1]],'EnvP':[row[2]],'Timestamp':row[3],'Working Directory':row[4]})
+	        writer.writerow({'File Name':key, 'Process':row[0],'ArgV':[row[1]],'EnvP':[row[2]],'Timestamp':row[3],'Working Directory':row[4]})
 		csvfile.flush()
           
 
