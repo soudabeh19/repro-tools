@@ -23,7 +23,7 @@ def main():
       file1_lines = monitor_file_1.readlines()
       file2_lines = monitor_file_2.readlines()
       package_flag=False
-      delimit=0
+      limit=0
       newline=""
       packages_list=[]
       for line in file1_lines:
@@ -35,8 +35,8 @@ def main():
 	  #print "replaced:",newline
 	  #print "lenth",len(newline)
 	  if len(newline)==0:
-	    delimit+=1
-	if delimit>=3:
+	    limit+=1
+	if limit>=3:
 	  package_flag=False
 	if package_flag:
 	 if "*" not in line:
