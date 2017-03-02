@@ -27,7 +27,7 @@ def get_dir_dict(directory,exclude_items):
     for root,dirs,files in os.walk(directory):
 	if exclude_items is not None:
 	    dirs[:]=[d for d in dirs if d not in exclude_items]
-            files[:]=[f for f in files if f not in exclude_items] 
+            files[:]=[f for f in files if os.path.join(root,f).replace(os.path.join(directory+"/"),"") not in exclude_items]
         for file_name in files:
             abs_file_path=os.path.join(root,file_name)
 	    rel_path=abs_file_path.replace(os.path.join(directory+"/"),"")
@@ -124,7 +124,7 @@ def check_files(conditions_dict):
         for condition in conditions_dict.keys():
             for subject in conditions_dict[condition].keys():
                 if not path_name in conditions_dict[condition][subject].keys():
-                    log_error("File \"" + path_name  + "\" is missing in subject \"" + subject + "\" of condition \"" + condition + "\".")
+                    log_warning("File \"" + path_name  + "\" is missing in subject \"" + subject + "\" of condition \"" + condition + "\".")
 
 # Returns a dictionary where the keys identifies two conditions
 # (e.g. "condition1 vs condition2") and the values are dictionaries
@@ -269,7 +269,7 @@ def run_command(command,file_name,condition1,condition2,subject_name,root_dir):
     command_string = command+" "+os.path.join(root_dir,condition1,subject_name,file_name)+" "+os.path.join(root_dir,condition2,subject_name,file_name)
     return_value,output = commands.getstatusoutput(command_string)
     if return_value != 0:
-        log_error("Command "+ command +" failed.")
+        log_error("Command "+ command +" failed ("+command_string+").")
     return output
 
 #Method read_checksum_from_file gets the file path containing the checksum and the file name.
@@ -369,6 +369,9 @@ def log_error(message):
     logging.error("ERROR: " + message)
     sys.exit(1)
 
+def log_warning(message):
+    logging.warning("WARNING: "+message)
+    
 def main():
         parser=argparse.ArgumentParser(description="verifyFiles.py" ,formatter_class=argparse.RawTextHelpFormatter)
         parser.add_argument("file_in", help= textwrap.dedent('''Input the text file containing the path to the condition folders
@@ -416,7 +419,7 @@ def main():
 	if args.excludeItems:
 	  if not os.path.isfile(args.excludeItems):
 	    log_error("The input file path of exclude items file is not correct")
-        exclude_items=read_file_contents(args.excludeItems)
+          exclude_items=read_file_contents(args.excludeItems)
         conditions_dict=get_conditions_dict(conditions_list,root_dir,exclude_items)
         log_info("Checking if subject folders are missing in any condition...")
 	check_subjects(conditions_dict)
