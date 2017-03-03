@@ -22,33 +22,68 @@ def main():
       monitor_file_2 = open(args.second_monitor_text, 'r')
       file1_lines = monitor_file_1.readlines()
       file2_lines = monitor_file_2.readlines()
-      package_flag=False
-      limit=0
-      newline=""
-      packages_list=[]
-      for line in file1_lines:
-        if "List of installed packages" in line:
-	  package_flag=True
-	if "*" in line:
-	  #print line
-          newline=line.strip().replace("*","")
-	  #print "replaced:",newline
-	  #print "lenth",len(newline)
-	  if len(newline)==0:
-	    limit+=1
-	if limit>=3:
-	  package_flag=False
-	if package_flag:
-	 if "*" not in line:
-	   packages_list.append(line.strip())
-      print packages_list
-      first_monitor_dict["packages"]=packages_list
-      print first_monitor_dict
-	
+      traverse_file(file1_lines)	
       monitor_file_1.close()
       monitor_file_2.close()
       print 1
-    
+
+def traverse_file(file1_lines):
+  package_flag=False
+  limit=0
+  newline=""
+  packages_list=[]
+  monitor_dict={}
+  vendor_id_list=[];
+  cpu_family_list=[];
+  model_name_list=[];
+  cpu_mhz_list=[]
+  MemTotal=None
+  MemFree=None
+  for line in file1_lines:
+    if "List of installed packages" in line:
+      package_flag=True
+    if "*" in line:
+      #print line
+      newline=line.strip().replace("*","")
+      #print "replaced:",newline
+      #print "lenth",len(newline)
+      if len(newline)==0:
+        limit+=1
+    if limit>=3:
+      package_flag=False
+    if package_flag:
+      if "*" not in line:
+        packages_list.append(line.strip())
+
+    #Logic for the processor,memory and system info
+    line_data=line.strip().split(':')
+    if len(line_data) == 2:
+      if "vendor_id\t"==line_data[0]:
+	vendor_id_list.append(line_data[1].strip())
+      if "cpu family\t"==line_data[0]:
+	cpu_family_list.append(line_data[1].strip())
+      if "model name\t"==line_data[0]:
+	if len(line_data[1].split('@')) == 2:
+	   model_name=line_data[1].split('@')[0]
+           model_name_list.append(model_name.strip())
+      if "cpu MHz\t\t"==line_data[0]:
+	if len(line_data[1].split('.')) == 2:
+	  cpu_mhz_list.append(line_data[1].split('.')[0].strip())
+      if "MemTotal"==line_data[0]:
+	MemTotal=line_data[1]
+      if "MemFree"==line_data[0]:
+	MemFree=line_data[1]
+      
+	
+    #print packages_list
+  monitor_dict["memtotal"]=MemTotal
+  monitor_dict["memfree"]=MemFree
+  monitor_dict["packages"]=packages_list
+  monitor_dict["vendor_id"]=vendor_id_list
+  monitor_dict["cpu_family"]=cpu_family_list
+  monitor_dict["cpu_mhz"]=cpu_mhz_list
+  monitor_dict["model_name_list"]=model_name_list
+  print monitor_dict    
         
 if __name__=='__main__':
     main()
