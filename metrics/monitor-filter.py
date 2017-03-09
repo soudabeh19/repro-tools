@@ -23,10 +23,12 @@ def main():
       monitor_file_2 = open(args.second_monitor_text, 'r')
       file1_lines = monitor_file_1.readlines()
       file2_lines = monitor_file_2.readlines()
+      traverse_file(file1_lines)
       monitor_file_1.close()
       monitor_file_2.close()
-      if not compare_packages(file1_lines)==compare_packages(file2_lines):
+      if compare_packages(file1_lines)==compare_packages(file2_lines):
 	print 1
+        sys.exit()
        
 
 def traverse_file(file_lines):
@@ -37,38 +39,38 @@ def traverse_file(file_lines):
   cpu_mhz_list=[]
   MemTotal=None
   MemFree=None
+  for line in file_lines:
   #Logic for the processor,memory and system info
-  line_data=line.strip().split(':')
-  if len(line_data) == 2:
-    if "vendor_id\t"==line_data[0]:
-      vendor_id_list.append(line_data[1].strip())
-    if "cpu family\t"==line_data[0]:
-      cpu_family_list.append(line_data[1].strip())
-    if "model name\t"==line_data[0]:
-      if len(line_data[1].split('@')) == 2:
-        model_name=line_data[1].split('@')[0]
-        model_name_list.append(model_name.strip())
-    if "cpu MHz\t\t"==line_data[0]:
-      if len(line_data[1].split('.')) == 2:
-        cpu_mhz_list.append(line_data[1].split('.')[0].strip())
-    if "MemTotal"==line_data[0]:
-      MemTotal=(line_data[1].strip()).split(" ")[0]
-    if "MemFree"==line_data[0]:
-      MemFree=(line_data[1].strip()).split(" ")[0]
+    line_data=line.strip().split(':')
+    if len(line_data) == 2:
+      if "vendor_id\t"==line_data[0]:
+        vendor_id_list.append(line_data[1].strip())
+      if "cpu family\t"==line_data[0]:
+        cpu_family_list.append(line_data[1].strip())
+      if "model name\t"==line_data[0]:
+        if len(line_data[1].split('@')) == 2:
+          model_name=line_data[1].split('@')[0]
+          model_name_list.append(model_name.strip())
+      if "cpu MHz\t\t"==line_data[0]:
+        if len(line_data[1].split('.')) == 2:
+          cpu_mhz_list.append(line_data[1].split('.')[0].strip())
+      if "MemTotal"==line_data[0]:
+        MemTotal=(line_data[1].strip()).split(" ")[0]
+      if "MemFree"==line_data[0]:
+        MemFree=(line_data[1].strip()).split(" ")[0]
     if "Linux" in line:
       line_data=line.strip().split(" ")
-      #print line_data     
+      print line 
 	
     #print packages_list
   monitor_dict["memtotal"]=MemTotal
   monitor_dict["memfree"]=MemFree
-  monitor_dict["packages"]=packages_list
   monitor_dict["vendor_id"]=vendor_id_list
   monitor_dict["cpu_family"]=cpu_family_list
   monitor_dict["cpu_mhz"]=cpu_mhz_list
   monitor_dict["model_name_list"]=model_name_list
 
-  #print monitor_dict    
+  print monitor_dict    
 
 def compare_packages(file_lines):
   limit=0
