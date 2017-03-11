@@ -16,8 +16,6 @@ def main():
     parser.add_argument("first_monitor_text")
     parser.add_argument("second_monitor_text")
     args = parser.parse_args()
-    first_monitor_dict={}
-    second_monitor_dict={} 
     if os.path.exists(args.first_monitor_text) and os.path.exists(args.second_monitor_text):
       monitor_file_1 = open(args.first_monitor_text, 'r')
       monitor_file_2 = open(args.second_monitor_text, 'r')
@@ -37,7 +35,6 @@ def main():
 def compare_monitor_files(file_lines):
   limit=0
   hasher=hashlib.md5()
-  packages_list=[]
   package_flag=True
   for line in file_lines:
     if "List of installed packages" in line:
