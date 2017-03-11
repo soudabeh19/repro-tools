@@ -25,11 +25,15 @@ def main():
       file2_lines = monitor_file_2.readlines()
       monitor_file_1.close()
       monitor_file_2.close()
-      if not compare_monitor_files(file1_lines)==compare_monitor_files(file2_lines):
-	print 1
-        sys.exit()
+      if compare_monitor_files(file1_lines)!=compare_monitor_files(file2_lines):
+       	print 1
+      else:
+	print 0
        
-
+#Method comapre_monitor_files parses the monitor.txt file
+#line by line and concatenates the necessary values into a 
+#hasher variable which is used to compute the checksum out of the 
+#stored values.
 def compare_monitor_files(file_lines):
   limit=0
   hasher=hashlib.md5()
