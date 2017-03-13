@@ -214,9 +214,10 @@ def n_differences_across_subjects(conditions_dict,root_dir,metrics,checksums_fro
                                     metric_values[metric['name']]={}
                                 if key not in metric_values[metric['name']].keys():
                                     metric_values[metric['name']][key] = {}
-                                if file_name not in metric_values[metric['name']][key].keys():
+                                if file_name not in metric_values[metric['name']][key].keys() and file_name.endswith(metric['extension']):
                                     metric_values[metric['name']][key][file_name]=0
-                                metric_values[metric['name']][key][file_name] += float(run_command(metric['command'],file_name,c,d,subject,root_dir))
+				if file_name.endswith(metric['extension']):
+                                    metric_values[metric['name']][key][file_name] += float(run_command(metric['command'],file_name,c,d,subject,root_dir))
                         # if we are in different runs of the same
                         # condition (see previous comment) then
                         # inspect the reprozip trace here to get the
