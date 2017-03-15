@@ -31,13 +31,20 @@ def main():
     xdim = shape1[0]
     ydim = shape1[1]
     zdim = shape1[2]
-
-    # Go through all the voxels and get the SSD
     ssd=0
-    for x in range(0,xdim):
-        for y in range(0,ydim):
-            for z in range(0,zdim):
-                ssd += (data1[x][y][z]-data2[x][y][z])**2
+    if len(shape1) == 4:
+      tdim = shape1[3]
+      # Go through all the voxels and get the SSD
+      for x in range(0,xdim):
+            for y in range(0,ydim):
+              for z in range(0,zdim):
+                  for t in range(0,tdim):
+                      ssd += (data1[x][y][z][t]-data2[x][y][z][t])**2
+    else:
+      for x in range(0,xdim):
+          for y in range(0,ydim):
+              for z in range(0,zdim):
+                  ssd += (data1[x][y][z]-data2[x][y][z])**2
 
     # That's it!
     print ssd
