@@ -217,7 +217,11 @@ def n_differences_across_subjects(conditions_dict,root_dir,metrics,checksums_fro
                                 if file_name not in metric_values[metric['name']][key].keys() and file_name.endswith(metric['extension']):
                                     metric_values[metric['name']][key][file_name]=0
 				if file_name.endswith(metric['extension']):
-                                    metric_values[metric['name']][key][file_name] += float(run_command(metric['command'],file_name,c,d,subject,root_dir))
+				    try:
+					log_info("Computing the metrics for the file:"+" "+file_name+" "+"in subject"+" "+subject)
+                                        metric_values[metric['name']][key][file_name] += float(run_command(metric['command'],file_name,c,d,subject,root_dir))
+				    except ValueError as e:
+					log_error("Result of metric execution could not be cast to float"+" "+metric['command']+" "+file_name+" "+c+" "+d+" "+subject+" "+root_dir)
                         # if we are in different runs of the same
                         # condition (see previous comment) then
                         # inspect the reprozip trace here to get the
