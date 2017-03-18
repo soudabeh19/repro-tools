@@ -27,7 +27,8 @@ def get_dir_dict(directory,exclude_items):
     for root,dirs,files in os.walk(directory):
 	if exclude_items is not None:
 	    dirs[:]=[d for d in dirs if d not in exclude_items]
-            files[:]=[f for f in files if os.path.join(root,f).replace(os.path.join(directory+"/"),"") not in exclude_items]
+	    #To eliminate the files listd in exclude items file. Condition below checks relative file path as well as file names. 
+            files[:]=[f for f in files if f not in exclude_items and os.path.join(root,f).replace(os.path.join(directory+"/"),"") not in exclude_items]
         for file_name in files:
             abs_file_path=os.path.join(root,file_name)
 	    rel_path=abs_file_path.replace(os.path.join(directory+"/"),"")
@@ -217,7 +218,11 @@ def n_differences_across_subjects(conditions_dict,root_dir,metrics,checksums_fro
                                 if file_name not in metric_values[metric['name']][key].keys() and file_name.endswith(metric['extension']):
                                     metric_values[metric['name']][key][file_name]=0
 				if file_name.endswith(metric['extension']):
-                                    metric_values[metric['name']][key][file_name] += float(run_command(metric['command'],file_name,c,d,subject,root_dir))
+				    try:
+					log_info("Computing the metrics for the file:"+" "+file_name+" "+"in subject"+" "+subject)
+                                        metric_values[metric['name']][key][file_name] += float(run_command(metric['command'],file_name,c,d,subject,root_dir))
+				    except ValueError as e:
+					log_error("Result of metric execution could not be cast to float"+" "+metric['command']+" "+file_name+" "+c+" "+d+" "+subject+" "+root_dir)
                         # if we are in different runs of the same
                         # condition (see previous comment) then
                         # inspect the reprozip trace here to get the
