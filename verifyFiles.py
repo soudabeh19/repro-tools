@@ -347,7 +347,10 @@ def pretty_string(diff_dict,conditions_dict):
         for comparison in diff_dict.keys():
             for i in range(1,max_comparison_key_length/2):
                 output_string+=" "
-            value=str(diff_dict[comparison][path])
+	    if comparison in diff_dict and path in diff_dict[comparison]:
+	      value=str(diff_dict[comparison][path])
+	    else:
+	      value="0"
             output_string+=value
             for i in range(1,max_comparison_key_length/2+1):
                 output_string+=" "
