@@ -272,10 +272,10 @@ def get_metrics(metrics,file_name):
 #    'command condition1/subject_name/file_name condition2/subject_name/file_name'
 # and returns the stdout if and only if command was successful
 def run_command(command,file_name,condition1,condition2,subject_name,root_dir):
-    command_string = command+" "+os.path.join(root_dir,condition1,subject_name,file_name)+" "+os.path.join(root_dir,condition2,subject_name,file_name)
+    command_string = command+" "+os.path.join(root_dir,condition1,subject_name,file_name)+" "+os.path.join(root_dir,condition2,subject_name,file_name)+" "+"2>/dev/tty"
     return_value,output = commands.getstatusoutput(command_string)
     if return_value != 0:
-        log_error("Command "+ command +" failed ("+command_string+").")
+        log_error(return_value+" "+ output +" "+"Command "+ command +" failed ("+command_string+").")
     return output
 
 #Method read_checksum_from_file gets the file path containing the checksum and the file name.
