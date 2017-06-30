@@ -18,7 +18,6 @@ import csv
 import sqlite3
 import re
 import pandas as pd
-import numpy as np 
 # Returns a dictionary where the keys are the paths in 'directory'
 # (relative to 'directory') and the values are the os.stat objects
 # associated with these paths. By convention, keys representing
@@ -136,7 +135,7 @@ def check_files(conditions_dict):
 # For instance:
 #  {'condition1 vs condition2': {'c/c.txt': 0, 'a.txt': 2}}
 #  means that 'c/c.txt' is identical for all subjects in conditions condition1 and condition2 while 'a.txt' differs in two subjects.
-def n_differences_across_subjects(conditions_dict,root_dir,metrics,checksums_from_file_dict,checksum_after_file_path,check_corruption,sqlite_db_path):
+def n_differences_across_subjects(conditions_dict,root_dir,metrics,checksums_from_file_dict,checksum_after_file_path,check_corruption,sqlite_db_path,flag):
     # For each pair of conditions C1 and C1
     product = ((i,j) for i in conditions_dict.keys() for j in conditions_dict.keys())
     diff={} # Will be the return value
@@ -240,8 +239,10 @@ def n_differences_across_subjects(conditions_dict,root_dir,metrics,checksums_fro
 			     dictionary_executables[file_name]=get_executable_details(conn,sqlite_db_path,file_name)
     if sqlite_db_path:
       conn.close()
-    return bDiff,metric_values,dictionary_executables
-
+    if flag:
+        return bDiff,metric_values,dictionary_executables
+    else:
+	return diff,metric_values,dictionary_executables
 #Method get_executable_details is used for finding out the details of the processes that created or modified the specified file.
 def get_executable_details(conn,sqlite_db_path,file_name):#TODO Intra condition run is not taken into account while the executable details are getting written to the file
     sqlite_cursor = conn.cursor()
@@ -313,7 +314,8 @@ def get_condition_checksum_dict(condition,root_dir,subjects,checksum_after_file_
 
 # Use of List to represent the
 # dictionary returned by n_differences_across_subjects
-def Ldiff_print(bDiff,conditions_dict):
+def Ldiff_print(Diff,conditions_dict):
+    bDiff=Diff
     No_pair_con=len(bDiff.keys())
     Ldiff={}
     list_subjects=bDiff[bDiff.keys()[0]].keys()
@@ -343,18 +345,20 @@ def Ldiff_print(bDiff,conditions_dict):
     for subject in Ldiff.keys():
         for path in Ldiff[subject].keys():
             path_list.append([subject,path,Ldiff[subject][path],first_subject[path].st_mtime])
-    i=0
-    while i < len(path_list):
-         flag=True
-         while flag:
-             j=len (path_list[0][:])-1
-             print path_list[i][0:j]
-             flag=False
-    	     i+=1
-    # Print the Matrix 
+    #------------ Print the path_list list ---------------
+  #  i=0
+  #  while i < len(path_list):
+  #       flag=True
+  #       while flag:
+  #           j=len (path_list[0][:])-1 # find the number of elements in path_list to be printed (except the st_mtime)
+  #           print path_list[i][0:j]
+  #           flag=False
+  #  	     i+=1
+    #------------ Print the Matrix -----------------------
+    print " >>> Conditions order : ",bDiff.keys() 
     df = pd.DataFrame([[col1,col2,col3] for col1, d in Ldiff.items() for col2, col3 in d.items()],columns=['Subject','File','Results'])
     pd.set_option('display.max_rows', None)    
-    print df
+    return df
 
 def pretty_string(diff_dict,conditions_dict):
     output_string=""
@@ -458,7 +462,8 @@ def main():
 	parser.add_argument("-k","--checkCorruption",help="If this flag is kept 'TRUE', it checks whether the file is corrupted")
 	parser.add_argument("-s","--sqLiteFile",help="The path to the sqlite file which is used as the reference file for identifying the processes which created the files")
 	parser.add_argument("-x","--execFile",help="Writes the executable details to a file")
-	args=parser.parse_args()
+	parser.add_argument("-b","--binaryMatrix",help="Matrix showes diferences according to the subject and file in the comparision of condition pairs")
+        args=parser.parse_args()
         logging.basicConfig(level=logging.INFO,format='%(asctime)s %(message)s')
 	if not os.path.isfile(args.file_in):
 	  log_error("The input file path of conditions file is not correct")
@@ -489,16 +494,19 @@ def main():
           log_error("Input the SQLite file path and the name of the file to which the executable details should be saved")
 	#Differences across subjects needs the conditions dictionary, root directory, checksums_from_file_dictionary,
 	#and the file checksumFile,checkCorruption and the path to the sqlite file.
-        ##diff,metric_values,dictionary_executables=n_differences_across_subjects(conditions_dict,root_dir,metrics,checksums_from_file_dict,args.checksumFile,args.checkCorruption,args.sqLiteFile
-        bDiff,metric_values,dictionary_executables=n_differences_across_subjects(conditions_dict,root_dir,metrics,checksums_from_file_dict,args.checksumFile,args.checkCorruption,args.sqLiteFile)
        	if args.fileDiff is not None:
             log_info("Writing difference matrix to file "+args.fileDiff)
             diff_file = open(args.fileDiff,'w')
-	    diff_file.write(pretty_string(diff,conditions_dict))
+	    Diff,metric_values,dictionary_executables=n_differences_across_subjects(conditions_dict,root_dir,metrics,checksums_from_file_dict,args.checksumFile,args.checkCorruption,args.sqLiteFile)
+            diff_file.write(pretty_string(Diff,conditions_dict))
             diff_file.close()
         else:
-	    log_info("Pretty printing...")
-            Ldiff_print(bDiff,conditions_dict)
+	    log_info("Printing...")
+            Diff,metric_values,dictionary_executables=n_differences_across_subjects(conditions_dict,root_dir,metrics,checksums_from_file_dict,args.checksumFile,args.checkCorruption,args.sqLiteFile,args.binaryMatrix)
+            if args.binaryMatrix:
+	      print Ldiff_print(Diff,conditions_dict)
+	    else:
+              print pretty_string(Diff,conditions_dict)
         for metric_name in metric_values.keys():
             log_info("Writing values of metric \""+metric_name+"\" to file \""+metrics[metric_name]["output_file"]+"\"")
             metric_file = open(metrics[metric_name]["output_file"],'w')
