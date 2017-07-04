@@ -135,11 +135,12 @@ def check_files(conditions_dict):
 # For instance:
 #  {'condition1 vs condition2': {'c/c.txt': 0, 'a.txt': 2}}
 #  means that 'c/c.txt' is identical for all subjects in conditions condition1 and condition2 while 'a.txt' differs in two subjects.
-def n_differences_across_subjects(conditions_dict,root_dir,metrics,checksums_from_file_dict,checksum_after_file_path,check_corruption,sqlite_db_path,flag):
+# return_detailed_differences parameter specifies which function-made dictionary should be returned according to the user's request
+def n_differences_across_subjects(conditions_dict,root_dir,metrics,checksums_from_file_dict,checksum_after_file_path,check_corruption,sqlite_db_path,return_detailed_differences):
     # For each pair of conditions C1 and C1
     product = ((i,j) for i in conditions_dict.keys() for j in conditions_dict.keys())
     diff={} # Will be the return value
-    bDiff={} 
+    bDiff={} # will be the return value for being used in binary matrix 
     metric_values={}
     path_names = conditions_dict.values()[0].values()[0].keys()
     #dictionary_checksum is used for storing the computed checksum values and to avoid computing the checksums for the files multiple times
@@ -175,11 +176,10 @@ def n_differences_across_subjects(conditions_dict,root_dir,metrics,checksums_fro
 	      if (condition_c and condition_d) and (condition_c[0]==condition_d[0]):
 		log_info("Identified " + c +" and " + d +" as two different runs of the same condition")
 		is_intra_condition_run=True
-	    for file_name in path_names:
-                diff[key][file_name]=0
             for subject in conditions_dict[c].keys():
 		bDiff[key][subject]={}
 	    for file_name in path_names:
+		diff [key][file_name]=0
                 for subject in conditions_dict[c].keys():
                 # Here we assume that both conditions will have the same set of subjects
 	            files_are_different=False
@@ -239,10 +239,7 @@ def n_differences_across_subjects(conditions_dict,root_dir,metrics,checksums_fro
 			     dictionary_executables[file_name]=get_executable_details(conn,sqlite_db_path,file_name)
     if sqlite_db_path:
       conn.close()
-    if flag:
-        return bDiff,metric_values,dictionary_executables
-    else:
-	return diff,metric_values,dictionary_executables
+    return diff,bDiff,metric_values,dictionary_executables
 #Method get_executable_details is used for finding out the details of the processes that created or modified the specified file.
 def get_executable_details(conn,sqlite_db_path,file_name):#TODO Intra condition run is not taken into account while the executable details are getting written to the file
     sqlite_cursor = conn.cursor()
@@ -273,7 +270,7 @@ def get_metrics(metrics,file_name):
 
 # Executes the following command:
 # 'command condition1/subject_name/file_name condition2/subject_name/file_name'
-# an returns the stdout if and only if command was successful
+# and returns the stdout if and only if command was successful
 def run_command(command,file_name,condition1,condition2,subject_name,root_dir):
     command_string = command+" "+os.path.join(root_dir,condition1,subject_name,file_name)+" "+os.path.join(root_dir,condition2,subject_name,file_name)
     return_value,output = commands.getstatusoutput(command_string)
@@ -295,7 +292,7 @@ def read_checksum_from_file(checksums_after_file_path):
     return checksum_from_file_dict
 
 #Method get_conditions_checksum_dict creates a dictionary containing , the dictionaries under different condition with the condition as the key and subject
-#folder dictionairies as the value.
+#folder dictionaries as the value.
 def get_conditions_checksum_dict(conditions_dict,root_dir,checksum_after_file_path):
     conditions_checksum_dict={}
     conditions=conditions_dict.keys()
@@ -497,16 +494,16 @@ def main():
        	if args.fileDiff is not None:
             log_info("Writing difference matrix to file "+args.fileDiff)
             diff_file = open(args.fileDiff,'w')
-	    Diff,metric_values,dictionary_executables=n_differences_across_subjects(conditions_dict,root_dir,metrics,checksums_from_file_dict,args.checksumFile,args.checkCorruption,args.sqLiteFile)
-            diff_file.write(pretty_string(Diff,conditions_dict))
+	    diff,bDiff,metric_values,dictionary_executables=n_differences_across_subjects(conditions_dict,root_dir,metrics,checksums_from_file_dict,args.checksumFile,args.checkCorruption,args.sqLiteFile)
+            diff_file.write(pretty_string(diff,conditions_dict))
             diff_file.close()
         else:
 	    log_info("Printing...")
-            Diff,metric_values,dictionary_executables=n_differences_across_subjects(conditions_dict,root_dir,metrics,checksums_from_file_dict,args.checksumFile,args.checkCorruption,args.sqLiteFile,args.binaryMatrix)
+            diff,bDiff,metric_values,dictionary_executables=n_differences_across_subjects(conditions_dict,root_dir,metrics,checksums_from_file_dict,args.checksumFile,args.checkCorruption,args.sqLiteFile,args.binaryMatrix)
             if args.binaryMatrix:
-	      print Ldiff_print(Diff,conditions_dict)
+	      print Ldiff_print(bDiff,conditions_dict)
 	    else:
-              print pretty_string(Diff,conditions_dict)
+              print pretty_string(diff,conditions_dict)
         for metric_name in metric_values.keys():
             log_info("Writing values of metric \""+metric_name+"\" to file \""+metrics[metric_name]["output_file"]+"\"")
             metric_file = open(metrics[metric_name]["output_file"],'w')
