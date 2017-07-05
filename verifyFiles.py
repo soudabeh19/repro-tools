@@ -135,8 +135,7 @@ def check_files(conditions_dict):
 # For instance:
 #  {'condition1 vs condition2': {'c/c.txt': 0, 'a.txt': 2}}
 #  means that 'c/c.txt' is identical for all subjects in conditions condition1 and condition2 while 'a.txt' differs in two subjects.
-# return_detailed_differences parameter specifies which function-made dictionary should be returned according to the user's request
-def n_differences_across_subjects(conditions_dict,root_dir,metrics,checksums_from_file_dict,checksum_after_file_path,check_corruption,sqlite_db_path,return_detailed_differences):
+def n_differences_across_subjects(conditions_dict,root_dir,metrics,checksums_from_file_dict,checksum_after_file_path,check_corruption,sqlite_db_path):
     # For each pair of conditions C1 and C1
     product = ((i,j) for i in conditions_dict.keys() for j in conditions_dict.keys())
     diff={} # Will be the return value
@@ -499,7 +498,7 @@ def main():
             diff_file.close()
         else:
 	    log_info("Printing...")
-            diff,bDiff,metric_values,dictionary_executables=n_differences_across_subjects(conditions_dict,root_dir,metrics,checksums_from_file_dict,args.checksumFile,args.checkCorruption,args.sqLiteFile,args.binaryMatrix)
+            diff,bDiff,metric_values,dictionary_executables=n_differences_across_subjects(conditions_dict,root_dir,metrics,checksums_from_file_dict,args.checksumFile,args.checkCorruption,args.sqLiteFile)
             if args.binaryMatrix:
 	      print Ldiff_print(bDiff,conditions_dict)
 	    else:
