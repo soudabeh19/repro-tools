@@ -458,7 +458,7 @@ def main():
 	parser.add_argument("-k","--checkCorruption",help="If this flag is kept 'TRUE', it checks whether the file is corrupted")
 	parser.add_argument("-s","--sqLiteFile",help="The path to the sqlite file which is used as the reference file for identifying the processes which created the files")
 	parser.add_argument("-x","--execFile",help="Writes the executable details to a file")
-	parser.add_argument("-b","--binaryMatrix",help="Matrix showes diferences according to the subject and file in the comparision of condition pairs")
+	parser.add_argument("-b","--binaryMatrix",help="Matrix shows differences according to the subject and file in the comparison of condition pairs" )
         args=parser.parse_args()
         logging.basicConfig(level=logging.INFO,format='%(asctime)s %(message)s')
 	if not os.path.isfile(args.file_in):
