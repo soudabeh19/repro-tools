@@ -244,13 +244,8 @@ def n_differences_across_subjects(conditions_dict,root_dir,metrics,checksums_fro
 			     dictionary_executables[file_name]=get_executable_details(conn,sqlite_db_path,file_name)
     if sqlite_db_path:
       conn.close()
-<<<<<<< HEAD
     return diff,metric_values,dictionary_executables,dictionary_processes
 
-
-=======
-    return diff,bDiff,metric_values,dictionary_executables
->>>>>>> upstream/master
 #Method get_executable_details is used for finding out the details of the processes that created or modified the specified file.
 def get_executable_details(conn,sqlite_db_path,file_name):#TODO Intra condition run is not taken into account while the executable details are getting written to the file
     sqlite_cursor = conn.cursor()
