@@ -23,6 +23,7 @@ file_in,                                   Mandatory parameter.Directory path to
 -k CHECKCORRUPTION, --checkCorruption      The script verifies if any files are corrupted ,when this flag is set as true
 -s SQLITEFILE,      --sqLiteFile           The path to the SQLITE file,having the reprozip trace details.
 -x EXECFILE ,       --execFile             Writes the executable details to a file.
+-b  --binaryMatrix                         Shows the existence of difference between the conditions of the condition pair in terms of the subject and file.
 ```
 
 ### Test Cases
