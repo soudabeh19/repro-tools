@@ -15,7 +15,13 @@ im2=$2
 diff=`mktemp diff-XXXX.nii.gz`
 sqr=`mktemp sqr-XXXX.nii.gz`
 
+meanimage=$(fslstats ${im1} -m)
 fslmaths ${im1} -sub ${im2} -sqr ${diff}
-fslstats ${diff} -m
+meandiff=$(fslstats ${diff} -m)
+
+echo $meanimage
+echo $meandiff
+
+echo "scale=10; sqrt(${meandiff})/${meanimage}" | bc
 
 \rm ${diff} ${sqr}
