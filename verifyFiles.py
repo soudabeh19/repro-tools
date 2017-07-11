@@ -145,6 +145,7 @@ def n_differences_across_subjects(conditions_dict,root_dir,metrics,checksums_fro
     dictionary_checksum={}
     #dictionary_executables is used for tracking the files that we have already found the executables for
     dictionary_executables={}
+    dictionary_processes={}
     #Initialize sqlite connection
     if sqlite_db_path:
       try:
@@ -199,6 +200,10 @@ def n_differences_across_subjects(conditions_dict,root_dir,metrics,checksums_fro
                         diff[key][file_name]+=1
                         files_are_different=True
 
+		    #Track the processes which created the files using reprozip trace.
+		    if sqlite_db_path and file_name not in dictionary_processes:
+		       dictionary_processes[file_name]=get_executable_details(conn,sqlite_db_path,file_name)    
+		    
                     if files_are_different:
 			#Below condition is making sure that the checksums are getting read from the file.Also that we are not computing the checksum of the checksums-after file.
 			if check_corruption and checksums_from_file_dict and checksum_after_file_path not in file_name:
@@ -237,7 +242,7 @@ def n_differences_across_subjects(conditions_dict,root_dir,metrics,checksums_fro
 			     dictionary_executables[file_name]=get_executable_details(conn,sqlite_db_path,file_name)
     if sqlite_db_path:
       conn.close()
-    return diff,metric_values,dictionary_executables
+    return diff,metric_values,dictionary_executables,dictionary_processes
 
 
 #Method get_executable_details is used for finding out the details of the processes that created or modified the specified file.
@@ -445,7 +450,7 @@ def main():
           log_error("Input the SQLite file path and the name of the file to which the executable details should be saved")
 	#Differences across subjects needs the conditions dictionary, root directory, checksums_from_file_dictionary,
 	#and the file checksumFile,checkCorruption and the path to the sqlite file.
-        diff,metric_values,dictionary_executables=n_differences_across_subjects(conditions_dict,root_dir,metrics,checksums_from_file_dict,args.checksumFile,args.checkCorruption,args.sqLiteFile)
+        diff,metric_values,dictionary_executables,dictionary_processes=n_differences_across_subjects(conditions_dict,root_dir,metrics,checksums_from_file_dict,args.checksumFile,args.checkCorruption,args.sqLiteFile)
 	if args.fileDiff is not None:
             log_info("Writing difference matrix to file "+args.fileDiff)
             diff_file = open(args.fileDiff,'w')
@@ -473,7 +478,20 @@ def main():
 		envs=str(row[2]).replace("\x00"," ")
 	        writer.writerow({'File Name':key, 'Process':row[0],'ArgV':arguments,'EnvP':envs,'Timestamp':row[3],'Working Directory':row[4]})
 		csvfile.flush()
-          
+	
+          with open('processes.csv', 'wb') as csvfile:
+            fieldnames = ['File Name', 'Process','ArgV','EnvP','Timestamp','Working Directory']
+            writer=csv.DictWriter(csvfile,fieldnames=fieldnames)
+            writer.writeheader()
+            for key in dictionary_processes:
+              executable_details_list=dictionary_processes[key]
+              for row in executable_details_list:
+                #Replacing the space character 
+                arguments=str(row[1]).replace("\x00"," ")
+                envs=str(row[2]).replace("\x00"," ")
+                writer.writerow({'File Name':key, 'Process':row[0],'ArgV':arguments,'EnvP':envs,'Timestamp':row[3],'Working Directory':row[4]})
+                csvfile.flush()  
+	    print "Wrote processes file"
 
 if __name__=='__main__':
 	main()
