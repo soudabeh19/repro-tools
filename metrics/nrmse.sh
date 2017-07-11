@@ -19,9 +19,6 @@ meanimage=$(fslstats ${im1} -m)
 fslmaths ${im1} -sub ${im2} -sqr ${diff}
 meandiff=$(fslstats ${diff} -m)
 
-echo $meanimage
-echo $meandiff
-
 echo "scale=10; sqrt(${meandiff})/${meanimage}" | bc
 
 \rm ${diff} ${sqr}
