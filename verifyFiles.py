@@ -282,8 +282,7 @@ def get_metrics(metrics,file_name):
 # 'command condition1/subject_name/file_name condition2/subject_name/file_name'
 # and returns the stdout if and only if command was successful
 def run_command(command,file_name,condition1,condition2,subject_name,root_dir):
-    command_string = command+" "+os.path.join(root_dir,condition1,subject_name,file_name)+" "+os.path.join(root_dir,condition2,subject_name,file_name)+" "+"2>/dev/tty"
-    print command_string
+    command_string = command+" "+os.path.join(root_dir,condition1,subject_name,file_name)+" "+os.path.join(root_dir,condition2,subject_name,file_name)
     return_value,output = commands.getstatusoutput(command_string)
     if return_value != 0:
         log_error(str(return_value)+" "+ output +" "+"Command "+ command + " failed (" + command_string + ").")
@@ -511,12 +510,10 @@ def main():
        	if args.fileDiff is not None:
             log_info("Writing difference matrix to file "+args.fileDiff)
             diff_file = open(args.fileDiff,'w')
-	    #diff,bDiff,metric_values,dictionary_executables,dictionary_processes=n_differences_across_subjects(conditions_dict,root_dir,metrics,checksums_from_file_dict,args.checksumFile,args.checkCorruption,args.sqLiteFile,args.trackProcesses)
             diff_file.write(pretty_string(diff,conditions_dict))
             diff_file.close()
         else:
 	    log_info("Printing...")
-            #diff,bDiff,metric_values,dictionary_executables,dictionary_processes=n_differences_across_subjects(conditions_dict,root_dir,metrics,checksums_from_file_dict,args.checksumFile,args.checkCorruption,args.sqLiteFile,args.trackProcesses)
             if args.binaryMatrix:
 	      print Ldiff_print(bDiff,conditions_dict)
 	    else:
