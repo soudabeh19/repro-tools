@@ -228,7 +228,6 @@ def n_differences_across_subjects(conditions_dict,root_dir,metrics,checksums_fro
 				if file_name.endswith(metric['extension']):
 				    try:
 					log_info("Computing the metrics for the file:"+" "+file_name+" "+"in subject"+" "+subject)
-					print run_command(metric['command'],file_name,c,d,subject,root_dir)
                                         metric_values[metric['name']][key][file_name] += float(run_command(metric['command'],file_name,c,d,subject,root_dir))
 				    except ValueError as e:
 					log_error("Result of metric execution could not be cast to float"+" "+metric['command']+" "+file_name+" "+c+" "+d+" "+subject+" "+root_dir)
