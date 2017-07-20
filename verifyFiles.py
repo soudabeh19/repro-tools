@@ -135,7 +135,7 @@ def check_files(conditions_dict):
 # For instance:
 #  {'condition1 vs condition2': {'c/c.txt': 0, 'a.txt': 2}}
 #  means that 'c/c.txt' is identical for all subjects in conditions condition1 and condition2 while 'a.txt' differs in two subjects.
-def n_differences_across_subjects(conditions_dict,root_dir,metrics,checksums_from_file_dict,checksum_after_file_path,check_corruption,sqlite_db_path):
+def n_differences_across_subjects(conditions_dict,root_dir,metrics,checksums_from_file_dict,checksum_after_file_path,check_corruption,sqlite_db_path,track_processes):
     # For each pair of conditions C1 and C1
     product = ((i,j) for i in conditions_dict.keys() for j in conditions_dict.keys())
     diff={} # Will be the return value
@@ -199,16 +199,16 @@ def n_differences_across_subjects(conditions_dict,root_dir,metrics,checksums_fro
                         files_are_different=True
 
 		    #Track the processes which created the files using reprozip trace.
-		    if sqlite_db_path and file_name not in dictionary_processes:
+		    if track_processes and sqlite_db_path and file_name not in dictionary_processes and file_name.endswith("nii.gz") :
 		       dictionary_processes[file_name]=get_executable_details(conn,sqlite_db_path,file_name)    
 		    
                     if files_are_different:
 			diff[key][file_name]+=1
   			bDiff[key][subject][file_name]=1			
-                    else:
-			bDiff[key][subject][file_name]=0
+                    #else:
+			#bDiff[key][subject][file_name]=0
                         #Below condition is making sure that the checksums are getting read from the file.Also that we are not computing the checksum of the checksums-after file.
-			if check_corruption and checksums_from_file_dict and checksum_after_file_path not in file_name:
+		        if check_corruption and checksums_from_file_dict and checksum_after_file_path not in file_name:
 			     #If the checksum of the file computed locally is different from the one in the file, the file got corrupted and hence throw error. 
 			     if (checksum(abs_path_c) != checksums_from_file_dict[c][subject][file_name]):
                                log_error("Checksum of\"" + abs_path_c + "\"in checksum file is different from what is computed here.")
@@ -221,6 +221,7 @@ def n_differences_across_subjects(conditions_dict,root_dir,metrics,checksums_fro
                                 if metric['name'] not in metric_values.keys():
                                     metric_values[metric['name']]={}
                                 if key not in metric_values[metric['name']].keys():
+
                                     metric_values[metric['name']][key] = {}
                                 if file_name not in metric_values[metric['name']][key].keys() and file_name.endswith(metric['extension']):
                                     metric_values[metric['name']][key][file_name]=0
@@ -242,9 +243,12 @@ def n_differences_across_subjects(conditions_dict,root_dir,metrics,checksums_fro
 			     dictionary_executables["**"+file_name]=get_executable_details(conn,sqlite_db_path,file_name)
 			   else:
 			     dictionary_executables[file_name]=get_executable_details(conn,sqlite_db_path,file_name)
+	            else:
+                        bDiff[key][subject][file_name]=0
+	
     if sqlite_db_path:
       conn.close()
-    return diff,metric_values,dictionary_executables,dictionary_processes
+    return diff,bDiff,metric_values,dictionary_executables,dictionary_processes
 
 #Method get_executable_details is used for finding out the details of the processes that created or modified the specified file.
 def get_executable_details(conn,sqlite_db_path,file_name):#TODO Intra condition run is not taken into account while the executable details are getting written to the file
@@ -279,9 +283,10 @@ def get_metrics(metrics,file_name):
 # and returns the stdout if and only if command was successful
 def run_command(command,file_name,condition1,condition2,subject_name,root_dir):
     command_string = command+" "+os.path.join(root_dir,condition1,subject_name,file_name)+" "+os.path.join(root_dir,condition2,subject_name,file_name)+" "+"2>/dev/tty"
+    print command_string
     return_value,output = commands.getstatusoutput(command_string)
     if return_value != 0:
-        log_error(return_value+" "+ output +" "+"Command "+ command +" failed ("+command_string+").")
+        log_error(str(return_value)+" "+ output +" "+"Command "+ command + " failed (" + command_string + ").")
     return output
 
 #Method read_checksum_from_file gets the file path containing the checksum and the file name.
@@ -469,6 +474,7 @@ def main():
 	parser.add_argument("-s","--sqLiteFile",help="The path to the sqlite file which is used as the reference file for identifying the processes which created the files")
 	parser.add_argument("-x","--execFile",help="Writes the executable details to a file")
 	parser.add_argument("-b","--binaryMatrix",help="Matrix shows differences according to the subject and file in the comparison of condition pairs" )
+	parser.add_argument("-t","--trackProcesses",help="If this flag is kept, all the processes that create an nii file is written into file name processes.csv" )
         args=parser.parse_args()
         logging.basicConfig(level=logging.INFO,format='%(asctime)s %(message)s')
 	if not os.path.isfile(args.file_in):
@@ -500,16 +506,17 @@ def main():
           log_error("Input the SQLite file path and the name of the file to which the executable details should be saved")
 	#Differences across subjects needs the conditions dictionary, root directory, checksums_from_file_dictionary,
 	#and the file checksumFile,checkCorruption and the path to the sqlite file.
-        diff,metric_values,dictionary_executables,dictionary_processes=n_differences_across_subjects(conditions_dict,root_dir,metrics,checksums_from_file_dict,args.checksumFile,args.checkCorruption,args.sqLiteFile)
+        #diff,metric_values,dictionary_executables,dictionary_processes=n_differences_across_subjects(conditions_dict,root_dir,metrics,checksums_from_file_dict,args.checksumFile,args.checkCorruption,args.sqLiteFile)i
+	diff,bDiff,metric_values,dictionary_executables,dictionary_processes=n_differences_across_subjects(conditions_dict,root_dir,metrics,checksums_from_file_dict,args.checksumFile,args.checkCorruption,args.sqLiteFile,args.trackProcesses)
        	if args.fileDiff is not None:
             log_info("Writing difference matrix to file "+args.fileDiff)
             diff_file = open(args.fileDiff,'w')
-	    diff,bDiff,metric_values,dictionary_executables=n_differences_across_subjects(conditions_dict,root_dir,metrics,checksums_from_file_dict,args.checksumFile,args.checkCorruption,args.sqLiteFile)
+	    #diff,bDiff,metric_values,dictionary_executables,dictionary_processes=n_differences_across_subjects(conditions_dict,root_dir,metrics,checksums_from_file_dict,args.checksumFile,args.checkCorruption,args.sqLiteFile,args.trackProcesses)
             diff_file.write(pretty_string(diff,conditions_dict))
             diff_file.close()
         else:
 	    log_info("Printing...")
-            diff,bDiff,metric_values,dictionary_executables=n_differences_across_subjects(conditions_dict,root_dir,metrics,checksums_from_file_dict,args.checksumFile,args.checkCorruption,args.sqLiteFile)
+            #diff,bDiff,metric_values,dictionary_executables,dictionary_processes=n_differences_across_subjects(conditions_dict,root_dir,metrics,checksums_from_file_dict,args.checksumFile,args.checkCorruption,args.sqLiteFile,args.trackProcesses)
             if args.binaryMatrix:
 	      print Ldiff_print(bDiff,conditions_dict)
 	    else:
@@ -534,7 +541,8 @@ def main():
 	        writer.writerow({'File Name':key, 'Process':row[0],'ArgV':arguments,'EnvP':envs,'Timestamp':row[3],'Working Directory':row[4]})
 		csvfile.flush()
 	
-          with open('processes.csv', 'wb') as csvfile:
+	if dictionary_processes:
+          with open(args.trackProcesses, 'wb') as csvfile:
             fieldnames = ['File Name', 'Process','ArgV','EnvP','Timestamp','Working Directory']
             writer=csv.DictWriter(csvfile,fieldnames=fieldnames)
             writer.writeheader()
