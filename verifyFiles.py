@@ -18,6 +18,8 @@ import csv
 import sqlite3
 import re
 import pandas as pd
+import json
+import numpy as np
 # Returns a dictionary where the keys are the paths in 'directory'
 # (relative to 'directory') and the values are the os.stat objects
 # associated with these paths. By convention, keys representing
@@ -313,6 +315,7 @@ def get_condition_checksum_dict(condition,root_dir,subjects,checksum_after_file_
 def Ldiff_print(Diff,conditions_dict):
     bDiff=Diff
     No_pair_con=len(bDiff.keys())
+    print "****",bDiff,"****"
     Ldiff={}
     list_subjects=bDiff[bDiff.keys()[0]].keys()
     list_paths= conditions_dict.values()[0].values()[0].keys()
@@ -342,18 +345,45 @@ def Ldiff_print(Diff,conditions_dict):
         for path in Ldiff[subject].keys():
             path_list.append([subject,path,Ldiff[subject][path],first_subject[path].st_mtime])
     #------------ Print the path_list list ---------------
-  #  i=0
-  #  while i < len(path_list):
-  #       flag=True
-  #       while flag:
-  #           j=len (path_list[0][:])-1 # find the number of elements in path_list to be printed (except the st_mtime)
-  #           print path_list[i][0:j]
-  #           flag=False
-  #  	     i+=1
+   # i=0
+   # while i < len(path_list):
+   #      flag=True
+   #      while flag:
+   #          j=len (path_list[0][:])-1 # find the number of elements in path_list to be printed (except the st_mtime)
+   #          print path_list[i][0:j]
+   #          flag=False
+   # 	     i+=1
     #------------ Print the Matrix -----------------------
     print " >>> Conditions order : ",bDiff.keys() 
     df = pd.DataFrame([[col1,col2,col3] for col1, d in Ldiff.items() for col2, col3 in d.items()],columns=['Subject','File','Results'])
-    pd.set_option('display.max_rows', None)    
+    pd.set_option('display.max_rows', None)
+    #------
+    #Df=  "','".join(map(str, df))
+    #df.to_string(index=False).split('\n')
+    #with open ('result.txt', 'w') as fp:
+	#json.dump(df, fp, separators = (',',':'))
+    #------
+    #Df=df
+    #Df.replace("[",",")
+    #with open("output.txt", "w") as text_file:
+       # text_file.write("{}".format(Df))
+    #------
+   # df=df.replace({'<br>':' '}, regex=True)
+   # df.to_csv('pandas.txt', header=None, index=None, sep=' ', mode='a' )
+    #------ Column text file---
+    dfc= pd.Series(bDiff.keys())
+    dfc=dfc.replace({'<br>':' '}, regex=True)
+    dfc.to_csv('column.txt',header=False, sep=';', mode='w+' )
+    #------ Row text file---
+    dfr= pd.DataFrame([[col1,col2] for col1, d in Ldiff.items() for col2, col3 in d.items()],columns=['Subject','File'])
+    dfr=dfr.replace({'<br>':' '}, regex=True)
+    dfr.to_csv('row.txt',header=False, index=True, sep=';', mode='w+' ,line_terminator= '\n')
+    #------
+#    test_pandas='values.txt'
+#    with open(os.path.join( test_pandas),'w') as outfile:
+#	df.to_string(outfile)
+    #------
+ 
     return df
 
 def pretty_string(diff_dict,conditions_dict):
@@ -458,7 +488,7 @@ def main():
 	parser.add_argument("-k","--checkCorruption",help="If this flag is kept 'TRUE', it checks whether the file is corrupted")
 	parser.add_argument("-s","--sqLiteFile",help="The path to the sqlite file which is used as the reference file for identifying the processes which created the files")
 	parser.add_argument("-x","--execFile",help="Writes the executable details to a file")
-	parser.add_argument("-b","--binaryMatrix",help="Matrix showes diferences according to the subject and file in the comparision of condition pairs")
+	parser.add_argument("-b","--binaryMatrix",help="Matrix shows differences according to the subject and file in the comparison of condition pairs")
         args=parser.parse_args()
         logging.basicConfig(level=logging.INFO,format='%(asctime)s %(message)s')
 	if not os.path.isfile(args.file_in):
