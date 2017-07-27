@@ -15,10 +15,15 @@ im2=$2
 diff=`mktemp diff-XXXX.nii.gz`
 sqr=`mktemp sqr-XXXX.nii.gz`
 
-meanimage=$(fslstats ${im1} -m)
+# Get the min and max intensities in image1
+minmax=$(fslstats ${im1} -R)
+min=$(echo ${minmax} | awk '{print $1}')
+max=$(echo ${minmax} | awk '{print $2}')
+
+# Compute the mean square difference
 fslmaths ${im1} -sub ${im2} -sqr ${diff}
 meandiff=$(fslstats ${diff} -m)
 
-echo "scale=10; sqrt(${meandiff})/${meanimage}" | bc
+echo "scale=10; sqrt(${meandiff})/(${max}-(${min}))"  |bc
 
 \rm ${diff} ${sqr}
