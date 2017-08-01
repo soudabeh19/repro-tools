@@ -141,6 +141,7 @@ def n_differences_across_subjects(conditions_dict,root_dir,metrics,checksums_fro
     diff={} # Will be the return value
     bDiff={} # will be the return value for being used in binary matrix 
     metric_values={}
+    metric_values_subject_wise={}
     path_names = conditions_dict.values()[0].values()[0].keys()
     #dictionary_checksum is used for storing the computed checksum values and to avoid computing the checksums for the files multiple times
     dictionary_checksum={}
@@ -185,7 +186,8 @@ def n_differences_across_subjects(conditions_dict,root_dir,metrics,checksums_fro
 	            files_are_different=False
 		    abs_path_c=os.path.join(root_dir,c,subject,file_name)
                     abs_path_d=os.path.join(root_dir,d,subject,file_name)
-                    if checksums_from_file_dict:
+  		    #print checksums_from_file_dict[d][subject]
+                    if checksums_from_file_dict: 
 		      if (checksums_from_file_dict[c][subject][file_name] != checksums_from_file_dict[d][subject][file_name]):
                         files_are_different=True
 		    elif conditions_dict[c][subject][file_name].st_size != conditions_dict[d][subject][file_name].st_size :
@@ -218,17 +220,25 @@ def n_differences_across_subjects(conditions_dict,root_dir,metrics,checksums_fro
                         metrics_to_evaluate = get_metrics(metrics,file_name)
                         if len(metrics_to_evaluate) != 0:
                             for metric in metrics.values():
-                                if metric['name'] not in metric_values.keys():
+                                if metric['name'] not in metric_values.keys() and metric['name'] not in metric_values_subject_wise.keys():
                                     metric_values[metric['name']]={}
-                                if key not in metric_values[metric['name']].keys():
-
+				    metric_values_subject_wise[metric['name']]={}
+                                if key not in metric_values[metric['name']].keys() and key not in metric_values_subject_wise[metric['name']].keys():
                                     metric_values[metric['name']][key] = {}
+				    metric_values_subject_wise[metric['name']][key]={}
+				#To add subject along with the file name to identify individual file differences
+				if subject not in metric_values_subject_wise[metric['name']][key].keys():
+				    metric_values_subject_wise[metric['name']][key][subject]={}
                                 if file_name not in metric_values[metric['name']][key].keys() and file_name.endswith(metric['extension']):
-                                    metric_values[metric['name']][key][file_name]=0
+				    metric_values[metric['name']][key][file_name]=0
+				if file_name not in metric_values_subject_wise[metric['name']][key][subject].keys() and file_name.endswith(metric['extension']):
+				    metric_values_subject_wise[metric['name']][key][subject][file_name]= 0
 				if file_name.endswith(metric['extension']):
 				    try:
 					log_info("Computing the metrics for the file:"+" "+file_name+" "+"in subject"+" "+subject)
-                                        metric_values[metric['name']][key][file_name] += float(run_command(metric['command'],file_name,c,d,subject,root_dir))
+                                        diff_value=float(run_command(metric['command'],file_name,c,d,subject,root_dir))
+					metric_values[metric['name']][key][file_name] += diff_value
+					metric_values_subject_wise[metric['name']][key][subject][file_name] = diff_value
 				    except ValueError as e:
 					log_error("Result of metric execution could not be cast to float"+" "+metric['command']+" "+file_name+" "+c+" "+d+" "+subject+" "+root_dir)
                         # if we are in different runs of the same
@@ -248,7 +258,8 @@ def n_differences_across_subjects(conditions_dict,root_dir,metrics,checksums_fro
 	
     if sqlite_db_path:
       conn.close()
-    return diff,bDiff,metric_values,dictionary_executables,dictionary_processes
+
+    return diff,bDiff,metric_values,dictionary_executables,dictionary_processes,metric_values_subject_wise
 
 #Method get_executable_details is used for finding out the details of the processes that created or modified the specified file.
 def get_executable_details(conn,sqlite_db_path,file_name):#TODO Intra condition run is not taken into account while the executable details are getting written to the file
@@ -506,7 +517,7 @@ def main():
 	#Differences across subjects needs the conditions dictionary, root directory, checksums_from_file_dictionary,
 	#and the file checksumFile,checkCorruption and the path to the sqlite file.
         #diff,metric_values,dictionary_executables,dictionary_processes=n_differences_across_subjects(conditions_dict,root_dir,metrics,checksums_from_file_dict,args.checksumFile,args.checkCorruption,args.sqLiteFile)i
-	diff,bDiff,metric_values,dictionary_executables,dictionary_processes=n_differences_across_subjects(conditions_dict,root_dir,metrics,checksums_from_file_dict,args.checksumFile,args.checkCorruption,args.sqLiteFile,args.trackProcesses)
+	diff,bDiff,metric_values,dictionary_executables,dictionary_processes,metric_values_subject_wise=n_differences_across_subjects(conditions_dict,root_dir,metrics,checksums_from_file_dict,args.checksumFile,args.checkCorruption,args.sqLiteFile,args.trackProcesses)
        	if args.fileDiff is not None:
             log_info("Writing difference matrix to file "+args.fileDiff)
             diff_file = open(args.fileDiff,'w')
@@ -523,6 +534,16 @@ def main():
             metric_file = open(metrics[metric_name]["output_file"],'w')
 	    metric_file.write(pretty_string(metric_values[metric_name],conditions_dict))
 	    metric_file.close()
+	
+	#To write down subject wise nrmse value
+	if metric_values_subject_wise:
+	     with open('subject-wise.csv', 'wb') as f:
+               writer = csv.writer(f)
+               for item in metric_values_subject_wise['NRMSE']:
+                 for subject in metric_values_subject_wise['NRMSE'][item]:
+                   for file_name in metric_values_subject_wise['NRMSE'][item][subject]:
+                     writer.writerow([item,subject,file_name,metric_values_subject_wise['NRMSE'][item][subject][file_name]])
+	    
 	if args.execFile is not None:
 	  log_info("Writing executable details to csv file")
 	  with open(args.execFile, 'wb') as csvfile:
