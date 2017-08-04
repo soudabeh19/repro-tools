@@ -19,7 +19,6 @@ function convert {
 if [ $# != 2 ]
 then
     echo "Usage: $0 image1.nii.gz image2.nii.gz"
-    echo "Image1 and image2 must be binary images"
     exit 1
 fi
 
