@@ -3,14 +3,27 @@
 set -e
 set -u
 
+function convert {
+    local image=$1
+    local ext=$(echo ${image} | awk -F '.' '{print $NF}')
+    if [ "${ext}" == "mgz" ]
+    then
+	local name=$(basename ${image} ${ext})
+	mri_convert ${image} ${name}.nii.gz &>/dev/null
+	echo ${name}.nii.gz
+    else
+	echo ${image}
+    fi
+}
+
 if [ $# != 2 ]
 then
     echo "Usage: $0 <im1> <im2>"
     exit 1
 fi
 
-im1=$1
-im2=$2
+im1=$(convert $1)
+im2=$(convert $2)
 
 diff=`mktemp diff-XXXX.nii.gz`
 sqr=`mktemp sqr-XXXX.nii.gz`
