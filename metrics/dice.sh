@@ -8,9 +8,9 @@ function convert {
     local ext=$(echo ${image} | awk -F '.' '{print $NF}')
     if [ "${ext}" == "mgz" ]
     then
-	local name=$(basename ${image} ${ext})
-	mri_convert ${image} ${name}.nii.gz &>/dev/null
-	echo ${name}.nii.gz
+	local name=$(mktemp image-XXXXXX.nii.gz)
+	mri_convert ${image} ${name} &>/dev/null
+	echo ${name}
     else
 	echo ${image}
     fi
@@ -24,6 +24,7 @@ fi
 
 im1=$(convert $1)
 im2=$(convert $2)
+
 mul=$(mktemp mul-XXXXX.nii.gz)
 fslmaths ${im1} -mul ${im2} ${mul}
 inter=$(fslstats ${mul} -V | awk '{print $1}')
@@ -31,4 +32,12 @@ nim1=$(fslstats ${im1} -V | awk '{print $1}')
 nim2=$(fslstats ${im2} -V | awk '{print $1}')
 echo "scale=10 ; 2*${inter}/(${nim1}+${nim2})" | bc
 \rm ${mul}
+if [ "${im1}" != "$1" ]
+then # image was converted
+  \rm -f ${im1} 
+fi
+if [ "${im2}" != "$2" ]
+then # image was converted
+  \rm -f ${im2}
+fi
 

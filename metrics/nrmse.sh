@@ -3,14 +3,15 @@
 set -e
 set -u
 
+
 function convert {
     local image=$1
     local ext=$(echo ${image} | awk -F '.' '{print $NF}')
     if [ "${ext}" == "mgz" ]
     then
-	local name=$(basename ${image} ${ext})
-	mri_convert ${image} ${name}.nii.gz &>/dev/null
-	echo ${name}.nii.gz
+	local name=$(mktemp image-XXXXXX.nii.gz)
+	mri_convert ${image} ${name} &>/dev/null
+	echo ${name}
     else
 	echo ${image}
     fi
@@ -40,3 +41,12 @@ meandiff=$(fslstats ${diff} -m)
 echo "scale=10; sqrt(${meandiff})/(${max}-(${min}))"  |bc
 
 \rm ${diff} ${sqr}
+if [ "${im1}" != "$1" ]
+then # image was converted
+  \rm -f ${im1} 
+fi
+if [ "${im2}" != "$2" ]
+then # image was converted
+  \rm -f ${im2}
+fi
+
