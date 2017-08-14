@@ -25,15 +25,13 @@ fi
 im1=$(convert $1)
 im2=$(convert $2)
 
-mul=$(mktemp mul-XXXXX.nii.gz)
-fslmaths ${im1} -mul ${im2} ${mul}
 diff=$(mktemp diff-XXXXX.nii.gz)
 fslmaths ${im1} -sub ${im2} ${diff}
 nim1=$(fslstats ${im1} -V | awk '{print $1}')
 nim2=$(fslstats ${im2} -V | awk '{print $1}')
 n_diff=$(fslstats ${diff} -V | awk '{print $1}')
 echo "scale=10 ; (${nim1}+${nim2}-${n_diff})/(${nim1}+${nim2})" | bc
-\rm ${mul} ${diff}
+\rm ${diff}
 if [ "${im1}" != "$1" ]
 then # image was converted
   \rm -f ${im1} 
