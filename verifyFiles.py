@@ -30,9 +30,10 @@ def get_dir_dict(directory,exclude_items):
 	    #To eliminate the files listd in exclude items file. Condition below checks relative file path as well as file names. 
             files[:]=[f for f in files if f not in exclude_items and os.path.join(root,f).replace(os.path.join(directory+"/"),"") not in exclude_items]
         for file_name in files:
-            abs_file_path=os.path.join(root,file_name)
-	    rel_path=abs_file_path.replace(os.path.join(directory+"/"),"")
-            result_dict[rel_path]=os.stat(abs_file_path)
+	    if file_name not in exclude_items:
+              abs_file_path=os.path.join(root,file_name)
+	      rel_path=abs_file_path.replace(os.path.join(directory+"/"),"")
+              result_dict[rel_path]=os.stat(abs_file_path)
     return result_dict
 
 # Returns a dictionary where the keys are the directories in
@@ -236,7 +237,9 @@ def n_differences_across_subjects(conditions_dict,root_dir,metrics,checksums_fro
 				if file_name.endswith(metric['extension']):
 				    try:
 					log_info("Computing the metrics for the file:"+" "+file_name+" "+"in subject"+" "+subject)
+					print file_name,c,d,subject,metric['command']
                                         diff_value=float(run_command(metric['command'],file_name,c,d,subject,root_dir))
+					print diff_value
 					metric_values[metric['name']][key][file_name] += diff_value
 					metric_values_subject_wise[metric['name']][key][subject][file_name] = diff_value
 				    except ValueError as e:
@@ -424,6 +427,8 @@ def pretty_string(diff_dict,conditions_dict):
             output_string+="\t"
         output_string+="\n"
     return output_string
+
+
 #------
 # Returns a string containing a 'pretty' matrix representation of the
 # dictionary returned by n_differences_across_subjects
@@ -438,6 +443,18 @@ def check_subjects(conditions_dict):
           if not subject in conditions_dict[condition].keys():
 	     log_error("Subject \"" + subject + "\" is missing under condition \""+ condition +"\"." )
 
+
+
+#function to write the individual file detials to files
+def write_filewise_details(metric_values_subject_wise,metric_name,file_name):
+      log_info(metric_name + " values getting written to subject wise into a csv file: " + file_name)
+      with open(file_name, 'wb') as f:
+       writer = csv.writer(f)
+       for item in metric_values_subject_wise[metric_name]:
+        for subject in metric_values_subject_wise[metric_name][item]:
+         for file_name in metric_values_subject_wise[metric_name][item][subject]:
+	  writer.writerow([item,subject,file_name,metric_values_subject_wise[metric_name][item][subject][file_name]])
+    
 # Logging functions
 
 def log_info(message):
@@ -536,14 +553,17 @@ def main():
 	    metric_file.close()
 	
 	#To write down subject wise nrmse value
-	if metric_values_subject_wise:
-	     with open('subject-wise.csv', 'wb') as f:
-               writer = csv.writer(f)
-               for item in metric_values_subject_wise['NRMSE']:
-                 for subject in metric_values_subject_wise['NRMSE'][item]:
-                   for file_name in metric_values_subject_wise['NRMSE'][item][subject]:
-                     writer.writerow([item,subject,file_name,metric_values_subject_wise['NRMSE'][item][subject][file_name]])
-	    
+	if "NRMSE" in metric_values_subject_wise.keys():
+  	     write_filewise_details(metric_values_subject_wise,"NRMSE","test-nrmse.csv")
+	
+	#To write down subject wise dice metrics value
+        if "Dice" in metric_values_subject_wise.keys():
+             write_filewise_details(metric_values_subject_wise,"Dice","test-dice.csv")
+	
+	#To write down NRMSE values subject wise on MGZ files
+	if "MGZ" in metric_values_subject_wise.keys():
+             write_filewise_details(metric_values_subject_wise,"MGZ","test-mgz.csv")
+    
 	if args.execFile is not None:
 	  log_info("Writing executable details to csv file")
 	  with open(args.execFile, 'wb') as csvfile:
