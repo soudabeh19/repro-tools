@@ -501,7 +501,8 @@ def main():
 	parser.add_argument("-s","--sqLiteFile",help="The path to the sqlite file which is used as the reference file for identifying the processes which created the files")
 	parser.add_argument("-x","--execFile",help="Writes the executable details to a file")
 	parser.add_argument("-b","--binaryMatrix",help="Matrix shows differences according to the subject and file in the comparison of condition pairs" )
-	parser.add_argument("-t","--trackProcesses",help="If this flag is kept, all the processes that create an nii file is written into file name processes.csv" )
+	parser.add_argument("-t","--trackProcesses",help="Writes all the processes that create an nii file is written into file name mentioned after the flag")	
+        parser.add_argument("-i","--filewiseMetricValue",help="Folder name on to which the individual filewise metric values are written to a csv file")
         args=parser.parse_args()
         logging.basicConfig(level=logging.INFO,format='%(asctime)s %(message)s')
 	if not os.path.isfile(args.file_in):
@@ -553,16 +554,16 @@ def main():
 	    metric_file.close()
 	
 	#To write down subject wise nrmse value
-	if "NRMSE" in metric_values_subject_wise.keys():
-  	     write_filewise_details(metric_values_subject_wise,"NRMSE","test-nrmse.csv")
+	if "NRMSE" in metric_values_subject_wise.keys() and args.filewiseMetricValue:
+  	     write_filewise_details(metric_values_subject_wise,"NRMSE",args.filewiseMetricValue+"/subjectwise-nrmse.csv")
 	
 	#To write down subject wise dice metrics value
-        if "Dice" in metric_values_subject_wise.keys():
-             write_filewise_details(metric_values_subject_wise,"Dice","test-dice.csv")
+        if "Dice" in metric_values_subject_wise.keys() and args.filewiseMetricValue:
+             write_filewise_details(metric_values_subject_wise,"Dice",args.filewiseMetricValue+"/subjectwise-dice.csv")
 	
 	#To write down NRMSE values subject wise on MGZ files
-	if "MGZ" in metric_values_subject_wise.keys():
-             write_filewise_details(metric_values_subject_wise,"MGZ","test-mgz.csv")
+	if "MGZ" in metric_values_subject_wise.keys() and args.filewiseMetricValue:
+             write_filewise_details(metric_values_subject_wise,"MGZ",args.filewiseMetricValue+"/subjectwise-mgz.csv")
     
 	if args.execFile is not None:
 	  log_info("Writing executable details to csv file")
@@ -580,6 +581,7 @@ def main():
 		csvfile.flush()
 	
 	if dictionary_processes:
+          log_info("Writing process details to csv file")
           with open(args.trackProcesses, 'wb') as csvfile:
             fieldnames = ['File Name', 'Process','ArgV','EnvP','Timestamp','Working Directory']
             writer=csv.DictWriter(csvfile,fieldnames=fieldnames)
@@ -592,7 +594,7 @@ def main():
                 envs=str(row[2]).replace("\x00"," ")
                 writer.writerow({'File Name':key, 'Process':row[0],'ArgV':arguments,'EnvP':envs,'Timestamp':row[3],'Working Directory':row[4]})
                 csvfile.flush()  
-	    print "Wrote processes file"
+	    
 
 if __name__=='__main__':
 	main()
