@@ -239,7 +239,7 @@ def n_differences_across_subjects(conditions_dict,root_dir,metrics,checksums_fro
 			   else:
 			     dictionary_executables[file_name]=get_executable_details(conn,sqlite_db_path,file_name)
     if sqlite_db_path:
-      conn.close() 
+      conn.close()
     return diff,bDiff,metric_values,dictionary_executables
 #Method get_executable_details is used for finding out the details of the processes that created or modified the specified file.
 def get_executable_details(conn,sqlite_db_path,file_name):#TODO Intra condition run is not taken into account while the executable details are getting written to the file
@@ -316,7 +316,6 @@ def Ldiff_print(Diff,conditions_dict):
     bDiff=Diff
     No_pair_con=len(bDiff.keys())
     Ldiff={}
-    tSpark={}
     list_subjects=bDiff[bDiff.keys()[0]].keys()
     list_paths= conditions_dict.values()[0].values()[0].keys()
     Cons_value=[]
@@ -343,22 +342,7 @@ def Ldiff_print(Diff,conditions_dict):
                        Cons_value=[]
     for subject in Ldiff.keys():
         for path in Ldiff[subject].keys():
-            path_list.append([subject,path,Ldiff[subject][path],first_subject[path].st_mtime])   
-    #----------- Just for testing of grabing values in Ldiff[sub][path]---------
-    #print "******", "Ldiff",Ldiff, "******"
-    #print "*****", "Ldiff [sub][path]" ,"*******" 
-#    for sub in list_subjects:
-#        for path in list_paths:
-#	    tSpark[sub][path]=Ldiff [sub][path][0]
-#    for subject in Ldiff.keys():
-#	for path in Ldiff.values():
-#	    tSpark[key]=i;
-#	    tSpark[key][cond]=j;
-#	    tSpark[key][cond][j]= Ldiff [sub][path][j]
-
-
-
-
+            path_list.append([subject,path,Ldiff[subject][path],first_subject[path].st_mtime])
     #------------ Print the path_list list ---------------
    # i=0
    # while i < len(path_list):
@@ -368,97 +352,69 @@ def Ldiff_print(Diff,conditions_dict):
    #          print path_list[i][0:j]
    #          flag=False
    # 	     i+=1
-    #------------ Matrix by pd.DataFrame------------
-#    Mat= pd.DataFrame({'subject' : path_list.subject,
-#			'Path' : path_list.path,
-#			'P1':path_list.Ldiff})
-
     #------------ Print the Matrix -----------------------
-    print "\n\n  >>> Conditions order : ",bDiff.keys(), "\n" 
+    print " >>> Conditions order : ",bDiff.keys() 
     df = pd.DataFrame([[col1,col2,col3] for col1, d in Ldiff.items() for col2, col3 in d.items()],columns=['Subject','File','Results'])
     pd.set_option('display.max_rows', None)
-    #------
-   
-    #print len (bDiff.keys())
-    #for subject in 
-    #------ Spark text file---
-   # row=0
-   # c=0
-   # ro = open("row_index.txt", "rw+")
-   # co = open("column_index.txt","rw+")
-   # matrix = open("matrix.txt","rw+")
-   # for condition in bDiff.keys():
-   #     #if c < len(bDiff.keys()):
-   #         co.write(str(c))
-   #         co.write(";")
-   #         co.write(str(condition))
-   #         co.write("\n")
-   #         for subject in bDiff[bDiff.keys()[c]].keys():
-   #     	for path in conditions_dict.values()[c].values()[c].keys():
-   #     		matrix.write(str(row))
-   #     		matrix.write(";")
-   #     		matrix.write(str(c))
-   #     		matrix.write(";")	
-   #     		matrix.write(str(bDiff[condition][subject][path]))
-   #     		matrix.write("\n")
-   #     		ro.write(str(row))
-   #     		ro.write(";")
-   #     		ro.write(str(subject))
-   #     		ro.write(";")
-   #     		ro.write(str(path))
-   #     		ro.write("\n")
-   #             	row+=1
-   #         c+=1
-
-   # #------ Matrix 3 value ---
-    rowNum=0
-    conNum=0
-    rowInd= open("row_index.txt", "wb+")
-    conInd= open("column_index.txt", "wb+")
-    matrix= open("matrix.txt", "wb+")
+    #------ txt files (row-index, column-index, matrix)------
+    num_con = len(bDiff.keys())
+    row=0
+    c=0
+    ro = open("row_index.txt", "rw+")
+    co = open("column_index.txt", "rw+")
+    matrix = open("matrix.txt" , "rw+")
     for condition in bDiff.keys():
-	conInd.write(str(conNum))
- 	conInd.write(";")
-	conInd.write(str(condition))
-	conInd.write("\n")
-        conNum+=1
-    for subject in Ldiff.keys():
-	i=0 # which path of the subject 
-        j=0
-	
-        for path in Ldiff[subject].keys():#.values()[0]:
-            
-            matrix.write (str(Ldiff[subject].values()[i]))
-	    print "bDiff.keys : ", bDiff.keys()
-            if j == len(bDiff.keys()): # Three lines with exact row number   
-            	rowNum += 1
-		j=0
-	    print j
-	    rowInd.write (str(rowNum))
-            rowInd.write (";")
-            rowInd.write (subject)
-	    rowInd.write (";")
-	    rowInd.write (path)
-	    rowInd.write (";")
-            rowInd.write (str(Ldiff[subject].values()[i][0]))
-	    rowInd.write ("\n")
-	    j+=1
-	    #print Ldiff[subject].values()[i][j],";",Ldiff[subject].values()[i][j+1],";",Ldiff[subject].values()[i][j+2]
-            #print Ldiff[subject].values()[i]
-            i+=1
+        for subject in bDiff[bDiff.keys()[c]].keys():
+            column=0
+            for path in conditions_dict.values()[c].values()[c].keys():
+	        ro.write(str(bDiff[condition][subject][path]))
+		ro.write(",")
+		ro.write(str(row))
+		ro.write(",")
+		ro.write(str(column))
+		ro.write("\n")	
+               # ro.close()
+                
+		#write (column, condition) in column_index_file
+	    
+	    #write (name,subjet,path) in row_index_file
+	    row +=1
+	column+=1
+	c+=1	
+    #--- read and write
+    #dfc= pd.Series(bDiff.keys())
+    #dfc=dfc.replace({'<br>':' '}, regex=True)
+    #dfc.to_csv('column.txt',header=False, sep=';', mode='w+' )
+    ##------ Row text file---
+    #dfr= pd.DataFrame([[col1,col2] for col1, d in Ldiff.items() for col2, col3 in d.items()],columns=['Subject','File'])
+    #dfr=dfr.replace({'<br>':' '}, regex=True)
+    #dfr.to_csv('row.txt',header=False, index=True, sep=';', mode='w+' ,line_terminator= '\n')
+
+ 
+    #------
+    #Df=  "','".join(map(str, df))
+    #df.to_string(index=False).split('\n')
+    #with open ('result.txt', 'w') as fp:
+	#json.dump(df, fp, separators = (',',':'))
+    #------
+    #Df=df
+    #Df.replace("[",",")
+    #with open("output.txt", "w") as text_file:
+       # text_file.write("{}".format(Df))
+    
+   # df=df.replace({'<br>':' '}, regex=True)
+   # df.to_csv('pandas.txt', header=None, index=None, sep=' ', mode='a' )
+    #------ 
     #------ Column text file---
-    dfc= pd.Series(bDiff.keys())
-    dfc=dfc.replace({'<br>':' '}, regex=True)
-    dfc.to_csv('column.txt',header=False, sep=';', mode='w+' )
-    #------ Row text file---
-    dfr= pd.DataFrame([[col1,col2] for col1, d in Ldiff.items() for col2, col3 in d.items()],columns=['Subject','File'])
-    dfr=dfr.replace({'<br>':' '}, regex=True)
-    dfr.to_csv('row.txt',header=False, index=True, sep=';', mode='w+' ,line_terminator= '\n')
+   
+    df=df.replace({'<br>':' '}, regex=True)
+    df.to_csv('row.txt', header=None, index=True, sep=' ', mode='a' ,line_terminator= '\n')
     #------
 #    test_pandas='values.txt'
 #    with open(os.path.join( test_pandas),'w') as outfile:
 #	df.to_string(outfile)
     #------
+ 
     return df
 
 def pretty_string(diff_dict,conditions_dict):
@@ -512,7 +468,7 @@ def check_subjects(conditions_dict):
     subject_names=set()
     for condition in conditions_dict.keys():
 	subject_names.update(conditions_dict[condition].keys())
-    # Iterate over each soubject in every condition and stop the execution if some subject is missing
+   # Iterate over each soubject in every condition and stop the execution if some subject is missing
     for subject in subject_names:
        for condition in conditions_dict.keys():
           if not subject in conditions_dict[condition].keys():
