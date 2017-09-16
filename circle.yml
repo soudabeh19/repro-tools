@@ -11,5 +11,5 @@ dependencies:
 
 test:
   override:
-    - pytest repro-tools/test_verifyFiles.py
+    - pytest test_verifyFiles.py
 
