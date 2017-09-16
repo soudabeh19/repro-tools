@@ -580,8 +580,8 @@ def main():
 	        writer.writerow({'File Name':key, 'Process':row[0],'ArgV':arguments,'EnvP':envs,'Timestamp':row[3],'Working Directory':row[4]})
 		csvfile.flush()
 	
-	if dictionary_processes:
-          log_info("Writing process details to csv file")
+	if dictionary_processes and args.trackProcesses:
+          log_info("Writing process details to csv file named: "+args.trackProcesses)
           with open(args.trackProcesses, 'wb') as csvfile:
             fieldnames = ['File Name', 'Process','ArgV','EnvP','Timestamp','Working Directory']
             writer=csv.DictWriter(csvfile,fieldnames=fieldnames)
@@ -594,7 +594,7 @@ def main():
                 envs=str(row[2]).replace("\x00"," ")
                 writer.writerow({'File Name':key, 'Process':row[0],'ArgV':arguments,'EnvP':envs,'Timestamp':row[3],'Working Directory':row[4]})
                 csvfile.flush()  
-	    
+	 
 
 if __name__=='__main__':
 	main()
