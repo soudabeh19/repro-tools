@@ -1,3 +1,5 @@
+[![CircleCI](https://circleci.com/gh/lalet/repro-tools.svg?style=svg)](https://circleci.com/gh/lalet/repro-tools)
+
 # repro-tools
 A set of tools to evaluate the reproducibility of computations.
 
