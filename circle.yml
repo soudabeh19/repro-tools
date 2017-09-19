@@ -7,7 +7,7 @@ machine:
 
 dependencies:
   override:
-    - pip install codecov pytest pytest-cov pytest-runner
+    - pip install codecov pytest pytest-cov pytest-runner pandas
 
 test:
   override:
