@@ -7,14 +7,11 @@ machine:
 
 dependencies:
   override:
-    - pip install coveralls pandas pytest pytest-runner
+    - pip install codecov pytest pytest-cov pytest-runner
 
 test:
   override:
-    - coverage run test_verifyFiles.py
+    - pytest --cov=./ ./test_verifyFiles.py 
   post:
-    - coveralls
+    - codecov
 
-notify:
-  webhooks:
-    - url: https://coveralls.io/webhook?repo_token=$COVERALLS_REPO_TOKEN
