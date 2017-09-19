@@ -7,10 +7,14 @@ machine:
 
 dependencies:
   override:
-    - pip install pytest
-    - pip install pandas
+    - pip install coveralls pandas pytest pytest-runner
 
 test:
   override:
-    - pytest test_verifyFiles.py
+    - coverage run pytest test_verifyFiles.py
+  post:
+    - coveralls
 
+notify:
+  webhooks:
+    - url: https://coveralls.io/webhook?repo_token=$COVERALLS_REPO_TOKEN
