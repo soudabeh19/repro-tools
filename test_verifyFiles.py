@@ -1,5 +1,7 @@
 import os
 import pytest
+import commands
+import filecmp
 from verifyFiles import get_dir_dict
 from verifyFiles import checksum 
 from verifyFiles import read_file_contents
@@ -22,4 +24,10 @@ def get_mock_conditions_dict():
 
 def test_conditions_checksum_dict():
   conditions_dict = get_mock_conditions_dict()
-  assert get_conditions_checksum_dict(conditions_dict,"test","checksums-after.txt")  
+  assert get_conditions_checksum_dict(conditions_dict,"test","checksums-after.txt") 
+
+def test_run():
+  command_line_string = "python verifyFiles.py test/conditions.txt -e test/exclude_items.txt -c checksums-after.txt -d test/differences.txt"
+  return_value,output = commands.getstatusoutput(command_line_string)
+  print output
+  assert filecmp.cmp("test/differences.txt","test/differences-ref.txt")
