@@ -29,5 +29,4 @@ def test_conditions_checksum_dict():
 def test_run():
   command_line_string = "python verifyFiles.py test/conditions.txt -e test/exclude_items.txt -c checksums-after.txt -d test/differences.txt"
   return_value,output = commands.getstatusoutput(command_line_string)
-  print output
   assert filecmp.cmp("test/differences.txt","test/differences-ref.txt")
