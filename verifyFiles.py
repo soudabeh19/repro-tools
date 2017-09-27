@@ -142,6 +142,8 @@ def n_differences_across_subjects(conditions_dict,root_dir,metrics,checksums_fro
     diff={} # Will be the return value
     bDiff={} # will be the return value for being used in binary matrix 
     metric_values={}
+    #Dictionary metric_values_subject_wise holds the metric values mapped to individual subjects. 
+    #This helps us identify the metrics values and associate it with individual subjects.
     metric_values_subject_wise={}
     path_names = conditions_dict.values()[0].values()[0].keys()
     #dictionary_checksum is used for storing the computed checksum values and to avoid computing the checksums for the files multiple times
@@ -237,9 +239,8 @@ def n_differences_across_subjects(conditions_dict,root_dir,metrics,checksums_fro
 				if file_name.endswith(metric['extension']):
 				    try:
 					log_info("Computing the metrics for the file:"+" "+file_name+" "+"in subject"+" "+subject)
-					print file_name,c,d,subject,metric['command']
+					log_info(file_name +" "+ c +" "+ d +" "+ subject +" "+ metric['command'])
                                         diff_value=float(run_command(metric['command'],file_name,c,d,subject,root_dir))
-					print diff_value
 					metric_values[metric['name']][key][file_name] += diff_value
 					metric_values_subject_wise[metric['name']][key][subject][file_name] = diff_value
 				    except ValueError as e:
@@ -551,19 +552,21 @@ def main():
             log_info("Writing values of metric \""+metric_name+"\" to file \""+metrics[metric_name]["output_file"]+"\"")
             metric_file = open(metrics[metric_name]["output_file"],'w')
 	    metric_file.write(pretty_string(metric_values[metric_name],conditions_dict))
+            if metric_name in metric_values_subject_wise.keys() and args.filewiseMetricValue:
+              write_filewise_details(metric_values_subject_wise,metric_name,args.filewiseMetricValue+"/"+metric_name+".csv")
 	    metric_file.close()
 	
 	#To write down subject wise nrmse value
-	if "NRMSE" in metric_values_subject_wise.keys() and args.filewiseMetricValue:
-  	     write_filewise_details(metric_values_subject_wise,"NRMSE",args.filewiseMetricValue+"/subjectwise-nrmse.csv")
+	#if "NRMSE" in metric_values_subject_wise.keys() and args.filewiseMetricValue:
+  	     #write_filewise_details(metric_values_subject_wise,"NRMSE",args.filewiseMetricValue+"/subjectwise-nrmse.csv")
 	
 	#To write down subject wise dice metrics value
-        if "Dice" in metric_values_subject_wise.keys() and args.filewiseMetricValue:
-             write_filewise_details(metric_values_subject_wise,"Dice",args.filewiseMetricValue+"/subjectwise-dice.csv")
+        #if "Dice" in metric_values_subject_wise.keys() and args.filewiseMetricValue:
+             #write_filewise_details(metric_values_subject_wise,"Dice",args.filewiseMetricValue+"/subjectwise-dice.csv")
 	
 	#To write down NRMSE values subject wise on MGZ files
-	if "MGZ" in metric_values_subject_wise.keys() and args.filewiseMetricValue:
-             write_filewise_details(metric_values_subject_wise,"MGZ",args.filewiseMetricValue+"/subjectwise-mgz.csv")
+	#if "MGZ" in metric_values_subject_wise.keys() and args.filewiseMetricValue:
+             #write_filewise_details(metric_values_subject_wise,"MGZ",args.filewiseMetricValue+"/subjectwise-mgz.csv")
     
 	if args.execFile is not None:
 	  log_info("Writing executable details to csv file")
