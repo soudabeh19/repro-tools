@@ -556,18 +556,6 @@ def main():
               write_filewise_details(metric_values_subject_wise,metric_name,args.filewiseMetricValue+"/"+metric_name+".csv")
 	    metric_file.close()
 	
-	#To write down subject wise nrmse value
-	#if "NRMSE" in metric_values_subject_wise.keys() and args.filewiseMetricValue:
-  	     #write_filewise_details(metric_values_subject_wise,"NRMSE",args.filewiseMetricValue+"/subjectwise-nrmse.csv")
-	
-	#To write down subject wise dice metrics value
-        #if "Dice" in metric_values_subject_wise.keys() and args.filewiseMetricValue:
-             #write_filewise_details(metric_values_subject_wise,"Dice",args.filewiseMetricValue+"/subjectwise-dice.csv")
-	
-	#To write down NRMSE values subject wise on MGZ files
-	#if "MGZ" in metric_values_subject_wise.keys() and args.filewiseMetricValue:
-             #write_filewise_details(metric_values_subject_wise,"MGZ",args.filewiseMetricValue+"/subjectwise-mgz.csv")
-    
 	if args.execFile is not None:
 	  log_info("Writing executable details to csv file")
 	  with open(args.execFile, 'wb') as csvfile:
