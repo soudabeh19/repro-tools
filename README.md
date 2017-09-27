@@ -15,7 +15,8 @@ Python 2.7.5
 ## Running the script
 
 ```
-usage:verifyFiles.py [-h] [-c CHECKSUMFILE] [-d FILEDIFF] [-m METRICSFILE] [-e EXCLUDEITEMS] [-k CHECKCORRUPTION] [-s SQLITEFILE] [-x EXECFILE] file_in
+usage:verifyFiles.py [-h] [-c CHECKSUMFILE] [-d FILEDIFF] [-m METRICSFILE] [-e EXCLUDEITEMS] [-k CHECKCORRUPTION] [-s SQLITEFILE] [-x EXECFILE]  [-b BINARYMATRIX] [-t TRACKPROCESSES]
+                     [-i FILEWISEMETRICVALUE] file_in
 
 file_in,                                          Mandatory parameter.Directory path to the file containing the conditions.
 -c,CHECKSUM FILE,       --checksumFile            Reads checksum from files. Doesn't compute checksums locally if this parameter is set.
