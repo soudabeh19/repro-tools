@@ -11,6 +11,21 @@ from pyspark.ml.evaluation import RegressionEvaluator
 from pyspark.ml.recommendation import ALS
 from random import random, randint
 
+def compute_accuracy(predictions_list):
+    right_predictions = 0.0
+    for line in predictions_list:
+        if(line[2]==line[3]):
+            right_predictions += 1
+    return right_predictions / len(predictions_list)
+
+def compute_accuracy_dummy(line_list):
+    number_of_ones = 0.1
+    for line in line_list:
+        if(int(line[2])==1):
+            number_of_ones += 1
+    ratio_of_ones = number_of_ones / len(line_list)
+    return max(ratio_of_ones, 1-ratio_of_ones)
+
 def is_binary_matrix(lines):
     for line in lines:
         if line[2]!=0 and line[2]!=1:
@@ -137,14 +152,18 @@ def main(args=None):
         predictions_list = predictions.rdd.map(lambda row: [ row.subjectFile, row.conPair,
                                                              row.val, row.prediction]).collect()
         predictions_list = round_values(predictions_list)
+        accuracy = compute_accuracy(predictions_list)
+        print("Accuracy = " + str(accuracy))
+        print("Accuracy of dummy classifier = " + str(compute_accuracy_dummy(lines)))
         predictions = create_dataframe_from_line_list(sc, spark, predictions_list)
+    else:
+        evaluator = RegressionEvaluator(metricName="rmse", labelCol="val", predictionCol="prediction")
+        rmse = evaluator.evaluate(predictions)
+        print("RMSE = " + str(rmse))
         
     if results.predictions:
         write_dataframe_to_text_file(predictions, results.predictions)   
 
-    evaluator = RegressionEvaluator(metricName="rmse", labelCol="val", predictionCol="prediction")
-    rmse = evaluator.evaluate(predictions)
-    print("RMSE = " + str(rmse))
    
 if __name__ =='__main__':
        main() 
