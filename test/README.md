@@ -1,3 +1,4 @@
 # A simple test
 
-How to run: pytest test_verifyFiles.py
+How to run:
+> pytest --cov=./ ./test_verifyFiles.py
