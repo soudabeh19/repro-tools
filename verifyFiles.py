@@ -343,13 +343,16 @@ def Ldiff_print(Diff,conditions_dict):
     for subject in Ldiff.keys():
         for path in Ldiff[subject].keys():
             path_list.append([subject,path,Ldiff[subject][path],first_subject[path].st_mtime])   
-    #------------ Print the Matrix -----------------------
+    #-------binary_matrix_print--------
     print "\n\n  >>> Conditions order : ",bDiff.keys(), "\n" 
     df = pd.DataFrame([[col1,col2,col3] for col1, d in Ldiff.items() for col2, col3 in d.items()],columns=['Subject','File','Results'])
     pd.set_option('display.max_rows', None)
-    #------
-   
-    #------ Spark text file- mstrix 1 value(row_index,conPair, value)---
+    return df 
+    #-----
+    text_files (bDiff,conditions_dict)
+
+# making output textfile of the binary matrix (matrix.txt, row_index.txt, column_index.txt)  
+def text_files (bDiff,conditions_dict):  
     row=0
     c=0
     ro = open("row_index.txt", "w+")
@@ -377,8 +380,6 @@ def Ldiff_print(Diff,conditions_dict):
                 	row+=1
             row=0
             c+=1
-
-    return df
 
 def pretty_string(diff_dict,conditions_dict):
     output_string=""
@@ -423,7 +424,7 @@ def pretty_string(diff_dict,conditions_dict):
             output_string+="\t"
         output_string+="\n"
     return output_string
-#------
+
 # Returns a string containing a 'pretty' matrix representation of the
 # dictionary returned by n_differences_across_subjects
 # Method check_subjects checks if the subject_folders under different conditions are the same. If not , it stops the execution of the script.
