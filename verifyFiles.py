@@ -343,16 +343,6 @@ def Ldiff_print(Diff,conditions_dict):
     for subject in Ldiff.keys():
         for path in Ldiff[subject].keys():
             path_list.append([subject,path,Ldiff[subject][path],first_subject[path].st_mtime])   
-    #------------ Print the path_list list ---------------
-    i=0
-    while i < len(path_list):
-         flag=True
-         while flag:
-             j=len (path_list[0][:])-1 # find the number of elements in path_list to be printed (except the st_mtime)
-             print path_list[i][0:j]
-             flag=False
-    	     i+=1
-
     #------------ Print the Matrix -----------------------
     print "\n\n  >>> Conditions order : ",bDiff.keys(), "\n" 
     df = pd.DataFrame([[col1,col2,col3] for col1, d in Ldiff.items() for col2, col3 in d.items()],columns=['Subject','File','Results'])
