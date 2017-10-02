@@ -23,12 +23,8 @@ file_in,                                   Mandatory parameter.Directory path to
 -k CHECKCORRUPTION, --checkCorruption      The script verifies if any files are corrupted ,when this flag is set as true
 -s SQLITEFILE,      --sqLiteFile           The path to the SQLITE file,having the reprozip trace details.
 -x EXECFILE ,       --execFile             Writes the executable details to a file.
-<<<<<<< HEAD
--b  --binaryMatrix                         Shows the existence of difference between the conditions of the condition pair in terms of the subject and file.
-=======
 -b BINARY MATRIX,   --binaryMatrix         Shows the existence of difference between the conditions of the condition pair in terms of the subject and file.
 -t TRACK PROCESSES  --trackProcesses       If this flag is set, it traces all the processes using reprozip to record the details and writes it into a csv with with the given name
->>>>>>> 9d716e09ed3fbc64ee54a71108a2374b668b8213
 ```
 
 ### Test Cases
