@@ -368,44 +368,42 @@ def Ldiff_print(Diff,conditions_dict):
     for subject in Ldiff.keys():
         for path in Ldiff[subject].keys():
             path_list.append([subject,path,Ldiff[subject][path],first_subject[path].st_mtime])   
-    #-------binary_matrix_print--------
-    print "\n\n  >>> Conditions order : ",bDiff.keys(), "\n" 
+    print "\n\n  >>> Conditions order : ",bDiff.keys(), "\n" # letting know about order of values in binary matrix dataframe
     df = pd.DataFrame([[col1,col2,col3] for col1, d in Ldiff.items() for col2, col3 in d.items()],columns=['Subject','File','Results'])
-    pd.set_option('display.max_rows', None)
-    return df 
-    #-----
+    pd.set_option('display.max_rows', None) # display the dataframe of binary matrix
     text_files (bDiff,conditions_dict)
+    return df
 
 # making output textfile of the binary matrix (matrix.txt, row_index.txt, column_index.txt)  
 def text_files (bDiff,conditions_dict):  
-    row=0
+    r=0
     c=0
-    ro = open("row_index.txt", "w+")
-    co = open("column_index.txt","w+")
+    row_index = open("row_index.txt", "w+")
+    column_index = open("column_index.txt","w+")
     matrix = open("matrix.txt","w+")
     for condition in bDiff.keys():
-            co.write(str(c))
-            co.write(";")
-            co.write(str(condition))
-            co.write("\n")
+            column_index.write(str(c))
+            column_index.write(";")
+            column_index.write(str(condition))
+            column_index.write("\n")
             for subject in bDiff[bDiff.keys()[c]].keys():
         	for path in conditions_dict.values()[c].values()[c].keys():
-        		matrix.write(str(row))
+        		matrix.write(str(r))
         		matrix.write(";")
         		matrix.write(str(c))
         		matrix.write(";")	
         		matrix.write(str(bDiff[condition][subject][path]))
         		matrix.write("\n")
-        		ro.write(str(row))
-        		ro.write(";")
-        		ro.write(str(subject))
-        		ro.write(";")
-        		ro.write(str(path))
-       	        	ro.write("\n")
-                	row+=1
-            row=0
+        		row_index.write(str(r))
+        		row_index.write(";")
+        		row_index.write(str(subject))
+        		row_index.write(";")
+        		row_index.write(str(path))
+       	        	row_index.write("\n")
+                	r+=1
+            r=0
             c+=1
-
+    return (row_index,column_index,matrix) 
 def pretty_string(diff_dict,conditions_dict):
     output_string=""
     max_comparison_key_length=0
