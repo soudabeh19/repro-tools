@@ -1,0 +1,12 @@
+unprocessed
+.xdlm
+AverageT1wImages
+AverageT2wImages
+T1w2_gdc.nii.gz
+T2w2_gdc.nii.gz
+checksums-before.txt
+checksums-after.txt
+T1w/T1w2_gdc.nii.gz
+T2w/T2w2_gdc.nii.gz
+log.txt
+qa.txt
