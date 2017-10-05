@@ -1,5 +1,6 @@
-[![CircleCI](https://circleci.com/gh/lalet/repro-tools.svg?style=svg)](https://circleci.com/gh/lalet/repro-tools)
-[![codecov](https://codecov.io/gh/lalet/repro-tools/branch/master/graph/badge.svg)](https://codecov.io/gh/lalet/repro-tools)
+[![CircleCI](https://circleci.com/gh/big-data-lab-team/repro-tools.svg?style=svg)](https://circleci.com/gh/big-data-lab-team/repro-tools)
+[![codecov](https://codecov.io/gh/big-data-lab-team/repro-tools/branch/master/graph/badge.svg)](https://codecov.io/gh/big-data-lab-team/repro-tools)
+
 # repro-tools
 A set of tools to evaluate the reproducibility of computations.
 
