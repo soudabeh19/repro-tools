@@ -562,10 +562,6 @@ def main():
             diff_file.close()
         else:
 	    log_info("Printing...")
-            if args.binaryMatrix:
-	      print Ldiff_print(bDiff,conditions_dict)
-	    else:
-              print pretty_string(diff,conditions_dict)
         for metric_name in metric_values.keys():
             log_info("Writing values of metric \""+metric_name+"\" to file \""+metrics[metric_name]["output_file"]+"\"")
             metric_file = open(metrics[metric_name]["output_file"],'w')
