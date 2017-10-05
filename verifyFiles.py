@@ -340,7 +340,6 @@ def Ldiff_print(Diff,conditions_dict):
     bDiff=Diff
     No_pair_con=len(bDiff.keys())
     Ldiff={}
-    tSpark={}
     list_subjects=bDiff[bDiff.keys()[0]].keys()
     list_paths= conditions_dict.values()[0].values()[0].keys()
     Cons_value=[]
@@ -368,14 +367,12 @@ def Ldiff_print(Diff,conditions_dict):
     for subject in Ldiff.keys():
         for path in Ldiff[subject].keys():
             path_list.append([subject,path,Ldiff[subject][path],first_subject[path].st_mtime])   
-    print "\n\n  >>> Conditions order : ",bDiff.keys(), "\n" # letting know about order of values in binary matrix dataframe
     df = pd.DataFrame([[col1,col2,col3] for col1, d in Ldiff.items() for col2, col3 in d.items()],columns=['Subject','File','Results'])
     pd.set_option('display.max_rows', None) # display the dataframe of binary matrix
-    text_files (bDiff,conditions_dict)
     return df
 
 # making output textfile of the binary matrix (matrix.txt, row_index.txt, column_index.txt)  
-def text_files (bDiff,conditions_dict):  
+def write_text_files (bDiff,conditions_dict):  
     r=0
     c=0
     row_index = open("row_index.txt", "w+")
@@ -561,6 +558,7 @@ def main():
             log_info("Writing difference matrix to file "+args.fileDiff)
             diff_file = open(args.fileDiff,'w')
             diff_file.write(pretty_string(diff,conditions_dict))
+	    write_text_files (bDiff,conditions_dict)
             diff_file.close()
         else:
 	    log_info("Printing...")
