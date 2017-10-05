@@ -368,16 +368,16 @@ def Ldiff_print(Diff,conditions_dict):
         for path in Ldiff[subject].keys():
             path_list.append([subject,path,Ldiff[subject][path],first_subject[path].st_mtime])   
     df = pd.DataFrame([[col1,col2,col3] for col1, d in Ldiff.items() for col2, col3 in d.items()],columns=['Subject','File','Results'])
-    pd.set_option('display.max_rows', None) # display the dataframe of binary matrix
+    pd.set_option('display.max_rows', None) # display of binary matrix dataframe 
     return df
 
 # making output textfile of the binary matrix (matrix.txt, row_index.txt, column_index.txt)  
-def write_text_files (bDiff,conditions_dict):  
+def write_text_files (bDiff,conditions_dict,fileDiff):  
     r=0
     c=0
-    row_index = open("row_index.txt", "w+")
-    column_index = open("column_index.txt","w+")
-    matrix = open("matrix.txt","w+")
+    row_index = open(fileDiff +"_row_index.txt","w+")
+    column_index = open(fileDiff+"_column_index.txt","w+")
+    differences = open(fileDiff+"_differences.txt","w+")
     for condition in bDiff.keys():
             column_index.write(str(c))
             column_index.write(";")
@@ -385,12 +385,12 @@ def write_text_files (bDiff,conditions_dict):
             column_index.write("\n")
             for subject in bDiff[bDiff.keys()[c]].keys():
         	for path in conditions_dict.values()[c].values()[c].keys():
-        		matrix.write(str(r))
-        		matrix.write(";")
-        		matrix.write(str(c))
-        		matrix.write(";")	
-        		matrix.write(str(bDiff[condition][subject][path]))
-        		matrix.write("\n")
+        		differences.write(str(r))
+        		differences.write(";")
+        		differences.write(str(c))
+        		differences.write(";")	
+        		differences.write(str(bDiff[condition][subject][path]))
+        		differences.write("\n")
         		row_index.write(str(r))
         		row_index.write(";")
         		row_index.write(str(subject))
@@ -400,7 +400,7 @@ def write_text_files (bDiff,conditions_dict):
                 	r+=1
             r=0
             c+=1
-    return (row_index,column_index,matrix) 
+    return (row_index,column_index,differences) 
 def pretty_string(diff_dict,conditions_dict):
     output_string=""
     max_comparison_key_length=0
@@ -556,9 +556,9 @@ def main():
 	diff,bDiff,metric_values,dictionary_executables,dictionary_processes,metric_values_subject_wise=n_differences_across_subjects(conditions_dict,root_dir,metrics,checksums_from_file_dict,args.checksumFile,args.checkCorruption,args.sqLiteFile,args.trackProcesses)
        	if args.fileDiff is not None:
             log_info("Writing difference matrix to file "+args.fileDiff)
-            diff_file = open(args.fileDiff,'w')
+            diff_file = open(args.fileDiff+"_differences_subject_total.txt",'w')
             diff_file.write(pretty_string(diff,conditions_dict))
-	    write_text_files (bDiff,conditions_dict)
+	    write_text_files (bDiff,conditions_dict,args.fileDiff)
             diff_file.close()
         else:
 	    log_info("Printing...")
