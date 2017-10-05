@@ -512,7 +512,7 @@ def main():
                                              /home/$(USER)/CentOS7.FSL5.0.6
                                              Each directory will contain subject folders like 100307,100308 etc'''))
         parser.add_argument("-c", "--checksumFile",help="Reads checksum from files. Doesn't compute checksums locally")
-	parser.add_argument("-d", "--fileDiff", help="Writes the difference matrices and indexs into files")
+	parser.add_argument("difference", help="Writes the difference matrices and indexs into files")
         parser.add_argument("-m", "--metricsFile", help="CSV file containing metrics definition. Every line contains 4 elements: metric_name,file_extension,command_to_run,output_file_name") 
         parser.add_argument("-e","--excludeItems",help="The list of items to be ignored while parsing the files and directories")
 	parser.add_argument("-k","--checkCorruption",help="If this flag is kept 'TRUE', it checks whether the file is corrupted")
@@ -553,14 +553,12 @@ def main():
 	#and the file checksumFile,checkCorruption and the path to the sqlite file.
         #diff,metric_values,dictionary_executables,dictionary_processes=n_differences_across_subjects(conditions_dict,root_dir,metrics,checksums_from_file_dict,args.checksumFile,args.checkCorruption,args.sqLiteFile)i
 	diff,bDiff,metric_values,dictionary_executables,dictionary_processes,metric_values_subject_wise=n_differences_across_subjects(conditions_dict,root_dir,metrics,checksums_from_file_dict,args.checksumFile,args.checkCorruption,args.sqLiteFile,args.trackProcesses)
-       	if args.fileDiff is not None:
-            log_info("Writes the difference matrices and indexs into files"+args.fileDiff)
-            diff_file = open(args.fileDiff+"_differences_subject_total.txt",'w')
+       	if args.difference is not None:
+            log_info("Writes the difference matrices and indexs into files"+args.difference)
+            diff_file = open(args.difference+"_differences_subject_total.txt",'w')
             diff_file.write(pretty_string(diff,conditions_dict))
-	    write_text_files (bDiff,conditions_dict,args.fileDiff)
+	    write_text_files (bDiff,conditions_dict,args.difference)
             diff_file.close()
-        else:
-	    log_info("Printing...")
         for metric_name in metric_values.keys():
             log_info("Writing values of metric \""+metric_name+"\" to file \""+metrics[metric_name]["output_file"]+"\"")
             metric_file = open(metrics[metric_name]["output_file"],'w')
