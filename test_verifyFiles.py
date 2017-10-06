@@ -29,4 +29,7 @@ def test_conditions_checksum_dict():
 def test_run():
   command_line_string ="python verifyFiles.py test/conditions.txt fileDiff  -c checksums-after.txt -e exclude_files.txt"
   return_value,output = commands.getstatusoutput(command_line_string)
-  assert not filecmp.cmp("fileDiff_differences_subject_total.txt","test/differences-ref.txt")
+  if os.path.isfile("fileDiff_differences_subject_total.txt"):
+      return_value,output = commands.getstatusoutput("cat fileDiff_differences_subject_total.txt")
+      print output
+      assert not filecmp.cmp("fileDiff_differences_subject_total.txt","test/differences-ref.txt")
