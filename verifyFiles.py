@@ -366,22 +366,41 @@ def Ldiff_print(Diff,conditions_dict):
                        Cons_value=[]
     for subject in Ldiff.keys():
         for path in Ldiff[subject].keys():
-            path_list.append([subject,path,Ldiff[subject][path],first_subject[path].st_mtime])
-    #------------ Print the path_list list ---------------
-  #  i=0
-  #  while i < len(path_list):
-  #       flag=True
-  #       while flag:
-  #           j=len (path_list[0][:])-1 # find the number of elements in path_list to be printed (except the st_mtime)
-  #           print path_list[i][0:j]
-  #           flag=False
-  #  	     i+=1
-    #------------ Print the Matrix -----------------------
-    print " >>> Conditions order : ",bDiff.keys() 
+            path_list.append([subject,path,Ldiff[subject][path],first_subject[path].st_mtime])   
     df = pd.DataFrame([[col1,col2,col3] for col1, d in Ldiff.items() for col2, col3 in d.items()],columns=['Subject','File','Results'])
-    pd.set_option('display.max_rows', None)    
+    pd.set_option('display.max_rows', None) # display of binary matrix dataframe 
     return df
 
+# making output textfile of the binary matrix (matrix.txt, row_index.txt, column_index.txt)  
+def write_text_files (bDiff,conditions_dict,fileDiff):  
+    r=0
+    c=0
+    row_index = open(fileDiff +"_row_index.txt","w+")
+    column_index = open(fileDiff+"_column_index.txt","w+")
+    differences = open(fileDiff+"_differences.txt","w+")
+    for condition in bDiff.keys():
+            column_index.write(str(c))
+            column_index.write(";")
+            column_index.write(str(condition))
+            column_index.write("\n")
+            for subject in bDiff[bDiff.keys()[c]].keys():
+        	for path in conditions_dict.values()[c].values()[c].keys():
+        		differences.write(str(r))
+        		differences.write(";")
+        		differences.write(str(c))
+        		differences.write(";")	
+        		differences.write(str(bDiff[condition][subject][path]))
+        		differences.write("\n")
+        		row_index.write(str(r))
+        		row_index.write(";")
+        		row_index.write(str(subject))
+        		row_index.write(";")
+        		row_index.write(str(path))
+       	        	row_index.write("\n")
+                	r+=1
+            r=0
+            c+=1
+    return (row_index,column_index,differences) 
 def pretty_string(diff_dict,conditions_dict):
     output_string=""
     max_comparison_key_length=0
@@ -429,8 +448,6 @@ def pretty_string(diff_dict,conditions_dict):
         output_string+="\n"
     return output_string
 
-
-#------
 # Returns a string containing a 'pretty' matrix representation of the
 # dictionary returned by n_differences_across_subjects
 # Method check_subjects checks if the subject_folders under different conditions are the same. If not , it stops the execution of the script.
@@ -438,7 +455,7 @@ def check_subjects(conditions_dict):
     subject_names=set()
     for condition in conditions_dict.keys():
 	subject_names.update(conditions_dict[condition].keys())
-   # Iterate over each soubject in every condition and stop the execution if some subject is missing
+    # Iterate over each soubject in every condition and stop the execution if some subject is missing
     for subject in subject_names:
        for condition in conditions_dict.keys():
           if not subject in conditions_dict[condition].keys():
@@ -495,13 +512,12 @@ def main():
                                              /home/$(USER)/CentOS7.FSL5.0.6
                                              Each directory will contain subject folders like 100307,100308 etc'''))
         parser.add_argument("-c", "--checksumFile",help="Reads checksum from files. Doesn't compute checksums locally")
-	parser.add_argument("-d", "--fileDiff", help="Writes the difference matrix into a file")
+	parser.add_argument("difference", help="Writes the difference matrices and indexs into files")
         parser.add_argument("-m", "--metricsFile", help="CSV file containing metrics definition. Every line contains 4 elements: metric_name,file_extension,command_to_run,output_file_name") 
         parser.add_argument("-e","--excludeItems",help="The list of items to be ignored while parsing the files and directories")
 	parser.add_argument("-k","--checkCorruption",help="If this flag is kept 'TRUE', it checks whether the file is corrupted")
 	parser.add_argument("-s","--sqLiteFile",help="The path to the sqlite file which is used as the reference file for identifying the processes which created the files")
 	parser.add_argument("-x","--execFile",help="Writes the executable details to a file")
-	parser.add_argument("-b","--binaryMatrix",help="Matrix shows differences according to the subject and file in the comparison of condition pairs" )
 	parser.add_argument("-t","--trackProcesses",help="Writes all the processes that create an nii file is written into file name mentioned after the flag")	
         parser.add_argument("-i","--filewiseMetricValue",help="Folder name on to which the individual filewise metric values are written to a csv file")
         args=parser.parse_args()
@@ -537,17 +553,12 @@ def main():
 	#and the file checksumFile,checkCorruption and the path to the sqlite file.
         #diff,metric_values,dictionary_executables,dictionary_processes=n_differences_across_subjects(conditions_dict,root_dir,metrics,checksums_from_file_dict,args.checksumFile,args.checkCorruption,args.sqLiteFile)i
 	diff,bDiff,metric_values,dictionary_executables,dictionary_processes,metric_values_subject_wise=n_differences_across_subjects(conditions_dict,root_dir,metrics,checksums_from_file_dict,args.checksumFile,args.checkCorruption,args.sqLiteFile,args.trackProcesses)
-       	if args.fileDiff is not None:
-            log_info("Writing difference matrix to file "+args.fileDiff)
-            diff_file = open(args.fileDiff,'w')
+       	if args.difference is not None:
+            log_info("Writes the difference matrices and indexs into files"+args.difference)
+            diff_file = open(args.difference+"_differences_subject_total.txt",'w')
             diff_file.write(pretty_string(diff,conditions_dict))
+	    write_text_files (bDiff,conditions_dict,args.difference)
             diff_file.close()
-        else:
-	    log_info("Printing...")
-            if args.binaryMatrix:
-	      print Ldiff_print(bDiff,conditions_dict)
-	    else:
-              print pretty_string(diff,conditions_dict)
         for metric_name in metric_values.keys():
             log_info("Writing values of metric \""+metric_name+"\" to file \""+metrics[metric_name]["output_file"]+"\"")
             metric_file = open(metrics[metric_name]["output_file"],'w')
