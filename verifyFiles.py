@@ -554,7 +554,7 @@ def main():
         #diff,metric_values,dictionary_executables,dictionary_processes=n_differences_across_subjects(conditions_dict,root_dir,metrics,checksums_from_file_dict,args.checksumFile,args.checkCorruption,args.sqLiteFile)i
 	diff,bDiff,metric_values,dictionary_executables,dictionary_processes,metric_values_subject_wise=n_differences_across_subjects(conditions_dict,root_dir,metrics,checksums_from_file_dict,args.checksumFile,args.checkCorruption,args.sqLiteFile,args.trackProcesses)
        	if args.difference is not None:
-            log_info("Writes the difference matrices and indexs into files")
+            log_info("Writes the difference matrices and indexes into files")
             diff_file = open(args.difference+"_differences_subject_total.txt",'w')
             diff_file.write(pretty_string(diff,conditions_dict))
 	    write_text_files (bDiff,conditions_dict,args.difference)
