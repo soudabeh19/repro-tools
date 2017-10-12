@@ -27,9 +27,6 @@ def test_conditions_checksum_dict():
   assert get_conditions_checksum_dict(conditions_dict,"test","checksums-after.txt") 
 
 def test_run():
-  command_line_string ="python verifyFiles.py test/conditions.txt fileDiff  -c checksums-after.txt -e exclude_files.txt"
+  command_line_string ="python verifyFiles.py test/conditions.txt test/fileDiff  -c checksums-after.txt -e test/exclude_items.txt"
   return_value,output = commands.getstatusoutput(command_line_string)
-  if os.path.isfile("fileDiff_differences_subject_total.txt"):
-      return_value,output = commands.getstatusoutput("cat fileDiff_differences_subject_total.txt")
-      print output
-      assert not filecmp.cmp("fileDiff_differences_subject_total.txt","test/differences-ref.txt")
+  assert not filecmp.cmp("test/fileDiff_differences_subject_total.txt","test/differences-ref.txt")
