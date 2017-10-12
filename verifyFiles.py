@@ -511,8 +511,12 @@ def main():
                                              /home/$(USER)/CentOS6.FSL5.0.6
                                              /home/$(USER)/CentOS7.FSL5.0.6
                                              Each directory will contain subject folders like 100307,100308 etc'''))
+	parser.add_argument("result_base_name", help='''Base name to use in output file names.Files will be named as following formats: 
+			   <result_base_name>_differences_subject_total.txt: Total sum of differences for each file among all subjects,
+			   <result_base_name>_column_index.txt: List of all indexed condition pairs,
+			   <result_base_name>_row_index.txt: List of all indexed pair of subject and file;called as Row,
+			   <result_base_name>_differences.txt: Difference value in a file according to its subject and condition pair; display format: row_index.txt, column_index,difference binary value''')
         parser.add_argument("-c", "--checksumFile",help="Reads checksum from files. Doesn't compute checksums locally")
-	parser.add_argument("result_base_name", help="Base name to use in output file names")
         parser.add_argument("-m", "--metricsFile", help="CSV file containing metrics definition. Every line contains 4 elements: metric_name,file_extension,command_to_run,output_file_name") 
         parser.add_argument("-e","--excludeItems",help="The list of items to be ignored while parsing the files and directories")
 	parser.add_argument("-k","--checkCorruption",help="If this flag is kept 'TRUE', it checks whether the file is corrupted")
