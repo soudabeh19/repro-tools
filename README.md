@@ -20,7 +20,7 @@ usage:verifyFiles.py [-h] [-c CHECKSUMFILE] [-d FILEDIFF] [-m METRICSFILE] [-e E
                      [-i FILEWISEMETRICVALUE] file_in
 
 file_in,                                          Mandatory parameter.Directory path to the file containing the conditions.
-difference, 					  Base name to use in output file names.
+results_base_name,                                Base name to use in output file names.
 -c,CHECKSUM FILE,       --checksumFile            Reads checksum from files. Doesn't compute checksums locally if this parameter is set.
 -m METRICSFILE,         --metricsFile             CSV file containing metrics definition. Every line contains 4 elements: metric_name,file_extension,command_to_run,output_file_name
 -e EXCLUDEITEMS,        --excludeItems            The path to the file containing the folders and files that should be excluded from creating checksums.
