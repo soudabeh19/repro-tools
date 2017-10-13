@@ -511,7 +511,7 @@ def main():
                                              /home/$(USER)/CentOS6.FSL5.0.6
                                              /home/$(USER)/CentOS7.FSL5.0.6
                                              Each directory will contain subject folders like 100307,100308 etc'''))
-	parser.add_argument("result_base_name", help='''Base name to use in output file names.Files will be named as following formats: 
+	parser.add_argument("result_base_name", help='''Base name to use in output file names. The following files will be written: 
 			   <result_base_name>_differences_subject_total.txt: Total sum of differences for each file among all subjects,
 			   <result_base_name>_column_index.txt: List of all indexed condition pairs,
 			   <result_base_name>_row_index.txt: List of all indexed pair of subject and file;called as Row,
