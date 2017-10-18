@@ -12,6 +12,7 @@ dependencies:
 test:
   override:
     - pytest --cov=./ ./test_verifyFiles.py 
+    - pytest ./test_prediction.py
   post:
     - codecov
 
