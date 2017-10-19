@@ -14,11 +14,11 @@ from predict import compute_accuracy
 from predict import compute_accuracy_dummy
 
 def  test_random_split():
-   training,test=random_split(parse_file_lines(),.6,"test/matrix.txt")
+   training,test=random_split(parse_file_lines(),.6,"test/test_matrix.txt")
    print(training,test) 
 
 def parse_file_lines():
-    return parse_file("test/matrix.txt")
+    return parse_file([[0,0,1],[1,0,1],[2,0,0],[3,1,0],[4,1,1],[5,1,0],[6,2,0],[7,2,1],[8,2,1]])#"test/matrix.txt")
 
 #def test_run():
  # command_line_string ="predict.py test/matrix.txt o.6"
