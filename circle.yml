@@ -10,7 +10,8 @@ dependencies:
     - sudo pip install --upgrade pip
     - sudo apt-get update; sudo apt-get install pandoc 
   override:
-    - pip install codecov pytest pytest-cov pytest-runner pandas pyspark numpy pypandoc pandoc
+    - pip install codecov pytest pytest-cov pytest-runner pandas pypandoc pandoc
+    - pip install numpy pyspark
 test:
   override:
     - pytest --cov=./ ./test_verifyFiles.py 
