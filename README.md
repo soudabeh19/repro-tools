@@ -10,7 +10,7 @@ The provided tools are:
 
 ## Getting Started with verifyFile.py
 
-verifyFiles.py is a Python Script which will produce an output containging the details regarding the common files and files that are not common, based on timestamp, checksum and distance between the output files.
+verifyFiles.py compares the output files produced by pipelines in different conditions. It identifies the files that are common to all conditions, and for these files, it compares them based on their checksums and other metrics configurable by file type.
 
 ### Prerequisites
 
@@ -33,12 +33,10 @@ results_base_name,                                Base name to use in output fil
 -t TRACK PROCESSES,     --trackProcesses          If this flag is set, it traces all the processes using reprozip to record the details and writes it into a csv with with the given name
 -i FILEWISEMETRICVALUE, --filewiseMetricValue     Folder name on to which the individual filewise metric values are written to a csv file
 ```
-### Test Cases
-__Pytest syntax__
-> pytest --cov=./ ./test_verifyFiles.py
 
 ## Getting Started with predict.py
-predict.py is a Python Script which measures the differences between values predicted by a collaborative filtering model and the values observed in the data.
+
+predict.py predicts the differences between execution conditions with a collaborative filtering approach using the output of verifyFiles.py. It also computes the prediction error.
 
 ### Prerequisites
 
@@ -55,10 +53,6 @@ training_ratio					  The ratio of matrix elements that will be added to the trai
 [-p]			--predictions		  Text file where the predictions will be stored.
 [-r]			--random-ratio-error	  Maximum acceptable difference between target and effective training ratio. Defaults to 0.01 .
 ```
-
-### Test Cases
-__Pytest syntax__
-> pytest --cov=./ ./test_predict.py
 
 ## Authors
 
