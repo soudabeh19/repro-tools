@@ -7,7 +7,7 @@ machine:
 
 dependencies:
   pre:
-    - sudo apt-get install pandoc
+    - sudo apt-get update; sudo apt-get install pandoc 
   override:
     - pip install codecov pytest pytest-cov pytest-runner pandas pyspark numpy pypandoc pandoc
 test:
