@@ -4,8 +4,6 @@ from argparse import ArgumentParser
 import os, shutil, sys
 if sys.version >= '3':
     long = int
-import findspark
-findspark.init()
 from pyspark import SparkConf, SparkContext
 from pyspark.sql import SparkSession, Row
 from pyspark.ml.evaluation import RegressionEvaluator
