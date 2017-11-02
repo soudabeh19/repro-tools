@@ -6,6 +6,8 @@ machine:
     - docker   
 
 dependencies:
+  pre:
+    - sudo apt-get install pandoc
   override:
     - pip install codecov pytest pytest-cov pytest-runner pandas pyspark numpy pypandoc pandoc
 test:
