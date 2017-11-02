@@ -7,11 +7,15 @@ machine:
 
 dependencies:
   override:
+    - pip install --upgrade pip
     - pip install codecov pytest pytest-cov pytest-runner pandas
+
+environment:
+    - run echo 'export PATH=$PWD:$PATH' >> $BASH_ENV
 
 test:
   override:
-    - pytest --cov=./ ./test_verifyFiles.py 
+    - pytest --cov=./ test
   post:
     - codecov
 
