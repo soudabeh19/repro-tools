@@ -19,7 +19,7 @@ Python 2.7.5
 ## Running the verifyFiles.py script
 
 ```
-usage:verifyFiles.py [-h] [-c CHECKSUMFILE] [-d FILEDIFF] [-m METRICSFILE] [-e EXCLUDEITEMS] [-k CHECKCORRUPTION] [-s SQLITEFILE] [-x EXECFILE]  [-b BINARYMATRIX] [-t TRACKPROCESSES]
+usage:verifyFiles.py result_base_name [-h] [-c CHECKSUMFILE] [-d FILEDIFF] [-m METRICSFILE] [-e EXCLUDEITEMS] [-k CHECKCORRUPTION] [-s SQLITEFILE] [-x EXECFILE] [-t TRACKPROCESSES]
                      [-i FILEWISEMETRICVALUE] file_in
 
 file_in,                                          Mandatory parameter.Directory path to the file containing the conditions.
@@ -38,9 +38,7 @@ __Pytest syntax__
 > pytest --cov=./ ./test_verifyFiles.py
 
 ## Getting Started with predict.py
-predict.py is a Python Script which 
-provides to predict specific values of the input matrix, according to the user defined training ratio. 
-
+predict.py is a Python Script which measures the differences between values predicted by a collaborative filtering model and the values observed in the data.
 
 ### Prerequisites
 
