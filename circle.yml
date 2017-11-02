@@ -7,11 +7,11 @@ machine:
 
 dependencies:
   override:
-    - pip install codecov pytest pytest-cov pytest-runner pandas
+    - pip install codecov pytest pytest-cov pytest-runner pandas pyspark numpy
 
 test:
   override:
-    - pytest --cov=./ ./test_verifyFiles.py 
+    - pytest --cov=./ test
   post:
     - codecov
 
