@@ -36,7 +36,6 @@ def round_values(line_list):
     return [ [x[0], x[1], x[2], int(round(x[3]))] for x in line_list]
 
 def create_dataframe_from_line_list(sc, ss, line_list):
-    print("*** line_list[0]=",line_list[0], "line_list[1]=", line_list[0]) 
     assert(len(line_list[0])==3 or len(line_list[1])==4)
     if(len(line_list[0])==3):
         rdd=sc.parallelize(line_list).map(lambda line:Row(subjectFile=long(line[0]), conPair=long(line[1]), val=long(line[2])))
@@ -145,7 +144,6 @@ def main(args=None):
     als = ALS(maxIter=5, regParam=0.01, userCol="subjectFile", itemCol="conPair", ratingCol="val")
     model = als.fit(training_df)  
     predictions = model.transform(test_df)
-    
     if is_binary_matrix(lines):
         # prediction will be rounded to closest integer
         # TODO: check how the rounding can be done directly with the dataframe, to avoid converting to list
