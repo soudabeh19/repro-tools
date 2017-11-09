@@ -205,10 +205,9 @@ def n_differences_across_subjects(conditions_dict,root_dir,metrics,checksums_fro
 		    # Random selection of modtime_list of subject between two conditions
 		    selected_condition=random.choice([c,d])
 		    for key_name in modtime_dict:
-		        if key_name == conditions_dict[selected_condition]: 
-		           mtime_files = modtime_dict[selected_condition][subject]
-			   print mtime_files
-		           bDiff[key_name][subject][file_name]['mtime_files'] = mtime_files
+		        if key_name == selected_condition: 
+		           mtime_files_list = modtime_dict[key_name][subject]
+		           bDiff[key][subject]['mtime_files_list'] = mtime_files_list
 		    
                     if checksums_from_file_dict: 
 		      if (checksums_from_file_dict[c][subject][file_name] != checksums_from_file_dict[d][subject][file_name]):
