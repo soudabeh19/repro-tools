@@ -228,9 +228,8 @@ def n_differences_across_subjects(conditions_dict,root_dir,metrics,checksums_fro
 		    
                     if files_are_different:
 			diff[key][file_name]+=1
-  			bDiff[key][subject][file_name]=1			
-                    #else:
-			#bDiff[key][subject][file_name]=0
+  			bDiff[key][subject][file_name]=1		
+	
                         #Below condition is making sure that the checksums are getting read from the file.Also that we are not computing the checksum of the checksums-after file.
 		        if check_corruption and checksums_from_file_dict and checksum_after_file_path not in file_name:
 			     #If the checksum of the file computed locally is different from the one in the file, the file got corrupted and hence throw error. 
@@ -281,7 +280,6 @@ def n_differences_across_subjects(conditions_dict,root_dir,metrics,checksums_fro
 	
     if sqlite_db_path:
       conn.close()
-    print bDiff
     return diff,bDiff,metric_values,dictionary_executables,dictionary_processes,metric_values_subject_wise
 
 #Method get_executable_details is used for finding out the details of the processes that created or modified the specified file.
@@ -441,6 +439,7 @@ def two_dimensional_matrix (bDiff,conditions_dict,fileDiff):
 		differences.write(";")
                 differences.write(str(bDiff[condition][subject][path]))
                 differences.write("\n")
+                print ([bDiff[condition][subject]['mtime_files_list'].index(t) for t in bDiff[condition][subject]['mtime_files_list'] if t[0] == path])
 		if s != 0:
 		    r+=1
 		    continue
