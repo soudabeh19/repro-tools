@@ -437,9 +437,8 @@ def two_dimensional_matrix (bDiff,conditions_dict,fileDiff):
                 differences.write(";")
                 differences.write(str(bDiff[condition][subject][path]))
 		differences.write(";")
-                differences.write(str(bDiff[condition][subject][path]))
-                differences.write("\n")
-                print ([bDiff[condition][subject]['mtime_files_list'].index(t) for t in bDiff[condition][subject]['mtime_files_list'] if t[0] == path])
+                differences.write(str([bDiff[condition][subject]['mtime_files_list'].index(t) for t in bDiff[condition][subject]['mtime_files_list'] if t[0] == path])[1:-1])
+		differences.write("\n")
 		if s != 0:
 		    r+=1
 		    continue
