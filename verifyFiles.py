@@ -437,11 +437,10 @@ def two_dimensional_matrix (bDiff,conditions_dict,fileDiff):
                 differences.write(";")
                 differences.write(str(bDiff[condition][subject][path]))
 		differences.write(";")
-                differences.write(str([bDiff[condition][subject]['mtime_files_list'].index(t) for t in bDiff[condition][subject]['mtime_files_list'] if t[0] == path])[1:-1])
+		differences.write(str(bDiff[condition][subject]['mtime_files_list'][[bDiff[condition][subject]['mtime_files_list'].index(t) for t in bDiff[condition][subject]['mtime_files_list'] if t[0] == path][0]][1])) # modification time of the file
+		differences.write(";")
+                differences.write(str([bDiff[condition][subject]['mtime_files_list'].index(t) for t in bDiff[condition][subject]['mtime_files_list'] if t[0] == path])[1:-1]) # file_index
 		differences.write("\n")
-		if s != 0:
-		    r+=1
-		    continue
                 row_index.write(str(r))
                 row_index.write(";")
                 row_index.write(str(path))
