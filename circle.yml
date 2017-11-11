@@ -10,7 +10,7 @@ machine:
 dependencies:
   override:
     - pip install --upgrade pip
-    - pip install codecov pytest pytest-cov pytest-runner pandas pyspark numpy
+    - pip install codecov pytest pytest-cov pytest-runner pandas pyspark numpy matplotlib
 
 test:
   override:
