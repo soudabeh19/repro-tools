@@ -1,10 +1,9 @@
 #!/usr/bin/env python
 
-import matplotlib.pyplot as plt
 import numpy as np
 import csv
 import argparse
-
+import matplotlib.pyplot as plt
 
 def main():
     parser=argparse.ArgumentParser(description = "Plots a difference matrix.")
