@@ -3,7 +3,10 @@
 import numpy as np
 import csv
 import argparse
+import matplotlib
+matplotlib.use('PS')
 import matplotlib.pyplot as plt
+
 
 def main():
     parser=argparse.ArgumentParser(description = "Plots a difference matrix.")
