@@ -9,8 +9,12 @@ machine:
 
 dependencies:
   override:
+    - sudo apt-get install tk-dev
+    - sudo apt-get install pkg-config
+    - sudo apt-get install python-dev
+    - sudo apt-get install python-tk
     - pip install --upgrade pip
-    - pip install codecov pytest pytest-cov pytest-runner pandas pyspark numpy matplotlib Tkinter
+    - pip install codecov pytest pytest-cov pytest-runner pandas pyspark numpy matplotlib
 
 test:
   override:
