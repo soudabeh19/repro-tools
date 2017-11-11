@@ -12,7 +12,7 @@ dependencies:
     - sudo apt-get install tk-dev
     - sudo apt-get install pkg-config
     - sudo apt-get install python-dev
-    - sudo apt-get install python-tk
+    - sudo apt-get install python-tk python3-tk
     - pip install --upgrade pip
     - pip install codecov pytest pytest-cov pytest-runner pandas pyspark numpy matplotlib
 
