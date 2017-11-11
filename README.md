@@ -5,7 +5,7 @@
 A set of tools to evaluate the reproducibility of computations.
 
 
-## Getting Started
+## veryfyFiles
 
 verifyFiles.py is a Python Script which will produce an output containging the details regarding the common files and files that are not common, based on timestamp, checksum and distance between the output files.
 
@@ -35,13 +35,14 @@ results_base_name,                                Base name to use in output fil
 __Pytest syntax__
 > pytest --cov=./ ./test_verifyFiles.py
 
-## Authors
+## plot_matrix
 
-* **Big Data Lab Team - Concordia University**
+`plot_matrix.py` plot heatmaps of difference matrices produced by
+`verifyFiles.py`. For instance, `./plot_matrix.py
+test/test_differences_plot.txt output.png` will produce the following
+plot:
 
-## License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details
+![Alt text](./test/test_differences_plot.png?raw=true "Title")
 
 
 
