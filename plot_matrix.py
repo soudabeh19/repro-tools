@@ -1,9 +1,11 @@
 #!/usr/bin/env python
 
-import matplotlib.pyplot as plt
 import numpy as np
 import csv
 import argparse
+import matplotlib
+matplotlib.use('PS')
+import matplotlib.pyplot as plt
 
 
 def main():
