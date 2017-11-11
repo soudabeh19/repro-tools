@@ -10,13 +10,14 @@ machine:
 dependencies:
   override:
     - sudo apt-get install -y tk-dev
-    - pyenv install 3.4.3
     - sudo apt-get install pkg-config
     - sudo apt-get install python-dev
+    - sudo apt-get remove python-tk
+    - sudo apt-get clean
     - sudo apt-get install -y python-tk
     - pip install --upgrade pip
     - pip install codecov pytest pytest-cov pytest-runner pandas pyspark numpy matplotlib
-
+    
 test:
   override:
     - pytest --cov=./ test
