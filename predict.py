@@ -9,8 +9,7 @@ from pyspark import SparkConf, SparkContext
 from pyspark.sql import SparkSession, Row
 from pyspark.ml.evaluation import RegressionEvaluator
 from pyspark.ml.recommendation import ALS
-from random import random, randint
-
+from random import random, randint, sample, randrange
 def compute_accuracy(predictions_list):
     right_predictions = 0.0
     for line in predictions_list:
@@ -36,31 +35,101 @@ def round_values(line_list):
     return [ [x[0], x[1], x[2], int(round(x[3]))] for x in line_list]
 
 def create_dataframe_from_line_list(sc, ss, line_list):
-    assert(len(line_list[0])==3 or len(line_list[1])==4)
-    if(len(line_list[0])==3):
+    assert(len(line_list[0]) == 5 or len(line_list[0]) == 4), "Wrong line format: {0}".format(line_list[0])
+    if(len(line_list[0]) == 5):
         rdd=sc.parallelize(line_list).map(lambda line:Row(subjectFile=long(line[0]), conPair=long(line[1]), val=long(line[2])))
-    else:
+    else: # there is a prediction on the 6th column
         rdd=sc.parallelize(line_list).map(lambda line:Row(subjectFile=long(line[0]), conPair=long(line[1]), val=long(line[2]), prediction=float(line[3])))
     return ss.createDataFrame(rdd)
 
 # Find the max number of conditions and files
-def n_conditions_files(line_list):
-    max_cond_id = 0
+def n_columns_files(line_list):
+    max_col_id = 0
     max_file_id = 0
     for line in line_list:
-        if line[1] > max_cond_id:
-            max_cond_id = line[1]
+        if line[1] > max_col_id:
+            max_col_id = line[1]
         if line[0] > max_file_id:
             max_file_id = line[0]
-    return max_cond_id + 1, max_file_id + 1
+    return max_col_id + 1, max_file_id + 1
 
 def count_occurrences(file_id, line_list):
     return len([line for line in line_list if line[0] == file_id])
 
+def random_split_2D(lines, training_ratio, max_diff, sampling_method):
+
+    training = [] # this will contain the training set
+    test = [] # this will contain the test set
+    n_subject, n_files = n_columns_files(lines)
+
+    # Random selection of a subject (column) in advance then
+    # pick that subject for every file of the condition, put it in training
+    # and also pick first file for every subject, put it in training
+    ran_subject_order = list(range(0,n_subject))
+    shuffled_subject = sample(ran_subject_order,n_subject)
+    first_ran_subject = shuffled_subject[0]
+    print(" shuffled:", shuffled_subject) 
+   
+    target_training_size = training_ratio * len(lines)
+    for line in lines: # add the lines corresponding to the first file or the first subject
+        if line[4] == 0 or line[1] == first_ran_subject: 
+            assert(line not in training) # something wrong happened with the determination of subject_id and file_index
+            training.append(line)
+    subject_id = 1
+    file_index = 0
+
+    # used in random-real sampling method in the while loop below
+    next_file = []
+    for i in range(0, n_subject):
+        next_file.append(1)
+
+    while(len(training) < target_training_size):
+        print("Training size is {0}".format(len(training)))
+        assert(sampling_method in ["random-unreal", "columns", "rows", "random-real"]), "Unknown sampling method: {0}".format(sampling_method)
+        if sampling_method == "random-unreal":
+            subject_id = randrange(0, n_subject)
+            file_index = randrange(0, n_files)
+        elif sampling_method == "columns":
+            file_index += 1
+            if file_index == n_files:
+                subject_id += 1
+                file_index = 1
+        elif sampling_method == "rows":
+            subject_id += 1
+            if subject_id == n_subject:
+                file_index +=1
+                subject_id = 1
+        elif sampling_method == "random-real":
+            subject_id = randrange(1, n_subject)
+            while(next_file[subject_id] >= n_files):
+                print("Subject id {0} is already fully sampled, looking for another one".format(subject_id))
+                subject_id = randrange(1, n_subject)
+            file_id = next_file[subject_id]
+            next_file[subject_id] += 1
+
+        assert(file_index < n_files and subject_id < n_subject), "File index or subject index is out of bound!" # This should never happen
+        
+        for line in lines:
+            if line[4] == file_index and line[1] == shuffled_subject[subject_id]:
+              #  assert(line not in training), "File {0} of subject {1} is already in the training set".format(line[1], line[4]) # something wrong happened with the determination of subject_id and file_index
+                if line not in training:
+                    training.append(line)
+                break
+
+    # Every line which is not in training should go to test
+    for line in lines:
+        if line not in training:
+            test.append(line)
+
+    effective_training_ratio = len(training)/(float(len(lines)))
+    print("Training ratio:\n  * Target: {0}\n  * Effective: {1}".format(training_ratio, effective_training_ratio))
+    assert(abs(effective_training_ratio-training_ratio)<max_diff), "Effective and target training ratios differed by more than {0}".format(max_diff) # TODO: think about this threshold
+    return training, test
+
 def random_split(lines, training_ratio, max_diff):
     training = []
     test = []
-    n_cond, n_files = n_conditions_files(lines)
+    n_cond, n_files = n_columns_files(lines)
     n_overrides = 0 
 
     # pick one condition for every file, put it in training
@@ -110,7 +179,8 @@ def parse_file(file_path):
     with open(file_path, 'r') as f:
         for line in f:
             elements = line.split(";")
-            lines.append([int(elements[0]), int(elements[1]), int(elements[2])])
+            #lines.append([int(elements[0]), int(elements[1]), int(elements[2])])
+	    lines.append([int(elements[0]), int(elements[1]), int(elements[2]), float(elements[3]), int(elements[4])])
     return lines
 
 def main(args=None):
@@ -124,6 +194,8 @@ def main(args=None):
                         help="Text file where the predictions will be stored.")
     parser.add_argument("--random-ratio-error", "-r", action="store", type=float, default=0.01,
                         help="Maximum acceptable difference between target and effective training ratios. Defaults to 0.01.")
+    parser.add_argument("sampling_method", action="store", 
+                        help="Sampling method to use to build the training set.")
     results = parser.parse_args() if args is None else parser.parse_args(args)          
     assert(results.training_ratio <=1 and results.training_ratio >=0), "Training ratio has to be in [0,1]."
     # matrix file path, split fraction, all the ALS parameters (with default values)
@@ -136,7 +208,8 @@ def main(args=None):
 
     lines = parse_file(results.matrix_file)
     assert(len(lines) > 0), "Matrix file is empty"
-    training, test = random_split(lines, results.training_ratio, results.random_ratio_error)
+    #training, test = random_split(lines, results.training_ratio, results.random_ratio_error)
+    training, test = random_split_2D(lines, results.training_ratio, results.random_ratio_error, results.sampling_method)
 
     training_df = create_dataframe_from_line_list(sc,spark,training)
     test_df = create_dataframe_from_line_list(sc,spark,test)
