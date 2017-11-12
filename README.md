@@ -3,12 +3,12 @@
 
 # repro-tools
 A set of tools to evaluate the reproducibility of computations.
-The provided tools are:
 
-* verifyFiles.py 	 
-* predict.py 		 
-
-## Getting Started with verifyFile.py
+<<<<<<< HEAD
+||||||| merged common ancestors
+=======
+## veryfyFiles
+>>>>>>> 68273e9762dce1d4f3d308f35feeb7fbaef10a4f
 
 verifyFiles.py compares the output files produced by pipelines in different conditions. It identifies the files that are common to all conditions, and for these files, it compares them based on their checksums and other metrics configurable by file type.
 
@@ -33,34 +33,17 @@ results_base_name,                                Base name to use in output fil
 -t TRACK PROCESSES,     --trackProcesses          If this flag is set, it traces all the processes using reprozip to record the details and writes it into a csv with with the given name
 -i FILEWISEMETRICVALUE, --filewiseMetricValue     Folder name on to which the individual filewise metric values are written to a csv file
 ```
+### Test Cases
+__Pytest syntax__
+>pytest --cov=./ ./test_verifyFiles.py
+## plot_matrix
 
-## Getting Started with predict.py
+`plot_matrix.py` plot heatmaps of difference matrices produced by
+`verifyFiles.py`. For instance, `./plot_matrix.py
+test/test_differences_plot.txt output.png` will produce the following
+plot:
 
-predict.py predicts the differences between execution conditions with a collaborative filtering approach using the output of verifyFiles.py. It also computes the prediction error.
-
-### Prerequisites
-
-Python 2.7.5
-Spark 2.1.0
-
-## Running the predict.py script
-
-```
-usage:predict.py [-p][-r] matrix_file  training_ratio
-
-matrix_file					  Mandatory parameter.Directory path to the file containing the matrix.
-training_ratio					  The ratio of matrix elements that will be added to the training set. Has to be in [0,1].
-[-p]			--predictions		  Text file where the predictions will be stored.
-[-r]			--random-ratio-error	  Maximum acceptable difference between target and effective training ratio. Defaults to 0.01 .
-```
-
-## Authors
-
-* **Big Data Lab Team - Concordia University**
-
-## License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details
+![Alt text](./test/test_differences_plot.png?raw=true "Title")
 
 
 

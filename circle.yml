@@ -14,8 +14,8 @@ dependencies:
     - sudo apt-get install python-dev
     - sudo apt-get install -y python-tk
     - pip install --upgrade pip
-    - pip install codecov pytest pytest-cov pytest-runner pandas pyspark numpy
-
+    - pip install codecov pytest pytest-cov pytest-runner pandas pyspark numpy matplotlib
+    
 test:
   override:
     - pytest --cov=./ test
