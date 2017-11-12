@@ -9,21 +9,16 @@ machine:
 
 dependencies:
   override:
-<<<<<<< HEAD
-||||||| merged common ancestors
-
-=======
+    - sudo apt-get install -y tk-dev
+    - sudo apt-get install pkg-config
+    - sudo apt-get install python-dev
+    - sudo apt-get install -y python-tk
     - pip install --upgrade pip
     - pip install codecov pytest pytest-cov pytest-runner pandas pyspark numpy
 
->>>>>>> 5cc723501253c8b1f1eb8acda72785ea22cdee15
 test:
   override:
-<<<<<<< HEAD
-||||||| merged common ancestors
-=======
     - pytest --cov=./ test
->>>>>>> 5cc723501253c8b1f1eb8acda72785ea22cdee15
   post:
     - codecov
 
