@@ -350,7 +350,67 @@ def get_condition_checksum_dict(condition,root_dir,subjects,checksum_after_file_
     for subject in subjects:
         condition_checksum_dict[subject]=read_checksum_from_file(os.path.join(root_dir,condition,subject,checksum_after_file_path))
     return condition_checksum_dict
-
+#Write column_index text file of the matrix 
+def matrix_column(bDiff,condition,condition_id,column_index):
+    column_index.write(str(condition_id))
+    column_index.write(";")
+    column_index.write(str(condition))
+    column_index.write("\n")
+#Write the text file of matrix according to the define conditions for it
+def matrix_differences(bDiff,condition,subject,path,r,c,mode,differences):
+    differences.write(str(r))
+    differences.write(";")
+    differences.write(str(c))
+    differences.write(";")
+    if mode == True:
+    	differences.write(str(bDiff[condition][subject][path]))
+    	differences.write(";")
+    	differences.write(str([bDiff[condition][subject]['mtime_files_list'].index(t) for t in bDiff[condition][subject]['mtime_files_list'] if t[0] == path])[1:-1]) # file_index
+    else:
+        differences.write(str(bDiff[condition][subject][path]))
+    differences.write("\n")
+#Write row_index text file of the matrix    
+def matrix_row(bDiff,subject,path,r,mode,row_index):
+    row_index.write(str(r))
+    row_index.write(";")
+    if mode == False:
+        row_index.write(str(subject))
+        row_index.write(";")
+    row_index.write(str(path))
+    row_index.write("\n")
+#Write binary_difference_matrix 
+def matrix_text_files(bDiff,conditions_dict,fileDiff,mode,condition_pairs):
+    r=0
+    c=0
+    if mode == True:
+        file_name = "_2D_"+str(condition_pairs)
+        file_name = file_name.replace(' ', '').replace("/","_")
+    else:
+	file_name = "_3D"
+    row_index = open(fileDiff + file_name + "_row_index.txt","w+")
+    column_index = open(fileDiff + file_name + "_column_index.txt","w+")
+    differences = open(fileDiff + file_name + "_differences.txt","w+")
+    if mode == True:
+	for subject in bDiff[bDiff.keys()[0]].keys():
+	    matrix_column(bDiff,subject,c,column_index) 
+	    for path in conditions_dict.values()[0].values()[0].keys():
+		matrix_differences(bDiff,condition_pairs,subject,path,r,c,mode,differences)
+                matrix_row(bDiff,subject,path,r,mode,row_index)
+		r+=1
+	    r=0
+	    c+=1
+    else:
+	for condition in bDiff.keys():
+            matrix_column(bDiff,condition,c,column_index)
+            for subject in bDiff[bDiff.keys()[c]].keys():
+                for path in conditions_dict.values()[c].values()[c].keys():
+		    matrix_differences(bDiff,condition,subject,path,r,c,mode,differences)
+		    matrix_row(bDiff,subject,path,r,mode,row_index)
+		    r+=1
+            r=0
+            c+=1
+    return (row_index,column_index,differences)
+#-------
 # making output textfile of the binary matrix (matrix.txt, row_index.txt, column_index.txt)  
 def write_text_files (bDiff,conditions_dict,fileDiff):  
     r=0
@@ -410,6 +470,7 @@ def two_dimensional_matrix (bDiff,conditions_dict,fileDiff):
             r=0
             s+=1
     return (row_index,column_index,differences)
+#------
 
 def pretty_string(diff_dict,conditions_dict):
     output_string=""
@@ -571,8 +632,11 @@ def main():
             log_info("Writes the difference matrices and indexes into files")
             diff_file = open(args.result_base_name +"_differences_subject_total.txt",'w')
             diff_file.write(pretty_string(diff,conditions_dict))
-	    write_text_files (bDiff,conditions_dict,args.result_base_name)
-            two_dimensional_matrix (bDiff,conditions_dict,args.result_base_name)
+	   # write_text_files (bDiff,conditions_dict,args.result_base_name)
+           # two_dimensional_matrix (bDiff,conditions_dict,args.result_base_name)
+	    for condition_pairs in bDiff.keys():
+                matrix_text_files (bDiff,conditions_dict,args.result_base_name,True,condition_pairs)# 2D matrix
+	    matrix_text_files (bDiff,conditions_dict,args.result_base_name,False,None)# 3D matrix
             diff_file.close()
 
         for metric_name in metric_values.keys():
