@@ -410,67 +410,6 @@ def matrix_text_files(bDiff,conditions_dict,fileDiff,mode,condition_pairs):
             r=0
             c+=1
     return (row_index,column_index,differences)
-#-------
-# making output textfile of the binary matrix (matrix.txt, row_index.txt, column_index.txt)  
-def write_text_files (bDiff,conditions_dict,fileDiff):  
-    r=0
-    c=0
-    row_index = open(fileDiff +"_row_index.txt","w+")
-    column_index = open(fileDiff+"_column_index.txt","w+")
-    differences = open(fileDiff+"_differences.txt","w+")
-    for condition in bDiff.keys():
-            column_index.write(str(c))
-            column_index.write(";")
-            column_index.write(str(condition))
-            column_index.write("\n")
-            for subject in bDiff[bDiff.keys()[c]].keys():
-        	for path in conditions_dict.values()[c].values()[c].keys():
-        		differences.write(str(r))
-        		differences.write(";")
-        		differences.write(str(c))
-        		differences.write(";")	
-        		differences.write(str(bDiff[condition][subject][path]))
-        		differences.write("\n")
-        		row_index.write(str(r))
-        		row_index.write(";")
-        		row_index.write(str(subject))
-        		row_index.write(";")
-        		row_index.write(str(path))
-       	        	row_index.write("\n")
-                	r+=1
-            r=0
-            c+=1
-    return (row_index,column_index,differences)
-def two_dimensional_matrix (bDiff,conditions_dict,fileDiff):
-    r=0
-    s=0
-    row_index = open(fileDiff +"_2D_row_index.txt","w+")
-    column_index = open(fileDiff+"_2D_column_index.txt","w+")
-    differences = open(fileDiff+"_2D_differences.txt","w+")
-    condition = bDiff.keys()[0] # Woking on just one condition pair
-    for subject in bDiff[bDiff.keys()[0]].keys(): 
-            column_index.write(str(s))
-            column_index.write(";")
-            column_index.write(str(subject))
-            column_index.write("\n")
-            for path in conditions_dict.values()[0].values()[0].keys():
-                differences.write(str(r))
-                differences.write(";")
-                differences.write(str(s))
-                differences.write(";")
-                differences.write(str(bDiff[condition][subject][path]))
-		differences.write(";")
-                differences.write(str([bDiff[condition][subject]['mtime_files_list'].index(t) for t in bDiff[condition][subject]['mtime_files_list'] if t[0] == path])[1:-1]) # file_index
-		differences.write("\n")
-                row_index.write(str(r))
-                row_index.write(";")
-                row_index.write(str(path))
-                row_index.write("\n")
-		r+=1
-            r=0
-            s+=1
-    return (row_index,column_index,differences)
-#------
 
 def pretty_string(diff_dict,conditions_dict):
     output_string=""
