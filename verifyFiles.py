@@ -351,43 +351,6 @@ def get_condition_checksum_dict(condition,root_dir,subjects,checksum_after_file_
         condition_checksum_dict[subject]=read_checksum_from_file(os.path.join(root_dir,condition,subject,checksum_after_file_path))
     return condition_checksum_dict
 
-# Use of List to represent the
-# dictionary returned by n_differences_across_subjects
-def Ldiff_print(Diff,conditions_dict):
-    bDiff=Diff
-    No_pair_con=len(bDiff.keys())
-    Ldiff={}
-    list_subjects=bDiff[bDiff.keys()[0]].keys()
-    list_paths= conditions_dict.values()[0].values()[0].keys()
-    Cons_value=[]
-    flag = True
-    path_list=[]
-    first_condition=conditions_dict[conditions_dict.keys()[0]]
-    first_subject=first_condition[first_condition.keys()[0]]
-    for sub in list_subjects:
-        Ldiff[sub] = {}
-        for path in list_paths:
-            Ldiff[sub][path] = {}
-    for sub in list_subjects:
-        flag,i= True,0
-	for path in list_paths:
-	    flag,i=True,0
-	    while flag:
-	        for key in bDiff.keys():
-                    P_value = bDiff[key][sub][path]
-	            Cons_value.insert(i,P_value)
-                    i+=1
-                    if i == No_pair_con:
-                       flag = False
-                       Ldiff [sub][path] = Cons_value[:]
-                       Cons_value=[]
-    for subject in Ldiff.keys():
-        for path in Ldiff[subject].keys():
-            path_list.append([subject,path,Ldiff[subject][path],first_subject[path].st_mtime])   
-    df = pd.DataFrame([[col1,col2,col3] for col1, d in Ldiff.items() for col2, col3 in d.items()],columns=['Subject','File','Results'])
-    pd.set_option('display.max_rows', None) # display of binary matrix dataframe 
-    return df
-
 # making output textfile of the binary matrix (matrix.txt, row_index.txt, column_index.txt)  
 def write_text_files (bDiff,conditions_dict,fileDiff):  
     r=0
