@@ -4,11 +4,7 @@
 # repro-tools
 A set of tools to evaluate the reproducibility of computations.
 
-<<<<<<< HEAD
-||||||| merged common ancestors
-=======
-## veryfyFiles
->>>>>>> 68273e9762dce1d4f3d308f35feeb7fbaef10a4f
+## verifyFiles
 
 verifyFiles.py compares the output files produced by pipelines in different conditions. It identifies the files that are common to all conditions, and for these files, it compares them based on their checksums and other metrics configurable by file type.
 
