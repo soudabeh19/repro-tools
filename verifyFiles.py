@@ -18,6 +18,7 @@ import csv
 import sqlite3
 import re
 import pandas as pd
+import random
 # Returns a dictionary where the keys are the paths in 'directory'
 # (relative to 'directory') and the values are the os.stat objects
 # associated with these paths. By convention, keys representing
@@ -140,8 +141,18 @@ def n_differences_across_subjects(conditions_dict,root_dir,metrics,checksums_fro
     # For each pair of conditions C1 and C1
     product = ((i,j) for i in conditions_dict.keys() for j in conditions_dict.keys())
     diff={} # Will be the return value
-    bDiff={} # will be the return value for being used in binary matrix 
+    bDiff={} # will be the return value for being used in binary matrix
     metric_values={}
+    # Dictionary_modtime is used for sorting files by increasing modification time for each subject in each condition 
+    modtime_dict={}
+    for key in conditions_dict.keys():
+	modtime_dict[key]={}
+	for subject in conditions_dict.values()[0].keys():
+            mtime_list=[]
+	    modtime_dict[key][subject]={}
+	    for path_name in conditions_dict.values()[0].values()[0].keys(): 
+  	        mtime_list.append((path_name,conditions_dict[key][subject][path_name].st_mtime))
+	    modtime_dict[key][subject]= sorted(mtime_list, key=lambda x: x[1])  
     #Dictionary metric_values_subject_wise holds the metric values mapped to individual subjects. 
     #This helps us identify the metrics values and associate it with individual subjects.
     metric_values_subject_wise={}
@@ -182,14 +193,22 @@ def n_differences_across_subjects(conditions_dict,root_dir,metrics,checksums_fro
 		is_intra_condition_run=True
             for subject in conditions_dict[c].keys():
 		bDiff[key][subject]={}
-	    for file_name in path_names:
+		for file_name in path_names:
+		    bDiff[key][subject][file_name]={}
+            for file_name in path_names:
 		diff [key][file_name]=0
                 for subject in conditions_dict[c].keys():
                 # Here we assume that both conditions will have the same set of subjects
 	            files_are_different=False
 		    abs_path_c=os.path.join(root_dir,c,subject,file_name)
                     abs_path_d=os.path.join(root_dir,d,subject,file_name)
-  		    #print checksums_from_file_dict[d][subject]
+		    # Random selection of modtime_list of subject between two conditions
+		    selected_condition=random.choice([c,d])
+		    for key_name in modtime_dict:
+		        if key_name == selected_condition: 
+		           mtime_files_list = modtime_dict[key_name][subject]
+		           bDiff[key][subject]['mtime_files_list'] = mtime_files_list
+		    
                     if checksums_from_file_dict: 
 		      if (checksums_from_file_dict[c][subject][file_name] != checksums_from_file_dict[d][subject][file_name]):
                         files_are_different=True
@@ -209,9 +228,8 @@ def n_differences_across_subjects(conditions_dict,root_dir,metrics,checksums_fro
 		    
                     if files_are_different:
 			diff[key][file_name]+=1
-  			bDiff[key][subject][file_name]=1			
-                    #else:
-			#bDiff[key][subject][file_name]=0
+  			bDiff[key][subject][file_name]=1		
+	
                         #Below condition is making sure that the checksums are getting read from the file.Also that we are not computing the checksum of the checksums-after file.
 		        if check_corruption and checksums_from_file_dict and checksum_after_file_path not in file_name:
 			     #If the checksum of the file computed locally is different from the one in the file, the file got corrupted and hence throw error. 
@@ -262,7 +280,6 @@ def n_differences_across_subjects(conditions_dict,root_dir,metrics,checksums_fro
 	
     if sqlite_db_path:
       conn.close()
-
     return diff,bDiff,metric_values,dictionary_executables,dictionary_processes,metric_values_subject_wise
 
 #Method get_executable_details is used for finding out the details of the processes that created or modified the specified file.
@@ -333,74 +350,67 @@ def get_condition_checksum_dict(condition,root_dir,subjects,checksum_after_file_
     for subject in subjects:
         condition_checksum_dict[subject]=read_checksum_from_file(os.path.join(root_dir,condition,subject,checksum_after_file_path))
     return condition_checksum_dict
-
-# Use of List to represent the
-# dictionary returned by n_differences_across_subjects
-def Ldiff_print(Diff,conditions_dict):
-    bDiff=Diff
-    No_pair_con=len(bDiff.keys())
-    Ldiff={}
-    list_subjects=bDiff[bDiff.keys()[0]].keys()
-    list_paths= conditions_dict.values()[0].values()[0].keys()
-    Cons_value=[]
-    flag = True
-    path_list=[]
-    first_condition=conditions_dict[conditions_dict.keys()[0]]
-    first_subject=first_condition[first_condition.keys()[0]]
-    for sub in list_subjects:
-        Ldiff[sub] = {}
-        for path in list_paths:
-            Ldiff[sub][path] = {}
-    for sub in list_subjects:
-        flag,i= True,0
-	for path in list_paths:
-	    flag,i=True,0
-	    while flag:
-	        for key in bDiff.keys():
-                    P_value = bDiff[key][sub][path]
-	            Cons_value.insert(i,P_value)
-                    i+=1
-                    if i == No_pair_con:
-                       flag = False
-                       Ldiff [sub][path] = Cons_value[:]
-                       Cons_value=[]
-    for subject in Ldiff.keys():
-        for path in Ldiff[subject].keys():
-            path_list.append([subject,path,Ldiff[subject][path],first_subject[path].st_mtime])   
-    df = pd.DataFrame([[col1,col2,col3] for col1, d in Ldiff.items() for col2, col3 in d.items()],columns=['Subject','File','Results'])
-    pd.set_option('display.max_rows', None) # display of binary matrix dataframe 
-    return df
-
-# making output textfile of the binary matrix (matrix.txt, row_index.txt, column_index.txt)  
-def write_text_files (bDiff,conditions_dict,fileDiff):  
+#Write column_index text file of the matrix 
+def matrix_column(bDiff,condition,condition_id,column_index):
+    column_index.write(str(condition_id))
+    column_index.write(";")
+    column_index.write(str(condition))
+    column_index.write("\n")
+#Write the text file of matrix according to the define conditions for it
+def matrix_differences(bDiff,condition,subject,path,r,c,mode,differences):
+    differences.write(str(r))
+    differences.write(";")
+    differences.write(str(c))
+    differences.write(";")
+    if mode == True:
+    	differences.write(str(bDiff[condition][subject][path]))
+    	differences.write(";")
+    	differences.write(str([bDiff[condition][subject]['mtime_files_list'].index(t) for t in bDiff[condition][subject]['mtime_files_list'] if t[0] == path])[1:-1]) # file_index
+    else:
+        differences.write(str(bDiff[condition][subject][path]))
+    differences.write("\n")
+#Write row_index text file of the matrix    
+def matrix_row(bDiff,subject,path,r,mode,row_index):
+    row_index.write(str(r))
+    row_index.write(";")
+    if mode == False:
+        row_index.write(str(subject))
+        row_index.write(";")
+    row_index.write(str(path))
+    row_index.write("\n")
+#Write binary_difference_matrix 
+def matrix_text_files(bDiff,conditions_dict,fileDiff,mode,condition_pairs):
     r=0
     c=0
-    row_index = open(fileDiff +"_row_index.txt","w+")
-    column_index = open(fileDiff+"_column_index.txt","w+")
-    differences = open(fileDiff+"_differences.txt","w+")
-    for condition in bDiff.keys():
-            column_index.write(str(c))
-            column_index.write(";")
-            column_index.write(str(condition))
-            column_index.write("\n")
+    if mode == True:
+        file_name = "_2D_"+str(condition_pairs)
+        file_name = file_name.replace(' ', '').replace("/","_")
+    else:
+	file_name = "_3D"
+    row_index = open(fileDiff + file_name + "_row_index.txt","w+")
+    column_index = open(fileDiff + file_name + "_column_index.txt","w+")
+    differences = open(fileDiff + file_name + "_differences.txt","w+")
+    if mode == True:
+	for subject in bDiff[bDiff.keys()[0]].keys():
+	    matrix_column(bDiff,subject,c,column_index) 
+	    for path in conditions_dict.values()[0].values()[0].keys():
+		matrix_differences(bDiff,condition_pairs,subject,path,r,c,mode,differences)
+                matrix_row(bDiff,subject,path,r,mode,row_index)
+		r+=1
+	    r=0
+	    c+=1
+    else:
+	for condition in bDiff.keys():
+            matrix_column(bDiff,condition,c,column_index)
             for subject in bDiff[bDiff.keys()[c]].keys():
-        	for path in conditions_dict.values()[c].values()[c].keys():
-        		differences.write(str(r))
-        		differences.write(";")
-        		differences.write(str(c))
-        		differences.write(";")	
-        		differences.write(str(bDiff[condition][subject][path]))
-        		differences.write("\n")
-        		row_index.write(str(r))
-        		row_index.write(";")
-        		row_index.write(str(subject))
-        		row_index.write(";")
-        		row_index.write(str(path))
-       	        	row_index.write("\n")
-                	r+=1
+                for path in conditions_dict.values()[c].values()[c].keys():
+		    matrix_differences(bDiff,condition,subject,path,r,c,mode,differences)
+		    matrix_row(bDiff,subject,path,r,mode,row_index)
+		    r+=1
             r=0
             c+=1
-    return (row_index,column_index,differences) 
+    return (row_index,column_index,differences)
+
 def pretty_string(diff_dict,conditions_dict):
     output_string=""
     max_comparison_key_length=0
@@ -561,8 +571,13 @@ def main():
             log_info("Writes the difference matrices and indexes into files")
             diff_file = open(args.result_base_name +"_differences_subject_total.txt",'w')
             diff_file.write(pretty_string(diff,conditions_dict))
-	    write_text_files (bDiff,conditions_dict,args.result_base_name)
+	   # write_text_files (bDiff,conditions_dict,args.result_base_name)
+           # two_dimensional_matrix (bDiff,conditions_dict,args.result_base_name)
+	    for condition_pairs in bDiff.keys():
+                matrix_text_files (bDiff,conditions_dict,args.result_base_name,True,condition_pairs)# 2D matrix
+	    matrix_text_files (bDiff,conditions_dict,args.result_base_name,False,None)# 3D matrix
             diff_file.close()
+
         for metric_name in metric_values.keys():
             log_info("Writing values of metric \""+metric_name+"\" to file \""+metrics[metric_name]["output_file"]+"\"")
             metric_file = open(metrics[metric_name]["output_file"],'w')

@@ -4,19 +4,22 @@
 # repro-tools
 A set of tools to evaluate the reproducibility of computations.
 
-
+<<<<<<< HEAD
+||||||| merged common ancestors
+=======
 ## veryfyFiles
+>>>>>>> 68273e9762dce1d4f3d308f35feeb7fbaef10a4f
 
-verifyFiles.py is a Python Script which will produce an output containging the details regarding the common files and files that are not common, based on timestamp, checksum and distance between the output files.
+verifyFiles.py compares the output files produced by pipelines in different conditions. It identifies the files that are common to all conditions, and for these files, it compares them based on their checksums and other metrics configurable by file type.
 
 ### Prerequisites
 
 Python 2.7.5
 
-## Running the script
+## Running the verifyFiles.py script
 
 ```
-usage:verifyFiles.py [-h] [-c CHECKSUMFILE] [-d FILEDIFF] [-m METRICSFILE] [-e EXCLUDEITEMS] [-k CHECKCORRUPTION] [-s SQLITEFILE] [-x EXECFILE]  [-b BINARYMATRIX] [-t TRACKPROCESSES]
+usage:verifyFiles.py result_base_name [-h] [-c CHECKSUMFILE] [-d FILEDIFF] [-m METRICSFILE] [-e EXCLUDEITEMS] [-k CHECKCORRUPTION] [-s SQLITEFILE] [-x EXECFILE] [-t TRACKPROCESSES]
                      [-i FILEWISEMETRICVALUE] file_in
 
 file_in,                                          Mandatory parameter.Directory path to the file containing the conditions.
@@ -30,11 +33,9 @@ results_base_name,                                Base name to use in output fil
 -t TRACK PROCESSES,     --trackProcesses          If this flag is set, it traces all the processes using reprozip to record the details and writes it into a csv with with the given name
 -i FILEWISEMETRICVALUE, --filewiseMetricValue     Folder name on to which the individual filewise metric values are written to a csv file
 ```
-
 ### Test Cases
 __Pytest syntax__
-> pytest --cov=./ ./test_verifyFiles.py
-
+>pytest --cov=./ ./test_verifyFiles.py
 ## plot_matrix
 
 `plot_matrix.py` plot heatmaps of difference matrices produced by

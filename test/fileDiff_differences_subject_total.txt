@@ -1,0 +1,2 @@
+    	condition4 vs condition5	
+a.txt	           0            	
