@@ -31,7 +31,7 @@ def get_dir_dict(directory,exclude_items):
 	    #To eliminate the files listd in exclude items file. Condition below checks relative file path as well as file names. 
             files[:]=[f for f in files if f not in exclude_items and os.path.join(root,f).replace(os.path.join(directory+"/"),"") not in exclude_items]
         for file_name in files:
-	    if file_name not in exclude_items:
+	    if not exclude_items or (file_name not in exclude_items):
               abs_file_path=os.path.join(root,file_name)
 	      rel_path=abs_file_path.replace(os.path.join(directory+"/"),"")
               result_dict[rel_path]=os.stat(abs_file_path)
