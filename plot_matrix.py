@@ -22,7 +22,7 @@ def main():
         reader = csv.reader(csvfile, delimiter=';')
         for row in reader:
             assert(len(row) >= 3)
-            a.append(int(row[4]))
+            a.append(int(row[3]))
             b.append(int(row[1]))
             c.append(int(row[2]))
 
@@ -30,7 +30,7 @@ def main():
     for i, x in enumerate(c):
         n[a[i],b[i]] = c[i]
     
-    plt.imshow(n, cmap='hot', interpolation='nearest')
+    plt.imshow(n, cmap='hot', interpolation='none', aspect='auto')
     plt.colorbar()
     plt.savefig(args.output_file)
 
