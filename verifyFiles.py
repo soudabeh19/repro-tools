@@ -534,7 +534,6 @@ def main():
 	parser.add_argument("-s","--sqLiteFile",help="The path to the sqlite file which is used as the reference file for identifying the processes which created the files")
 	parser.add_argument("-x","--execFile",help="Writes the executable details to a file")
 	parser.add_argument("-t","--trackProcesses",help="Writes all the processes that create an nii file is written into file name mentioned after the flag")	
-        #parser.add_argument("-i","--filewiseMetricValue",help="Folder name on to which the individual filewise metric values are written to a csv file")
         args=parser.parse_args()
         logging.basicConfig(level=logging.INFO,format='%(asctime)s %(message)s')
 	if not os.path.isfile(args.file_in):
