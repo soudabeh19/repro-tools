@@ -526,14 +526,15 @@ def main():
 			   <result_base_name>_column_index.txt: List of all indexed condition pairs,
 			   <result_base_name>_row_index.txt: List of all indexed pair of subject and file;called as Row,
 			   <result_base_name>_differences.txt: Difference value in a file according to its subject and condition pair; display format: row_index.txt, column_index,difference binary value''')
-        parser.add_argument("-c", "--checksumFile",help="Reads checksum from files. Doesn't compute checksums locally")
+        parser.add_argument("output_folder_name", help="Directory to which all the output files are getting written")
+	parser.add_argument("-c", "--checksumFile",help="Reads checksum from files. Doesn't compute checksums locally")
         parser.add_argument("-m", "--metricsFile", help="CSV file containing metrics definition. Every line contains 4 elements: metric_name,file_extension,command_to_run,output_file_name") 
         parser.add_argument("-e","--excludeItems",help="The list of items to be ignored while parsing the files and directories")
 	parser.add_argument("-k","--checkCorruption",help="If this flag is kept 'TRUE', it checks whether the file is corrupted")
 	parser.add_argument("-s","--sqLiteFile",help="The path to the sqlite file which is used as the reference file for identifying the processes which created the files")
 	parser.add_argument("-x","--execFile",help="Writes the executable details to a file")
 	parser.add_argument("-t","--trackProcesses",help="Writes all the processes that create an nii file is written into file name mentioned after the flag")	
-        parser.add_argument("-i","--filewiseMetricValue",help="Folder name on to which the individual filewise metric values are written to a csv file")
+        #parser.add_argument("-i","--filewiseMetricValue",help="Folder name on to which the individual filewise metric values are written to a csv file")
         args=parser.parse_args()
         logging.basicConfig(level=logging.INFO,format='%(asctime)s %(message)s')
 	if not os.path.isfile(args.file_in):
@@ -567,15 +568,20 @@ def main():
 	#and the file checksumFile,checkCorruption and the path to the sqlite file.
         #diff,metric_values,dictionary_executables,dictionary_processes=n_differences_across_subjects(conditions_dict,root_dir,metrics,checksums_from_file_dict,args.checksumFile,args.checkCorruption,args.sqLiteFile)i
 	diff,bDiff,metric_values,dictionary_executables,dictionary_processes,metric_values_subject_wise=n_differences_across_subjects(conditions_dict,root_dir,metrics,checksums_from_file_dict,args.checksumFile,args.checkCorruption,args.sqLiteFile,args.trackProcesses)
-       	if args.result_base_name is not None:
+       	if args.result_base_name is not None and args.output_folder_name is not None:
             log_info("Writes the difference matrices and indexes into files")
-            diff_file = open(args.result_base_name +"_differences_subject_total.txt",'w')
+            #Checks if the output folder already exists or not, and creates if it doesn't exist
+	    if not os.path.exists(args.output_folder_name):
+                os.makedirs(args.output_folder_name)
+	    #output_base_path gives the base path with the following format - <output folder path/result_base_name>
+	    output_base_path=args.output_folder_name+"/"+args.result_base_name
+            diff_file = open(output_base_path+"_differences_subject_total.txt",'w')
             diff_file.write(pretty_string(diff,conditions_dict))
 	   # write_text_files (bDiff,conditions_dict,args.result_base_name)
            # two_dimensional_matrix (bDiff,conditions_dict,args.result_base_name)
 	    for condition_pairs in bDiff.keys():
-                matrix_text_files (bDiff,conditions_dict,args.result_base_name,True,condition_pairs)# 2D matrix
-	    matrix_text_files (bDiff,conditions_dict,args.result_base_name,False,None)# 3D matrix
+                matrix_text_files (bDiff,conditions_dict,output_base_path,True,condition_pairs)# 2D matrix
+	    matrix_text_files (bDiff,conditions_dict,output_base_path,False,None)# 3D matrix
             diff_file.close()
 
         for metric_name in metric_values.keys():
@@ -583,12 +589,12 @@ def main():
             metric_file = open(metrics[metric_name]["output_file"],'w')
 	    metric_file.write(pretty_string(metric_values[metric_name],conditions_dict))
             if metric_name in metric_values_subject_wise.keys() and args.filewiseMetricValue:
-              write_filewise_details(metric_values_subject_wise,metric_name,args.filewiseMetricValue+"/"+metric_name+".csv")
+              write_filewise_details(metric_values_subject_wise,metric_name,args.output_folder_name+"/"+metric_name+".csv")
 	    metric_file.close()
 	
 	if args.execFile is not None:
 	  log_info("Writing executable details to csv file")
-	  with open(args.execFile, 'wb') as csvfile:
+	  with open(args.output_folder_name+"/"+args.execFile, 'wb') as csvfile:
 	    fieldnames = ['File Name', 'Process','ArgV','EnvP','Timestamp','Working Directory']
 	    writer=csv.DictWriter(csvfile,fieldnames=fieldnames)
 	    writer.writeheader()
@@ -603,7 +609,7 @@ def main():
 	
 	if dictionary_processes and args.trackProcesses:
           log_info("Writing process details to csv file named: "+args.trackProcesses)
-          with open(args.trackProcesses, 'wb') as csvfile:
+          with open(args.output_folder_path+"/"+args.trackProcesses, 'wb') as csvfile:
             fieldnames = ['File Name', 'Process','ArgV','EnvP','Timestamp','Working Directory']
             writer=csv.DictWriter(csvfile,fieldnames=fieldnames)
             writer.writeheader()
