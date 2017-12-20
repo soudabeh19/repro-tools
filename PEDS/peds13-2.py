@@ -6,7 +6,7 @@ import pandas as pd
 from sqlite3 import Error
 from graphviz import Digraph as Di
 
-# the structure of each process in the pipeline
+# process structures in the pipeline
 class Node:
     def __init__(self,initdata,pid,parent_id, process_name, level):
         self.id = pid
@@ -40,9 +40,8 @@ class Node:
     def setLevel(self, level):
         self.leve = level
 
-# the functions of the proposed linked list
+# linked list class
 class LinkedList:
-
     def __init__(self):
         self.head = None
     def isEmpty(self):
@@ -61,14 +60,12 @@ class LinkedList:
             result.append(current)
             current = current.getNext()
         return result
-
     def add(self,item,pid,parent_id, process_name,level):
         new_node = Node(item,pid,parent_id, process_name,level)
         new_node.setNext(self.head)
         self.head = new_node
 
-    # Returns a linked list contains all pipeline process/sub-process which has read/write
-    # the output pipeline files.
+    # Return a linked list which contains all pipeline process/sub-process 
     def reverse(self):
         prev=None
         current = self.head
@@ -80,7 +77,7 @@ class LinkedList:
         self.head = prev
         return prev
 
-    # keep the involved processes in the pipeline
+    # keep the desired processes in the pipeline
     def filter(self):
         prev = None
         current = self.head
@@ -89,7 +86,7 @@ class LinkedList:
         while (current is not None):
             next = current.getNext()
             if len(current.data) != 0:
-                # keep just the files of its process
+                # keep just the files of its process (Not aggregated)
                 data = current.data
                 current.data = ()
                 for d in data:
@@ -101,7 +98,7 @@ class LinkedList:
                     current.setLevel(0)
                     current.setNext(prev)
                     prev = current
-                # here we can expand the final result to more sub-process details instead of first-level
+                # extend the level of expansion tree (for aggregated)
                 for line2 in level_id:
                     tmp = current.pid[0]
                     if line2[0] == tmp[0]:
@@ -114,7 +111,6 @@ class LinkedList:
             current = next
         self.head = prev
         return prev
-    
     def append(self,pid,newfiles):
         current = self.head
         found = False
@@ -124,7 +120,6 @@ class LinkedList:
                 found = True
             else:
                 current = current.getNext()
-
     def get_data(self,item):
         current = self.head
         found = False
@@ -133,7 +128,6 @@ class LinkedList:
                 return current.data
             else:
                 current = current.getNext()
-
     def remove(self,item):
         current = self.head
         previous = None
@@ -149,14 +143,12 @@ class LinkedList:
         else:
             previous.setNext(current.getNext())
 
-# idenfitying and classifying the whole processes of the pipeline based on the reprozip trace
+# idenfitying all the processes
 def CreateTree(pid, process_node,db_path):
-
     try:
         db = sqlite3.connect(db_path)
     except Error as e:
         print (e)
-
     process_cursor = db.cursor()
     openfile_cursor = db.cursor()
     executed_cursor = db.cursor()
@@ -171,7 +163,7 @@ def CreateTree(pid, process_node,db_path):
             '''
     process_cursor.execute(process_id_query % pid)
     child_list = process_cursor.fetchall()
-
+    
     # select the process name from executed_file db
     process_name_query = '''
                 SELECT name
@@ -202,7 +194,6 @@ def CreateTree(pid, process_node,db_path):
     topenedf = [] #total opened files from the matrix file
     for file in opened_files_list:
         for line in total_files:
-            #dd = str(file[1])
             if line[1] in file[1]:
                 topenedf.append(file) if file not in topenedf else None
 
@@ -215,9 +206,8 @@ def CreateTree(pid, process_node,db_path):
     parent_cursor.execute(process_parent_query % pid)
     parent_id = parent_cursor.fetchall()
 
-    # create and add data process of pid to linked list
+    # add data process of pid to linked list
     process_node.add(topenedf, pid, parent_id, process_name, -1)
-
     # calling again this class recursively for the child of process
     for child in child_list:
         if child[0] != None :
@@ -232,10 +222,6 @@ def main():
     parser.add_argument("-ofile", "--openedFiles",
                         help="refers to the matrix file of output of the 'repro-tools' script")
     args = parser.parse_args()
-    #if not os.path.isfile(args.sqliteDB):
-        #log_error("The input file path of sqlite file is not correct")
-
-
     graph = Di('Graph', filename='GraphModel', format='dot', strict=False)
     node_label = 0
     proc_list = []
@@ -250,7 +236,6 @@ def main():
     # read the pipeline files :
     with open(read_matrix_file, 'r') as pfiles:
         pipeline_files = pfiles.readlines()
-
     # read the whole files
     db = sqlite3.connect(db_path)
     writefile_cursor = db.cursor()
@@ -264,15 +249,14 @@ def main():
     written_files_list = writefile_cursor.fetchall()
     db.close()
 
-    #start the program:
+    #start the program with the root ptocess id, one:
     pipeline_graph = LinkedList()
-    # root process_id is one
     CreateTree(1, pipeline_graph,db_path)
     pipeline_graph.reverse()
     pipeline_graph.filter()
     pipeline_graph.reverse()
     total_pipe_proc = pipeline_graph.printing()
-
+    # clustering all the processes found
     for proc in total_pipe_proc:
         count_diff_w = 0
         count_nodiff_w = 0
@@ -361,7 +345,6 @@ def main():
             node_label += 1
             graph.attr('edge', style='solid', color='black')
             graph.edge(str(proc.pid[0][0]), str(proc.id))
-
             #showing the dependencies by dashed edges: diff read(red), tmp read(yellow)
             # and read files without differences(green)
             for e in read_diff_list:
@@ -384,12 +367,10 @@ def main():
             node_label += 1
             graph.attr('edge', style='solid', color='black')
             graph.edge(str(proc.pid[0][0]), str(proc.id))
-
             for e2 in read_nodiff_list:
                 graph.attr('edge', style='dashed', color='green')
                 graph.edge(str(e2[2]), str(proc.id))
-
-
+                
         elif count_diff_r == 0 and count_diff_w > 0 and count_tmp_r > 0:
             graph.attr('node', style='filled', fillcolor='red')
             graph.node(str(proc.id), ''.join(
@@ -400,14 +381,12 @@ def main():
             node_label += 1
             graph.attr('edge', style='solid', color='black')
             graph.edge(str(proc.pid[0][0]), str(proc.id))
-
             for e2 in read_tmp_list:
                graph.attr('edge', style='dashed', color='yellow')
                graph.edge(str(e2[2]), str(proc.id))
             for e2 in read_nodiff_list:
                 graph.attr('edge', style='dashed', color='green')
                 graph.edge(str(e2[2]), str(proc.id))
-
 
         elif count_diff_r > 0 and count_diff_w == 0 and count_tmp_w == 0:
           if name !="md5sum":
@@ -420,7 +399,6 @@ def main():
             node_label += 1
             graph.attr('edge', style='solid', color='black')
             graph.edge(str(proc.pid[0][0]), str(proc.id))
-
             for e in read_diff_list:
                graph.attr('edge', style='dashed', color='red')
                graph.edge(str(e[2]), str(proc.id))
@@ -441,7 +419,6 @@ def main():
             node_label += 1
             graph.attr('edge', style='solid', color='black')
             graph.edge(str(proc.pid[0][0]), str(proc.id))
-
             for e in read_diff_list:
                 graph.attr('edge', style='dashed', color='red')
                 graph.edge(str(e[2]), str(proc.id))
@@ -462,7 +439,6 @@ def main():
             node_label += 1
             graph.attr('edge', style='solid', color='black')
             graph.edge(str(proc.pid[0][0]), str(proc.id))
-
             for e2 in read_nodiff_list:
                 graph.attr('edge', style='dashed', color='green')
                 graph.edge(str(e2[2]), str(proc.id))
@@ -478,7 +454,6 @@ def main():
             node_label += 1
             graph.attr('edge', style='solid', color='black')
             graph.edge(str(proc.pid[0][0]), str(proc.id))
-
             for e in read_diff_list:
                 graph.attr('edge', style='dashed', color='red')
                 graph.edge(str(e[2]), str(proc.id))
