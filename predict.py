@@ -72,7 +72,7 @@ def random_split_2D(lines, training_ratio, max_diff, sampling_method):
    
     target_training_size = training_ratio * len(lines)
     for line in lines: # add the lines corresponding to the first file or the first subject
-        if line[4] == 0 or line[1] == first_ran_subject: 
+        if line[3] == 0 or line[1] == first_ran_subject: 
             assert(line not in training) # something wrong happened with the determination of subject_id and file_index
             training.append(line)
     subject_id = 1
@@ -110,7 +110,7 @@ def random_split_2D(lines, training_ratio, max_diff, sampling_method):
         assert(file_index < n_files and subject_id < n_subject), "File index or subject index is out of bound!" # This should never happen
         
         for line in lines:
-            if line[4] == file_index and line[1] == shuffled_subject[subject_id]:
+            if line[3] == file_index and line[1] == shuffled_subject[subject_id]:
               #  assert(line not in training), "File {0} of subject {1} is already in the training set".format(line[1], line[4]) # something wrong happened with the determination of subject_id and file_index
                 if line not in training:
                     training.append(line)
@@ -179,8 +179,7 @@ def parse_file(file_path):
     with open(file_path, 'r') as f:
         for line in f:
             elements = line.split(";")
-            #lines.append([int(elements[0]), int(elements[1]), int(elements[2])])
-	    lines.append([int(elements[0]), int(elements[1]), int(elements[2]), float(elements[3]), int(elements[4])])
+            lines.append([int(elements[0]), int(elements[1]), int(elements[2]), int(elements[3])])
     return lines
 
 def main(args=None):
