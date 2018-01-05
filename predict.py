@@ -35,8 +35,8 @@ def round_values(line_list):
     return [ [x[0], x[1], x[2], int(round(x[3]))] for x in line_list]
 
 def create_dataframe_from_line_list(sc, ss, line_list):
-    assert(len(line_list[0]) == 5 or len(line_list[0]) == 4), "Wrong line format: {0}".format(line_list[0])
-    if(len(line_list[0]) == 5):
+    assert(len(line_list[0]) == 4 or len(line_list[0]) == 3), "Wrong line format: {0}".format(line_list[0])
+    if(len(line_list[0]) == 4):
         rdd=sc.parallelize(line_list).map(lambda line:Row(subjectFile=long(line[0]), conPair=long(line[1]), val=long(line[2])))
     else: # there is a prediction on the 6th column
         rdd=sc.parallelize(line_list).map(lambda line:Row(subjectFile=long(line[0]), conPair=long(line[1]), val=long(line[2]), prediction=float(line[3])))
@@ -68,7 +68,7 @@ def random_split_2D(lines, training_ratio, max_diff, sampling_method):
     ran_subject_order = list(range(0,n_subject))
     shuffled_subject = sample(ran_subject_order,n_subject)
     first_ran_subject = shuffled_subject[0]
-    print(" shuffled:", shuffled_subject) 
+    print(" shuffled list of subjects:", shuffled_subject) 
    
     target_training_size = training_ratio * len(lines)
     for line in lines: # add the lines corresponding to the first file or the first subject
@@ -84,7 +84,6 @@ def random_split_2D(lines, training_ratio, max_diff, sampling_method):
         next_file.append(1)
 
     while(len(training) < target_training_size):
-        print("Training size is {0}".format(len(training)))
         assert(sampling_method in ["random-unreal", "columns", "rows", "random-real"]), "Unknown sampling method: {0}".format(sampling_method)
         if sampling_method == "random-unreal":
             subject_id = randrange(0, n_subject)
@@ -101,11 +100,11 @@ def random_split_2D(lines, training_ratio, max_diff, sampling_method):
                 subject_id = 1
         elif sampling_method == "random-real":
             subject_id = randrange(1, n_subject)
-            while(next_file[subject_id] >= n_files):
+            if next_file[subject_id] <= n_files:
+                file_index = next_file[subject_id]
+                next_file[subject_id] +=1 
+            else:
                 print("Subject id {0} is already fully sampled, looking for another one".format(subject_id))
-                subject_id = randrange(1, n_subject)
-            file_id = next_file[subject_id]
-            next_file[subject_id] += 1
 
         assert(file_index < n_files and subject_id < n_subject), "File index or subject index is out of bound!" # This should never happen
         
@@ -115,6 +114,7 @@ def random_split_2D(lines, training_ratio, max_diff, sampling_method):
                 if line not in training:
                     training.append(line)
                 break
+    print("Training size is {0}".format(len(training)))
 
     # Every line which is not in training should go to test
     for line in lines:
