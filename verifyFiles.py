@@ -18,6 +18,7 @@ import csv
 import sqlite3
 import re
 import pandas as pd
+import random
 # Returns a dictionary where the keys are the paths in 'directory'
 # (relative to 'directory') and the values are the os.stat objects
 # associated with these paths. By convention, keys representing
@@ -30,7 +31,7 @@ def get_dir_dict(directory,exclude_items):
 	    #To eliminate the files listd in exclude items file. Condition below checks relative file path as well as file names. 
             files[:]=[f for f in files if f not in exclude_items and os.path.join(root,f).replace(os.path.join(directory+"/"),"") not in exclude_items]
         for file_name in files:
-	    if file_name not in exclude_items:
+	    if not exclude_items or (file_name not in exclude_items):
               abs_file_path=os.path.join(root,file_name)
 	      rel_path=abs_file_path.replace(os.path.join(directory+"/"),"")
               result_dict[rel_path]=os.stat(abs_file_path)
@@ -140,8 +141,18 @@ def n_differences_across_subjects(conditions_dict,root_dir,metrics,checksums_fro
     # For each pair of conditions C1 and C1
     product = ((i,j) for i in conditions_dict.keys() for j in conditions_dict.keys())
     diff={} # Will be the return value
-    bDiff={} # will be the return value for being used in binary matrix 
+    bDiff={} # will be the return value for being used in binary matrix
     metric_values={}
+    # Dictionary_modtime is used for sorting files by increasing modification time for each subject in each condition 
+    modtime_dict={}
+    for key in conditions_dict.keys():
+	modtime_dict[key]={}
+	for subject in conditions_dict.values()[0].keys():
+            mtime_list=[]
+	    modtime_dict[key][subject]={}
+	    for path_name in conditions_dict.values()[0].values()[0].keys(): 
+  	        mtime_list.append((path_name,conditions_dict[key][subject][path_name].st_mtime))
+	    modtime_dict[key][subject]= sorted(mtime_list, key=lambda x: x[1])  
     #Dictionary metric_values_subject_wise holds the metric values mapped to individual subjects. 
     #This helps us identify the metrics values and associate it with individual subjects.
     metric_values_subject_wise={}
@@ -182,14 +193,22 @@ def n_differences_across_subjects(conditions_dict,root_dir,metrics,checksums_fro
 		is_intra_condition_run=True
             for subject in conditions_dict[c].keys():
 		bDiff[key][subject]={}
-	    for file_name in path_names:
+		for file_name in path_names:
+		    bDiff[key][subject][file_name]={}
+            for file_name in path_names:
 		diff [key][file_name]=0
                 for subject in conditions_dict[c].keys():
                 # Here we assume that both conditions will have the same set of subjects
 	            files_are_different=False
 		    abs_path_c=os.path.join(root_dir,c,subject,file_name)
                     abs_path_d=os.path.join(root_dir,d,subject,file_name)
-  		    #print checksums_from_file_dict[d][subject]
+		    # Random selection of modtime_list of subject between two conditions
+		    selected_condition=random.choice([c,d])
+		    for key_name in modtime_dict:
+		        if key_name == selected_condition: 
+		           mtime_files_list = modtime_dict[key_name][subject]
+		           bDiff[key][subject]['mtime_files_list'] = mtime_files_list
+		    
                     if checksums_from_file_dict: 
 		      if (checksums_from_file_dict[c][subject][file_name] != checksums_from_file_dict[d][subject][file_name]):
                         files_are_different=True
@@ -209,9 +228,8 @@ def n_differences_across_subjects(conditions_dict,root_dir,metrics,checksums_fro
 		    
                     if files_are_different:
 			diff[key][file_name]+=1
-  			bDiff[key][subject][file_name]=1			
-                    #else:
-			#bDiff[key][subject][file_name]=0
+  			bDiff[key][subject][file_name]=1		
+	
                         #Below condition is making sure that the checksums are getting read from the file.Also that we are not computing the checksum of the checksums-after file.
 		        if check_corruption and checksums_from_file_dict and checksum_after_file_path not in file_name:
 			     #If the checksum of the file computed locally is different from the one in the file, the file got corrupted and hence throw error. 
@@ -262,7 +280,6 @@ def n_differences_across_subjects(conditions_dict,root_dir,metrics,checksums_fro
 	
     if sqlite_db_path:
       conn.close()
-
     return diff,bDiff,metric_values,dictionary_executables,dictionary_processes,metric_values_subject_wise
 
 #Method get_executable_details is used for finding out the details of the processes that created or modified the specified file.
@@ -333,54 +350,66 @@ def get_condition_checksum_dict(condition,root_dir,subjects,checksum_after_file_
     for subject in subjects:
         condition_checksum_dict[subject]=read_checksum_from_file(os.path.join(root_dir,condition,subject,checksum_after_file_path))
     return condition_checksum_dict
-
-# Use of List to represent the
-# dictionary returned by n_differences_across_subjects
-def Ldiff_print(Diff,conditions_dict):
-    bDiff=Diff
-    No_pair_con=len(bDiff.keys())
-    Ldiff={}
-    list_subjects=bDiff[bDiff.keys()[0]].keys()
-    list_paths= conditions_dict.values()[0].values()[0].keys()
-    Cons_value=[]
-    flag = True
-    path_list=[]
-    first_condition=conditions_dict[conditions_dict.keys()[0]]
-    first_subject=first_condition[first_condition.keys()[0]]
-    for sub in list_subjects:
-        Ldiff[sub] = {}
-        for path in list_paths:
-            Ldiff[sub][path] = {}
-    for sub in list_subjects:
-        flag,i= True,0
-	for path in list_paths:
-	    flag,i=True,0
-	    while flag:
-	        for key in bDiff.keys():
-                    P_value = bDiff[key][sub][path]
-	            Cons_value.insert(i,P_value)
-                    i+=1
-                    if i == No_pair_con:
-                       flag = False
-                       Ldiff [sub][path] = Cons_value[:]
-                       Cons_value=[]
-    for subject in Ldiff.keys():
-        for path in Ldiff[subject].keys():
-            path_list.append([subject,path,Ldiff[subject][path],first_subject[path].st_mtime])
-    #------------ Print the path_list list ---------------
-  #  i=0
-  #  while i < len(path_list):
-  #       flag=True
-  #       while flag:
-  #           j=len (path_list[0][:])-1 # find the number of elements in path_list to be printed (except the st_mtime)
-  #           print path_list[i][0:j]
-  #           flag=False
-  #  	     i+=1
-    #------------ Print the Matrix -----------------------
-    print " >>> Conditions order : ",bDiff.keys() 
-    df = pd.DataFrame([[col1,col2,col3] for col1, d in Ldiff.items() for col2, col3 in d.items()],columns=['Subject','File','Results'])
-    pd.set_option('display.max_rows', None)    
-    return df
+#Write column_index text file of the matrix 
+def matrix_column(bDiff,condition,condition_id,column_index):
+    column_index.write(str(condition_id))
+    column_index.write(";")
+    column_index.write(str(condition))
+    column_index.write("\n")
+#Write the text file of matrix according to the define conditions for it
+def matrix_differences(bDiff,condition,subject,path,r,c,mode,differences):
+    differences.write(str(r))
+    differences.write(";")
+    differences.write(str(c))
+    differences.write(";")
+    if mode == True:
+    	differences.write(str(bDiff[condition][subject][path]))
+    	differences.write(";")
+    	differences.write(str([bDiff[condition][subject]['mtime_files_list'].index(t) for t in bDiff[condition][subject]['mtime_files_list'] if t[0] == path])[1:-1]) # file_index
+    else:
+        differences.write(str(bDiff[condition][subject][path]))
+    differences.write("\n")
+#Write row_index text file of the matrix    
+def matrix_row(bDiff,subject,path,r,mode,row_index):
+    row_index.write(str(r))
+    row_index.write(";")
+    if mode == False:
+        row_index.write(str(subject))
+        row_index.write(";")
+    row_index.write(str(path))
+    row_index.write("\n")
+#Write binary_difference_matrix 
+def matrix_text_files(bDiff,conditions_dict,fileDiff,mode,condition_pairs):
+    r=0
+    c=0
+    if mode == True:
+        file_name = "_2D_"+str(condition_pairs)
+        file_name = file_name.replace(' ', '').replace("/","_")
+    else:
+	file_name = "_3D"
+    row_index = open(fileDiff + file_name + "_row_index.txt","w+")
+    column_index = open(fileDiff + file_name + "_column_index.txt","w+")
+    differences = open(fileDiff + file_name + "_differences.txt","w+")
+    if mode == True:
+	for subject in bDiff[bDiff.keys()[0]].keys():
+	    matrix_column(bDiff,subject,c,column_index) 
+	    for path in conditions_dict.values()[0].values()[0].keys():
+		matrix_differences(bDiff,condition_pairs,subject,path,r,c,mode,differences)
+                matrix_row(bDiff,subject,path,r,mode,row_index)
+		r+=1
+	    r=0
+	    c+=1
+    else:
+	for condition in bDiff.keys():
+            matrix_column(bDiff,condition,c,column_index)
+            for subject in bDiff[bDiff.keys()[c]].keys():
+                for path in conditions_dict.values()[c].values()[c].keys():
+		    matrix_differences(bDiff,condition,subject,path,r,c,mode,differences)
+		    matrix_row(bDiff,subject,path,r,mode,row_index)
+		    r+=1
+            r=0
+            c+=1
+    return (row_index,column_index,differences)
 
 def pretty_string(diff_dict,conditions_dict):
     output_string=""
@@ -429,8 +458,6 @@ def pretty_string(diff_dict,conditions_dict):
         output_string+="\n"
     return output_string
 
-
-#------
 # Returns a string containing a 'pretty' matrix representation of the
 # dictionary returned by n_differences_across_subjects
 # Method check_subjects checks if the subject_folders under different conditions are the same. If not , it stops the execution of the script.
@@ -438,7 +465,7 @@ def check_subjects(conditions_dict):
     subject_names=set()
     for condition in conditions_dict.keys():
 	subject_names.update(conditions_dict[condition].keys())
-   # Iterate over each soubject in every condition and stop the execution if some subject is missing
+    # Iterate over each soubject in every condition and stop the execution if some subject is missing
     for subject in subject_names:
        for condition in conditions_dict.keys():
           if not subject in conditions_dict[condition].keys():
@@ -494,16 +521,19 @@ def main():
                                              /home/$(USER)/CentOS6.FSL5.0.6
                                              /home/$(USER)/CentOS7.FSL5.0.6
                                              Each directory will contain subject folders like 100307,100308 etc'''))
-        parser.add_argument("-c", "--checksumFile",help="Reads checksum from files. Doesn't compute checksums locally")
-	parser.add_argument("-d", "--fileDiff", help="Writes the difference matrix into a file")
+	parser.add_argument("result_base_name", help='''Base name to use in output file names. The following files will be written: 
+			   <result_base_name>_differences_subject_total.txt: Total sum of differences for each file among all subjects,
+			   <result_base_name>_column_index.txt: List of all indexed condition pairs,
+			   <result_base_name>_row_index.txt: List of all indexed pair of subject and file;called as Row,
+			   <result_base_name>_differences.txt: Difference value in a file according to its subject and condition pair; display format: row_index.txt, column_index,difference binary value''')
+        parser.add_argument("output_folder_name", help="Directory to which all the output files are getting written")
+	parser.add_argument("-c", "--checksumFile",help="Reads checksum from files. Doesn't compute checksums locally")
         parser.add_argument("-m", "--metricsFile", help="CSV file containing metrics definition. Every line contains 4 elements: metric_name,file_extension,command_to_run,output_file_name") 
         parser.add_argument("-e","--excludeItems",help="The list of items to be ignored while parsing the files and directories")
 	parser.add_argument("-k","--checkCorruption",help="If this flag is kept 'TRUE', it checks whether the file is corrupted")
 	parser.add_argument("-s","--sqLiteFile",help="The path to the sqlite file which is used as the reference file for identifying the processes which created the files")
 	parser.add_argument("-x","--execFile",help="Writes the executable details to a file")
-	parser.add_argument("-b","--binaryMatrix",help="Matrix shows differences according to the subject and file in the comparison of condition pairs" )
 	parser.add_argument("-t","--trackProcesses",help="Writes all the processes that create an nii file is written into file name mentioned after the flag")	
-        parser.add_argument("-i","--filewiseMetricValue",help="Folder name on to which the individual filewise metric values are written to a csv file")
         args=parser.parse_args()
         logging.basicConfig(level=logging.INFO,format='%(asctime)s %(message)s')
 	if not os.path.isfile(args.file_in):
@@ -537,28 +567,33 @@ def main():
 	#and the file checksumFile,checkCorruption and the path to the sqlite file.
         #diff,metric_values,dictionary_executables,dictionary_processes=n_differences_across_subjects(conditions_dict,root_dir,metrics,checksums_from_file_dict,args.checksumFile,args.checkCorruption,args.sqLiteFile)i
 	diff,bDiff,metric_values,dictionary_executables,dictionary_processes,metric_values_subject_wise=n_differences_across_subjects(conditions_dict,root_dir,metrics,checksums_from_file_dict,args.checksumFile,args.checkCorruption,args.sqLiteFile,args.trackProcesses)
-       	if args.fileDiff is not None:
-            log_info("Writing difference matrix to file "+args.fileDiff)
-            diff_file = open(args.fileDiff,'w')
+       	if args.result_base_name is not None and args.output_folder_name is not None:
+            log_info("Writes the difference matrices and indexes into files")
+            #Checks if the output folder already exists or not, and creates if it doesn't exist
+	    if not os.path.exists(args.output_folder_name):
+                os.makedirs(args.output_folder_name)
+	    #output_base_path gives the base path with the following format - <output folder path/result_base_name>
+	    output_base_path=args.output_folder_name+"/"+args.result_base_name
+            diff_file = open(output_base_path+"_differences_subject_total.txt",'w')
             diff_file.write(pretty_string(diff,conditions_dict))
+	   # write_text_files (bDiff,conditions_dict,args.result_base_name)
+           # two_dimensional_matrix (bDiff,conditions_dict,args.result_base_name)
+	    for condition_pairs in bDiff.keys():
+                matrix_text_files (bDiff,conditions_dict,output_base_path,True,condition_pairs)# 2D matrix
+	    matrix_text_files (bDiff,conditions_dict,output_base_path,False,None)# 3D matrix
             diff_file.close()
-        else:
-	    log_info("Printing...")
-            if args.binaryMatrix:
-	      print Ldiff_print(bDiff,conditions_dict)
-	    else:
-              print pretty_string(diff,conditions_dict)
+
         for metric_name in metric_values.keys():
             log_info("Writing values of metric \""+metric_name+"\" to file \""+metrics[metric_name]["output_file"]+"\"")
             metric_file = open(metrics[metric_name]["output_file"],'w')
 	    metric_file.write(pretty_string(metric_values[metric_name],conditions_dict))
             if metric_name in metric_values_subject_wise.keys() and args.filewiseMetricValue:
-              write_filewise_details(metric_values_subject_wise,metric_name,args.filewiseMetricValue+"/"+metric_name+".csv")
+              write_filewise_details(metric_values_subject_wise,metric_name,args.output_folder_name+"/"+metric_name+".csv")
 	    metric_file.close()
 	
 	if args.execFile is not None:
 	  log_info("Writing executable details to csv file")
-	  with open(args.execFile, 'wb') as csvfile:
+	  with open(args.output_folder_name+"/"+args.execFile, 'wb') as csvfile:
 	    fieldnames = ['File Name', 'Process','ArgV','EnvP','Timestamp','Working Directory']
 	    writer=csv.DictWriter(csvfile,fieldnames=fieldnames)
 	    writer.writeheader()
@@ -573,7 +608,7 @@ def main():
 	
 	if dictionary_processes and args.trackProcesses:
           log_info("Writing process details to csv file named: "+args.trackProcesses)
-          with open(args.trackProcesses, 'wb') as csvfile:
+          with open(args.output_folder_path+"/"+args.trackProcesses, 'wb') as csvfile:
             fieldnames = ['File Name', 'Process','ArgV','EnvP','Timestamp','Working Directory']
             writer=csv.DictWriter(csvfile,fieldnames=fieldnames)
             writer.writeheader()

@@ -1,17 +1,25 @@
 machine:
+  environment:
+    PYTHONPATH: ${PYTHONPATH}:${PWD}
   pre:
     - sudo curl -L -o /usr/bin/docker 'https://s3-external-1.amazonaws.com/circle-downloads/docker-1.9.1-circleci'
     - sudo chmod 0755 /usr/bin/docker
   services:
-    - docker
+    - docker   
 
 dependencies:
   override:
-    - pip install codecov pytest pytest-cov pytest-runner pandas
-
+    - sudo apt-get update
+    - sudo apt-get install -y tk-dev
+    - sudo apt-get install pkg-config
+    - sudo apt-get install python-dev
+    - sudo apt-get install -y python-tk
+    - pip install --upgrade pip
+    - pip install codecov pytest pytest-cov pytest-runner pandas pyspark numpy matplotlib
+    
 test:
   override:
-    - pytest --cov=./ ./test_verifyFiles.py 
+    - pytest --cov=./ test
   post:
     - codecov
 
