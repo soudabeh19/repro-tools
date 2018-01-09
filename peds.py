@@ -18,13 +18,10 @@ class node_structure:
 
 #Include all the functions to create the list of processes
 class linked_list:
-
     def __init__(self):
         self.head = None
-
     def is_empty(self):
         return self.head == None
-
     #Returns the size of the list
     def size(self):
         current = self.head
@@ -33,7 +30,6 @@ class linked_list:
             count = count + 1
             current = current.next
         return count
-
     #Returns the list of graph nodes
     def to_list(self):
         current = self.head
@@ -42,13 +38,11 @@ class linked_list:
             result.append(current)
             current = current.next
         return result
-
     #Add the new node(process) to list
     def add(self, item, pid, parent_id, process_name, level):
         new_node = node_structure(item, pid, parent_id, process_name, level)
         new_node.next = self.head
         self.head = new_node
-
     #Reverse the list which the head of list refer to the root process
     def reverse(self):
         prev = None
@@ -60,7 +54,6 @@ class linked_list:
             current = next
         self.head = prev
         return prev
-
     #keep the involved processes in the pipeline and remove the other processes
     def filter(self):
         prev = None
@@ -94,7 +87,6 @@ class linked_list:
             current = next
         self.head = prev
         return prev
-
     #Add new data to the process data when the program is aggregated
     def append(self, pid,newfiles):
         current = self.head
@@ -105,7 +97,6 @@ class linked_list:
                 found = True
             else:
                 current = current.next
-
     #Returns the data of process
     def get_data(self, item):
         current = self.head
@@ -115,7 +106,6 @@ class linked_list:
                 return current.data
             else:
                 current = current.next
-
     #Remove the process from list
     def remove(self, item):
         current = self.head
@@ -138,7 +128,6 @@ def create_graph(pid, process_node, db_path):
         db = sqlite3.connect(db_path)
     except Error as e:
         print (e)
-
     process_cursor = db.cursor()
     openfile_cursor = db.cursor()
     executed_cursor = db.cursor()
@@ -155,16 +144,13 @@ def create_graph(pid, process_node, db_path):
     total_files = get_the_written_file_list(writefile_cursor)
     #select the parent id of pid from process list
     parent_id = get_the_parent_id(parent_cursor, pid)
-
     topenedf = []  # Getting the total opened files from the repro-tools matrix file
     for file in opened_file_list:
         for line in total_files:
             if line[1] in file[1]:
                 topenedf.append(file) if file not in topenedf else None
-
     #Create and add data process of pid to list
     process_node.add(topenedf, pid, parent_id, process_name, -1)
-
     #Calling the current function recursively for the children of the process
     for child in child_list:
         if child[0] != None:
@@ -230,7 +216,6 @@ def make_yellow_node(graph, id, pid, name, node_label, read_diff_list, read_tmp_
                shape='circle')
     graph.attr('edge', style='solid', color='black')
     graph.edge(str(pid[0][0]), str(id))
-
     # showing the dependencies by dashed edges: diff read(red), tmp read(yellow)
     # and read files without differences(green)
     for e in read_diff_list:
@@ -249,7 +234,6 @@ def make_red_node(graph, id, pid, name, node_label, read_nodiff_list):
         [str(node_label), '#', name]), shape='circle')
     graph.attr('edge', style='solid', color='black')
     graph.edge(str(pid[0][0]), str(id))
-
     for e2 in read_nodiff_list:
         graph.attr('edge', style='dashed', color='green')
         graph.edge(str(e2[2]), str(id))
@@ -260,7 +244,6 @@ def make_squared_red_node(graph, id, pid, name, node_label, read_tmp_list, read_
         [str(node_label), '#', name]), shape='square')
     graph.attr('edge', style='solid', color='black')
     graph.edge(str(pid[0][0]), str(id))
-
     for e2 in read_tmp_list:
         graph.attr('edge', style='dashed', color='yellow')
         graph.edge(str(e2[2]), str(id))
@@ -274,7 +257,6 @@ def make_blue_node(graph, id, pid, name, node_label, read_diff_list, read_tmp_li
         [str(node_label), '#', name]), shape='circle')
     graph.attr('edge', style='solid', color='black')
     graph.edge(str(pid[0][0]), str(id))
-
     for e in read_diff_list:
         graph.attr('edge', style='dashed', color='red')
         graph.edge(str(e[2]), str(id))
@@ -291,7 +273,6 @@ def make_squared_blue_node(graph, id, pid, name, node_label, read_diff_list, rea
         [str(node_label), '#', name]), shape='square')
     graph.attr('edge', style='solid', color='black')
     graph.edge(str(pid[0][0]), str(id))
-
     for e in read_diff_list:
         graph.attr('edge', style='dashed', color='red')
         graph.edge(str(e[2]), str(id))
@@ -308,7 +289,6 @@ def make_green_node(graph, id, pid, name, node_label, read_nodiff_list):
         [str(node_label), '#', name]), shape='circle')
     graph.attr('edge', style='solid', color='black')
     graph.edge(str(pid[0][0]), str(id))
-
     for e2 in read_nodiff_list:
         graph.attr('edge', style='dashed', color='green')
         graph.edge(str(e2[2]), str(id))
@@ -319,7 +299,6 @@ def make_squared_green_node(graph, id, pid, name, node_label, read_diff_list, re
         [str(node_label), '#', name]), shape='square')
     graph.attr('edge', style='solid', color='black')
     graph.edge(str(pid[0][0]), str(id))
-
     for e in read_diff_list:
         graph.attr('edge', style='dashed', color='red')
         graph.edge(str(e[2]), str(id))
@@ -336,7 +315,6 @@ def write_to_file(write_diff_list, read_diff_list, read_tmp_list, write_tmp_list
     rf = pd.DataFrame(read_diff_list, columns=['process_ID', 'name', 'created_process'])
     tr = pd.DataFrame(read_tmp_list, columns=['process_ID', 'name', 'created_process'])
     tw = pd.DataFrame(write_tmp_list, columns=['process_ID', 'name'])
-
     write_files.write(str(proc.id) + "\t" + str(proc.name) + "\ntotal write/read files:\t" + str(len(proc.data)) +
                       "\ntotal write files with diff: " + str(count_diff_w) + "\n\n")
     wf.to_csv(write_files, sep='\t', index=False)
@@ -360,7 +338,6 @@ def main():
     proc_list = []
     db_path = args.sqliteDB
     read_matrix_file = args.openedFiles
-
     #Create two txt output files to write the processes and file dependencies info.
     write_files = open("complete_file.txt", 'w')
     write_proc = open("all_processes", 'w')
@@ -375,7 +352,6 @@ def main():
     #Select the list of opened files (just written file)
     written_files_list = get_the_written_file_list(writefile_cursor)
     db.close()
-
     #Start the program:
     pipeline_graph = linked_list()
     #Root process_id is one here
@@ -437,7 +413,6 @@ def main():
                     if data[1] == o[1]:
                         origin_p = o[0]
                         break
-
                 tmp = False
                 for diff2 in pipeline_files:
                     n = diff2.split(" ")
@@ -464,7 +439,6 @@ def main():
         # making dot file and representing the graph
         name = "Null"
         if proc.name != []: name = str(proc.name[0][0].split('/')[-1])
-
         #According to the read/write files, classify the various process by colored node: create(red),
         #propagate(yellow), remove(blue) and green nodes are process with no differences
         if count_diff_r > 0 and count_diff_w > 0:
@@ -517,7 +491,6 @@ def main():
                 [node_label, proc.id, len(proc.data), count_diff_r, count_nodiff_r, count_tmp_r, count_diff_w,
                  count_nodiff_w, count_tmp_w, proc.name])
             node_label += 1
-
         write_to_file(write_diff_list, read_diff_list, read_tmp_list, write_tmp_list, write_files, proc, count_diff_w,
                       count_diff_r, count_tmp_r, count_tmp_w)
 
