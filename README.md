@@ -52,10 +52,10 @@ Python 2.7.5, graphviz module
 
 ### Running the script:
 
-1) peds.py [-db: database file from reprozip trace] [-ofile: the matrix-file from veryfyFiles.py]
+  * `peds.py [-db: database file from reprozip trace] [-ofile: the matrix-file from veryfyFiles.py]`
 
-*Note: The output would be a dot format file which requiers to create appropriate representing file formats such as: svg, png and etc.
+    *Note: The output would be a dot format file which requiers to create appropriate representing file formats such as: svg, png and etc.
 
-2) dot -Tpng Graphmodel.dot -o Figure.png
+  * `dot -Tpng Graphmodel.dot -o Figure.png`
 
 
