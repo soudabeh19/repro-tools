@@ -66,7 +66,7 @@ def random_split_2D(lines, training_ratio, max_diff, sampling_method):
     training = [] # this will contain the training set
     test = [] # this will contain the test set
     n_subject, n_files = n_columns_files(lines)
-
+    training_matrix = open(sampling_method+ "_training_matrix.txt","w+")
     # Random selection of a subject (column) in advance then
     # pick that subject for every file of the condition, put it in training
     # and also pick first file for every subject, put it in training
@@ -80,6 +80,7 @@ def random_split_2D(lines, training_ratio, max_diff, sampling_method):
         if line[3] == 0 or line[1] == first_ran_subject: 
             assert(line not in training) # something wrong happened with the determination of subject_id and file_index
             training.append(line)
+            write_matrix(line, training_matrix)
     subject_id = 1
     file_index = 0
 
@@ -115,12 +116,12 @@ def random_split_2D(lines, training_ratio, max_diff, sampling_method):
        #     print (file_index, n_files, subject_id, n_subject)
              assert(file_index < n_files and subject_id < n_subject), "File index or subject index is out of bound!" # This should never happen
 
-        
         for line in lines:
             if line[3] == file_index and line[1] == shuffled_subject[subject_id]:
               #  assert(line not in training), "File {0} of subject {1} is already in the training set".format(line[1], line[4]) # something wrong happened with the determination of subject_id and file_index
                 if line not in training:
                     training.append(line)
+                    write_matrix (line, training_matrix)
                 break
     print("Training size is {0}".format(len(training)))
 
