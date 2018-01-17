@@ -41,7 +41,12 @@ def create_dataframe_from_line_list(sc, ss, line_list):
     else: # there is a prediction on the 6th column
         rdd=sc.parallelize(line_list).map(lambda line:Row(subjectFile=long(line[0]), conPair=long(line[1]), val=long(line[2]), prediction=float(line[3])))
     return ss.createDataFrame(rdd)
-
+def write_matrix(line,matrix_name):
+    for i in range (0,4):
+        matrix_name.write(str(line[i]))
+        if i != 3:
+            matrix_name.write(";")
+    matrix_name.write("\n")
 # Find the max number of conditions and files
 def n_columns_files(line_list):
     max_col_id = 0
@@ -82,7 +87,6 @@ def random_split_2D(lines, training_ratio, max_diff, sampling_method):
     next_file = []
     for i in range(0, n_subject):
         next_file.append(1)
-
     while(len(training) < target_training_size):
         assert(sampling_method in ["random-unreal", "columns", "rows", "random-real"]), "Unknown sampling method: {0}".format(sampling_method)
         if sampling_method == "random-unreal":
@@ -102,11 +106,15 @@ def random_split_2D(lines, training_ratio, max_diff, sampling_method):
             subject_id = randrange(1, n_subject)
             if next_file[subject_id] <= n_files:
                 file_index = next_file[subject_id]
-                next_file[subject_id] +=1 
+                next_file[subject_id] +=1
             else:
                 print("Subject id {0} is already fully sampled, looking for another one".format(subject_id))
 
-        assert(file_index < n_files and subject_id < n_subject), "File index or subject index is out of bound!" # This should never happen
+        if (file_index < n_files and subject_id < n_subject):
+       #     print ("File index or subject index is out of bound!")
+       #     print (file_index, n_files, subject_id, n_subject)
+             assert(file_index < n_files and subject_id < n_subject), "File index or subject index is out of bound!" # This should never happen
+
         
         for line in lines:
             if line[3] == file_index and line[1] == shuffled_subject[subject_id]:
@@ -222,6 +230,9 @@ def main(args=None):
         predictions_list = predictions.rdd.map(lambda row: [ row.subjectFile, row.conPair,
                                                              row.val, row.prediction]).collect()
         predictions_list = round_values(predictions_list)
+        test_matrix = open(results.sampling_method+ "_test_matrix.txt","w+")
+        for i in range (len(predictions_list)):
+            write_matrix(predictions_list[i],test_matrix)
         accuracy = compute_accuracy(predictions_list)
         print("Accuracy = " + str(accuracy))
         print("Accuracy of dummy classifier = " + str(compute_accuracy_dummy(lines)))
