@@ -66,7 +66,7 @@ def random_split_2D(lines, training_ratio, max_diff, sampling_method):
     training = [] # this will contain the training set
     test = [] # this will contain the test set
     n_subject, n_files = n_columns_files(lines)
-    training_matrix = open(sampling_method+ "_training_matrix.txt","w+")
+    training_matrix = open(sampling_method+"_"+str(training_ratio)+"_training_matrix.txt","w+")
     # Random selection of a subject (column) in advance then
     # pick that subject for every file of the condition, put it in training
     # and also pick first file for every subject, put it in training
@@ -191,6 +191,13 @@ def parse_file(file_path):
             lines.append([int(elements[0]), int(elements[1]), int(elements[2]), int(elements[3])])
     return lines
 
+# Concatenate the two Test and Training matrices text file to get the whole final predicted matrix 
+def prediction_matrix (training_ratio,sampling_method):
+    with open('hello-again.txt','wb') as wfd:
+        for f in [sampling_method+"_"+training_ratio+'_test_matrix.txt', sampling_method+"_"+training_ratio+'_training_matrix.txt']:
+            with open(f,'rb') as fd:
+                shutil.copyfileobj(fd, wfd, 1024*1024*10)
+
 def main(args=None):
     # Use argparse to get arguments of your script:
     parser = ArgumentParser("predict")
@@ -231,7 +238,7 @@ def main(args=None):
         predictions_list = predictions.rdd.map(lambda row: [ row.subjectFile, row.conPair,
                                                              row.val, row.prediction]).collect()
         predictions_list = round_values(predictions_list)
-        test_matrix = open(results.sampling_method+ "_test_matrix.txt","w+")
+        test_matrix = open(results.sampling_method+"_"+str(results.training_ratio)+"_test_matrix.txt","w+")
         for i in range (len(predictions_list)):
             write_matrix(predictions_list[i],test_matrix)
         accuracy = compute_accuracy(predictions_list)
@@ -245,7 +252,6 @@ def main(args=None):
         
     if results.predictions:
         write_dataframe_to_text_file(predictions, results.predictions)   
-
-   
+    #prediction_matrix (results.training_ratio,results.sampling_method)
 if __name__ =='__main__':
        main() 
