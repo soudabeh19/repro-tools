@@ -33,7 +33,9 @@ def get_dir_dict(directory,exclude_items):
         for file_name in files:
 	    if not exclude_items or (file_name not in exclude_items):
               abs_file_path=os.path.join(root,file_name)
-	      rel_path=abs_file_path.replace(os.path.join(directory+"/"),"")
+              rel_path=abs_file_path.replace(os.path.join(directory+"/"),"")
+              if '/' in rel_path and directory.split('/')[-1] in rel_path:
+                  rel_path=rel_path.replace(directory.split('/')[-1],"subject_name")
               result_dict[rel_path]=os.stat(abs_file_path)
     return result_dict
 
@@ -128,6 +130,8 @@ def check_files(conditions_dict):
             for subject in conditions_dict[condition].keys():
                 if not path_name in conditions_dict[condition][subject].keys():
                     log_warning("File \"" + path_name  + "\" is missing in subject \"" + subject + "\" of condition \"" + condition + "\".")
+                    if subject in path_name:
+                        del conditions_dict[condition][subject][path_name]
 
 # Returns a dictionary where the keys identifies two conditions
 # (e.g. "condition1 vs condition2") and the values are dictionaries
@@ -150,7 +154,7 @@ def n_differences_across_subjects(conditions_dict,root_dir,metrics,checksums_fro
 	for subject in conditions_dict.values()[0].keys():
             mtime_list=[]
 	    modtime_dict[key][subject]={}
-	    for path_name in conditions_dict.values()[0].values()[0].keys(): 
+	    for path_name in conditions_dict[key][subject].keys(): 
   	        mtime_list.append((path_name,conditions_dict[key][subject][path_name].st_mtime))
 	    modtime_dict[key][subject]= sorted(mtime_list, key=lambda x: x[1])  
     #Dictionary metric_values_subject_wise holds the metric values mapped to individual subjects. 
@@ -200,8 +204,14 @@ def n_differences_across_subjects(conditions_dict,root_dir,metrics,checksums_fro
                 for subject in conditions_dict[c].keys():
                 # Here we assume that both conditions will have the same set of subjects
 	            files_are_different=False
-		    abs_path_c=os.path.join(root_dir,c,subject,file_name)
-                    abs_path_d=os.path.join(root_dir,d,subject,file_name)
+                    file_name_new=None
+                    if "subject_name" in file_name:
+                        file_name_new=file_name.replace("subject_name",subject)
+                        abs_path_c=os.path.join(root_dir,c,subject,file_name_new)
+                        abs_path_d=os.path.join(root_dir,d,subject,file_name_new)
+                    else:    
+		        abs_path_c=os.path.join(root_dir,c,subject,file_name)
+                        abs_path_d=os.path.join(root_dir,d,subject,file_name)
 		    # Random selection of modtime_list of subject between two conditions
 		    selected_condition=random.choice([c,d])
 		    for key_name in modtime_dict:
@@ -209,11 +219,16 @@ def n_differences_across_subjects(conditions_dict,root_dir,metrics,checksums_fro
 		           mtime_files_list = modtime_dict[key_name][subject]
 		           bDiff[key][subject]['mtime_files_list'] = mtime_files_list
 		    
-                    if checksums_from_file_dict: 
-		      if (checksums_from_file_dict[c][subject][file_name] != checksums_from_file_dict[d][subject][file_name]):
-                        files_are_different=True
-		    elif conditions_dict[c][subject][file_name].st_size != conditions_dict[d][subject][file_name].st_size :
+                    if checksums_from_file_dict:
+                        if "subject_name" in file_name:
+                            if (checksums_from_file_dict[c][subject][file_name_new] != checksums_from_file_dict[d][subject][file_name_new]):
+                                files_are_different=True
+                        elif (checksums_from_file_dict[c][subject][file_name] != checksums_from_file_dict[d][subject][file_name]):
+                            files_are_different=True
+		    elif "subject_name" not in file_name and conditions_dict[c][subject][file_name].st_size != conditions_dict[d][subject][file_name].st_size :
 		        files_are_different=True
+                    elif "subject_name" in file_name and conditions_dict[c][subject][file_name_new].st_size != conditions_dict[d][subject][file_name_new].st_size:
+                        files_are_different=True
 		    else:
 		      #Computing the checksum if not present in the dictionary and adding it to the dictionary to avoid multiple checksum computation.                   
 		      for filename in {abs_path_d,abs_path_c}:
@@ -258,7 +273,11 @@ def n_differences_across_subjects(conditions_dict,root_dir,metrics,checksums_fro
 				    try:
 					log_info("Computing the metrics for the file:"+" "+file_name+" "+"in subject"+" "+subject)
 					log_info(file_name +" "+ c +" "+ d +" "+ subject +" "+ metric['command'])
-                                        diff_value=float(run_command(metric['command'],file_name,c,d,subject,root_dir))
+                                        #Check the file_name and replace if it has subject_name
+                                        if "subject_name" in file_name:
+                                            diff_value=float(run_command(metric['command'],file_name_new,c,d,subject,root_dir))
+                                        else:
+                                            diff_value=float(run_command(metric['command'],file_name_new,c,d,subject,root_dir))
 					metric_values[metric['name']][key][file_name] += diff_value
 					metric_values_subject_wise[metric['name']][key][subject][file_name] = diff_value
 				    except ValueError as e:
@@ -272,9 +291,16 @@ def n_differences_across_subjects(conditions_dict,root_dir,metrics,checksums_fro
 			  #Monitor.txt seems not to have entry in sqlite table
 			   if is_intra_condition_run:
 			     #** indicates that the entries are the result of an intra-condition run
-			     dictionary_executables["**"+file_name]=get_executable_details(conn,sqlite_db_path,file_name)
+                               if "subject_name" in file_name:
+                                   dictionary_executables["**"+file_name]=get_executable_details(conn,sqlite_db_path,file_name_new)
+                               else:
+                                   dictionary_executables["**"+file_name]=get_executable_details(conn,sqlite_db_path,file_name)
 			   else:
-			     dictionary_executables[file_name]=get_executable_details(conn,sqlite_db_path,file_name)
+                               if "subject_name" in file_name:
+                                   dictionary_executables[file_name]=get_executable_details(conn,sqlite_db_path,file_name_new)
+                               else:
+                                   dictionary_executables[file_name]=get_executable_details(conn,sqlite_db_path,file_name)
+
 	            else:
                         bDiff[key][subject][file_name]=0
 	
@@ -314,6 +340,7 @@ def get_metrics(metrics,file_name):
 # 'command condition1/subject_name/file_name condition2/subject_name/file_name'
 # and returns the stdout if and only if command was successful
 def run_command(command,file_name,condition1,condition2,subject_name,root_dir):
+    print root_dir
     command_string = command+" "+os.path.join(root_dir,condition1,subject_name,file_name)+" "+os.path.join(root_dir,condition2,subject_name,file_name)+" "+"2>/dev/tty"
     return_value,output = commands.getstatusoutput(command_string)
     if return_value != 0:
