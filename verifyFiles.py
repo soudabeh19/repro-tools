@@ -342,11 +342,7 @@ def get_metrics(metrics,file_name):
 # 'command condition1/subject_name/file_name condition2/subject_name/file_name'
 # and returns the stdout if and only if command was successful
 def run_command(command,file_name,condition1,condition2,subject_name,root_dir):
-    print root_dir
-    print root_dir,condition1,subject_name,file_name
-    print os.path.join(root_dir,condition1,subject_name,file_name)
     command_string = command+" "+os.path.join(root_dir,condition1,subject_name,file_name)+" "+os.path.join(root_dir,condition2,subject_name,file_name)+" "+"2>/dev/tty"
-    print command_string
     return_value,output = commands.getstatusoutput(command_string)
     if return_value != 0:
         log_error(str(return_value)+" "+ output +" "+"Command "+ command + " failed (" + command_string + ").")
