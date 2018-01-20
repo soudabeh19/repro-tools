@@ -187,6 +187,7 @@ def n_differences_across_subjects(conditions_dict,root_dir,metrics,checksums_fro
             # print a log_info saying "Identified c1 and c2 as two
             # different runs of the same condition".
 	    is_intra_condition_run=False
+            #Adding variable for holding the substituted name
 	    pattern = re.compile('.*-RUN-[0-9]*')
 	    if pattern.match(c) and pattern.match(d):
 	      condition_c=c.split("-")
@@ -201,6 +202,7 @@ def n_differences_across_subjects(conditions_dict,root_dir,metrics,checksums_fro
 		    bDiff[key][subject][file_name]={}
             for file_name in path_names:
 		diff [key][file_name]=0
+                file_name_new=None
                 for subject in conditions_dict[c].keys():
                 # Here we assume that both conditions will have the same set of subjects
 	            files_are_different=False
@@ -277,7 +279,7 @@ def n_differences_across_subjects(conditions_dict,root_dir,metrics,checksums_fro
                                         if "subject_name" in file_name:
                                             diff_value=float(run_command(metric['command'],file_name_new,c,d,subject,root_dir))
                                         else:
-                                            diff_value=float(run_command(metric['command'],file_name_new,c,d,subject,root_dir))
+                                            diff_value=float(run_command(metric['command'],file_name,c,d,subject,root_dir))
 					metric_values[metric['name']][key][file_name] += diff_value
 					metric_values_subject_wise[metric['name']][key][subject][file_name] = diff_value
 				    except ValueError as e:
@@ -341,7 +343,10 @@ def get_metrics(metrics,file_name):
 # and returns the stdout if and only if command was successful
 def run_command(command,file_name,condition1,condition2,subject_name,root_dir):
     print root_dir
+    print root_dir,condition1,subject_name,file_name
+    print os.path.join(root_dir,condition1,subject_name,file_name)
     command_string = command+" "+os.path.join(root_dir,condition1,subject_name,file_name)+" "+os.path.join(root_dir,condition2,subject_name,file_name)+" "+"2>/dev/tty"
+    print command_string
     return_value,output = commands.getstatusoutput(command_string)
     if return_value != 0:
         log_error(str(return_value)+" "+ output +" "+"Command "+ command + " failed (" + command_string + ").")
@@ -614,7 +619,7 @@ def main():
             log_info("Writing values of metric \""+metric_name+"\" to file \""+metrics[metric_name]["output_file"]+"\"")
             metric_file = open(metrics[metric_name]["output_file"],'w')
 	    metric_file.write(pretty_string(metric_values[metric_name],conditions_dict))
-            if metric_name in metric_values_subject_wise.keys() and args.filewiseMetricValue:
+            if metric_name in metric_values_subject_wise.keys():
               write_filewise_details(metric_values_subject_wise,metric_name,args.output_folder_name+"/"+metric_name+".csv")
 	    metric_file.close()
 	
