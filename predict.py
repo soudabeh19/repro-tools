@@ -10,6 +10,7 @@ from pyspark.sql import SparkSession, Row
 from pyspark.ml.evaluation import RegressionEvaluator
 from pyspark.ml.recommendation import ALS
 from random import random, randint, sample, randrange
+import pandas as pd
 def compute_accuracy(predictions_list):
     right_predictions = 0.0
     for line in predictions_list:
@@ -34,17 +35,16 @@ def is_binary_matrix(lines):
 def round_values(line_list):
     return [ [x[0], x[1], x[2], int(round(x[3]))] for x in line_list]
 
-def create_dataframe_from_line_list(sc, ss, line_list):
-    assert(len(line_list[0]) == 4 or len(line_list[0]) == 3), "Wrong line format: {0}".format(line_list[0])
-    if(len(line_list[0]) == 4):
-        rdd=sc.parallelize(line_list).map(lambda line:Row(subjectFile=long(line[0]), conPair=long(line[1]), val=long(line[2])))
-    else: # there is a prediction on the 6th column
-        rdd=sc.parallelize(line_list).map(lambda line:Row(subjectFile=long(line[0]), conPair=long(line[1]), val=long(line[2]), prediction=float(line[3])))
+def create_dataframe_from_line_list(sc, ss, line_list, mode):
+    if mode == True: #training dataframe
+        rdd=sc.parallelize(line_list).map(lambda line:Row(ordered_file_id=long(line[3]),subject=long(line[1]), val=long(line[2]), row_file_index=long(line[0])))
+    else: #test dataframe # there is a prediction on the 3rd column
+        rdd=sc.parallelize(line_list).map(lambda line:Row(ordered_file_id=long(line[0]), subject=long(line[1]), val=long(line[2]), prediction=float(line[3])))
     return ss.createDataFrame(rdd)
 def write_matrix(line,matrix_name):
-    for i in range (0,4):
+    for i in range (0,len(line)):
         matrix_name.write(str(line[i]))
-        if i != 3:
+        if i != len(line)-1:
             matrix_name.write(";")
     matrix_name.write("\n")
 # Find the max number of conditions and files
@@ -194,7 +194,7 @@ def parse_file(file_path):
 # Concatenate the two Test and Training matrices text file to get the whole final predicted matrix 
 def prediction_matrix (training_ratio,sampling_method):
     with open('hello-again.txt','wb') as wfd:
-        for f in [sampling_method+"_"+training_ratio+'_test_matrix.txt', sampling_method+"_"+training_ratio+'_training_matrix.txt']:
+        for f in [sampling_method+"_"+training_ratio+'_test_data_matrix.txt', sampling_method+"_"+training_ratio+'_training_matrix.txt']:
             with open(f,'rb') as fd:
                 shutil.copyfileobj(fd, wfd, 1024*1024*10)
 
@@ -226,26 +226,29 @@ def main(args=None):
     #training, test = random_split(lines, results.training_ratio, results.random_ratio_error)
     training, test = random_split_2D(lines, results.training_ratio, results.random_ratio_error, results.sampling_method)
 
-    training_df = create_dataframe_from_line_list(sc,spark,training)
-    test_df = create_dataframe_from_line_list(sc,spark,test)
-
-    als = ALS(maxIter=5, regParam=0.01, userCol="subjectFile", itemCol="conPair", ratingCol="val")
+    training_df = create_dataframe_from_line_list(sc,spark,training, True)
+    test_df = create_dataframe_from_line_list(sc,spark,test, True)
+    # Building recommendation model by use of ALS on the training set
+    als = ALS(maxIter=5, regParam=0.01, userCol="ordered_file_id", itemCol="subject", ratingCol="val")
     model = als.fit(training_df)  
+    # Assess the model 
     predictions = model.transform(test_df)
-    if is_binary_matrix(lines):
+    if is_binary_matrix(lines): # assess the model
         # prediction will be rounded to closest integer
         # TODO: check how the rounding can be done directly with the dataframe, to avoid converting to list
-        predictions_list = predictions.rdd.map(lambda row: [ row.subjectFile, row.conPair,
+        predictions_list = predictions.rdd.map(lambda row: [ row.ordered_file_id, row.subject,
                                                              row.val, row.prediction]).collect()
         predictions_list = round_values(predictions_list)
-        test_matrix = open(results.sampling_method+"_"+str(results.training_ratio)+"_test_matrix.txt","w+")
+        test_data_matrix = open(results.sampling_method+"_"+str(results.training_ratio)+"_test_data_matrix.txt","w+")
         for i in range (len(predictions_list)):
-            write_matrix(predictions_list[i],test_matrix)
+            write_matrix(predictions_list[i],test_data_matrix)
         accuracy = compute_accuracy(predictions_list)
         print("Accuracy = " + str(accuracy))
         print("Accuracy of dummy classifier = " + str(compute_accuracy_dummy(lines)))
-        predictions = create_dataframe_from_line_list(sc, spark, predictions_list)
-    else:
+        predictions = create_dataframe_from_line_list(sc, spark, predictions_list, False)
+        predictions.show(1000,False)
+        print(pd.options.display.max_rows)
+    else: # Assess model by use of RMSE on the test data
         evaluator = RegressionEvaluator(metricName="rmse", labelCol="val", predictionCol="prediction")
         rmse = evaluator.evaluate(predictions)
         print("RMSE = " + str(rmse))
