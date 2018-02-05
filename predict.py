@@ -229,7 +229,7 @@ def main(args=None):
     training_df = create_dataframe_from_line_list(sc,spark,training, True)
     test_df = create_dataframe_from_line_list(sc,spark,test, True)
     # Building recommendation model by use of ALS on the training set
-    als = ALS(maxIter=5, regParam=0.01, userCol="ordered_file_id", itemCol="subject", ratingCol="val")
+    als = ALS(maxIter=5, regParam=0.01, userCol="subject", itemCol="ordered_file_id", ratingCol="val")
     model = als.fit(training_df)  
     # Assess the model 
     predictions = model.transform(test_df)
