@@ -16,7 +16,8 @@ dependencies:
     - sudo apt-get install -y python-tk
     - pip install --upgrade pip
     - pip install codecov pytest pytest-cov pytest-runner pandas pyspark numpy matplotlib
-    
+    - pip install graphviz   
+    - sudo apt-get install graphviz
 test:
   override:
     - pytest --cov=./ test
