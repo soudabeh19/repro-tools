@@ -10,6 +10,7 @@ from pyspark.sql import SparkSession, Row
 from pyspark.ml.evaluation import RegressionEvaluator
 from pyspark.ml.recommendation import ALS
 from random import random, randint, sample, randrange
+from math import tan
 import pandas as pd
 def compute_accuracy(predictions_list):
     right_predictions = 0.0
@@ -61,8 +62,32 @@ def n_columns_files(line_list):
 def count_occurrences(file_id, line_list):
     return len([line for line in line_list if line[0] == file_id])
 
-def random_split_2D(lines, training_ratio, max_diff, sampling_method):
+def get_number_of_files_to_training(n_files ,n_subject, training_ratio, n_last_file): # in linear and exponential methods to calculate the num of reading files for the subject 
+    pointer = 0
+    Nf , Ns = n_files-1, n_subject-1
+    size_trainingSet_subMatrix = (n_files * n_subject * training_ratio)-(Ns + n_files)
+    training_ratio_subMatrix = size_trainingSet_subMatrix / (Nf * Ns)# first subject's file and first file of all subjects are removed in this matrix
 
+    #training_ratio_subMatrix = (Nf * Ns * training_ratio)/(n_files * n_subject) # first subject's file and first file of all subjects are removed in this matrix
+    n_files_prime = int(round( 2 * Nf * (1-training_ratio_subMatrix)))
+    # while start point   
+    c=1
+    while c <= Ns:
+        if c <= Ns/2: 
+            n_get_file= (2 * n_files_prime * c)/ Ns
+            if n_get_file >= Nf: #line passed or touched the border
+                n_last_file[pointer]= 0
+            else:
+                n_last_file[pointer]= n_get_file
+            if c != Ns/2:
+                pointer +=1
+        else: #symetrical time
+            n_last_file[c] = n_last_file[pointer]
+            pointer -= 1
+        c+=1
+    return n_last_file 
+
+def random_split_2D(lines, training_ratio, max_diff, sampling_method):
     training = [] # this will contain the training set
     test = [] # this will contain the test set
     n_subject, n_files = n_columns_files(lines)
@@ -86,13 +111,52 @@ def random_split_2D(lines, training_ratio, max_diff, sampling_method):
 
     # used in random-real sampling method in the while loop below
     next_file = []
+    n_last_file = [] # in linear mode records the number of selected files for the subject according to the formula (to be used for semetrycal purpose
+    for c in range(0,n_subject):
+        n_last_file.append(0)
+    counter = 1
+    print ("n_files: ", n_files,"n_subject:", n_subject) 
     for i in range(0, n_subject):
         next_file.append(1)
     while(len(training) < target_training_size):
-        assert(sampling_method in ["random-unreal", "columns", "rows", "random-real"]), "Unknown sampling method: {0}".format(sampling_method)
-        if sampling_method == "random-unreal":
-            subject_id = randrange(0, n_subject)
-            file_index = randrange(0, n_files)
+        n_line_add = 0 
+        assert(sampling_method in ["random-unreal", "columns", "rows", "random-real", "linear"]), "Unknown sampling method: {0}".format(sampling_method)
+
+        if sampling_method == "linear":
+            get_number_of_files_to_training (n_files, n_subject, training_ratio, n_last_file)
+            print (n_last_file)
+           # for j in range (0, last_selected_file_subject_id):
+               # file_index+=1
+               # put_line_into_training (file_index,subject_id)
+           # subject_id +=1
+           # counter +=1
+
+#            n_files_prime = n_files * ((2 * training_ratio) - 1)
+#            # n_files_prime < 0  ratio makes the triangle passed or reached the matrix borders
+#            # n_files_prime > 0  triangle (selected training set) is still in the matrix
+#            
+#            if subject_id <= n_subject/2 :#half_training_size is not completed 
+#                calcul_file = int (round (subject_id * 2 * abs(n_files - n_files_prime) / n_subject))
+#                print ("calcul_file: ", calcul_file)
+#                if calcul_file < n_files : # still in the matrix
+#                    n_last_file [c] = n_files - calcul_file
+#                    last_selected_file_subject_id = n_last_file [c]
+#                c += 1
+#            else:  #half_training_size is completed (symetrical time)
+#                if c != 0:
+#                    c -= 1
+#                last_selected_file_subject_id = n_last_file [c]
+#            for j in range (0, last_selected_file_subject_id):
+#                file_index += 1
+#            if subject_id <n_subject:    
+#                subject_id += 1
+#            print (n_last_file)
+#            print ("n_line_add", n_line_add)
+#            print (subject_id)
+#
+        elif sampling_method == "random-unreal":
+             subject_id = randrange(0, n_subject)
+             file_index = randrange(0, n_files)
         elif sampling_method == "columns":
             file_index += 1
             if file_index == n_files:
@@ -115,7 +179,6 @@ def random_split_2D(lines, training_ratio, max_diff, sampling_method):
        #     print ("File index or subject index is out of bound!")
        #     print (file_index, n_files, subject_id, n_subject)
              assert(file_index < n_files and subject_id < n_subject), "File index or subject index is out of bound!" # This should never happen
-
         for line in lines:
             if line[3] == file_index and line[1] == shuffled_subject[subject_id]:
               #  assert(line not in training), "File {0} of subject {1} is already in the training set".format(line[1], line[4]) # something wrong happened with the determination of subject_id and file_index
