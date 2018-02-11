@@ -41,5 +41,21 @@ plot:
 
 ![Alt text](./test/test_differences_plot.png?raw=true "Title")
 
+## Pipelines Error Detection Script (PEDS)
+
+The aim of `PEDS` is clustering processes and creating a graph model representation for the all processes which introduce errors in the pipeline
+based on the reprozip trace file (trace.sqlite3) and matrix-file created by `veryfyFiles.py` that specify the pipeline output files with defferences.
+
+### Prerequisites:
+
+Python 2.7.5, graphviz module
+
+### Running the script:
+
+  * `peds.py [-db: database file from reprozip trace] [-ofile: the matrix-file from veryfyFiles.py]`
+
+    *Note: The output would be a dot format file which requiers to create appropriate representing file formats such as: svg, png and etc.
+
+  * `dot -Tpng Graphmodel.dot -o Figure.png`
 
 
