@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-from __future__ import print_function
+from __future__ import print_function, division
 from argparse import ArgumentParser
 import os, shutil, sys
 if sys.version >= '3':
@@ -59,61 +59,19 @@ def n_columns_files(line_list):
             max_file_id = line[0]
     return max_col_id + 1, max_file_id + 1
 
-def count_occurrences(file_id, line_list):
-    return len([line for line in line_list if line[0] == file_id])
-
-def get_number_of_files_to_training(n_files ,n_subject, training_ratio, n_last_file): # in linear and exponential methods to calculate the num of reading files for the subject 
-    pointer = 0
-    c=1
-    Nf , Ns = n_files-1, n_subject-1
-    T = n_files * n_subject * training_ratio
-    T_prime = T -(Ns + n_files)# first subject's file and first file of all subjects are removed in this matrix
-    print ("training : ", T_prime)
-    r_prime = (T_prime)/(Nf * Ns)# training ratio for the first half of the submatrix
-    print ("ratio-half: ", r_prime)
-
-    #training_ratio_subMatrix = (Nf * Ns * training_ratio)/(n_files * n_subject) # first subject's file and first file of all subjects are removed in this matrix
-    #n_files_prime = int(round( 2 * Nf * (1-training_ratio_subMatrix)))
-    #n_files_prime = (Nf * Ns - ((n_subject * n_files)*(1-training_ratio_subMatrix) -(n_files+Ns))) * 2 / Ns 
-    # while start point   
-    si = T_prime / Nf
-    while c <= Ns:
-        if si > Ns/2: # Trapezoid shape
-            y=((2*T_prime)/Ns)-Nf
-            if c <= (Ns/2)-1:
-                n_last_file[pointer] = (2*(Nf-y)*c)/Ns
-                c+=1
-                pointer+=1
-            else: # Symmetrical time
-                n_last_file[c] = n_last_file[pointer]
-                pointer -=1
-                c+=1
-        else: # Triangular shape (ratio line passed or touched the border)
-            if c <= (Ns/2)-1 :
-                if c < si:
-                    n_last_file[pointer] = (Nf*c)/si
-                c+=1
-                pointer +=1
-            else:
-                n_last_file[c] = n_last_file[pointer]
-                pointer -=1
+def get_number_of_files_to_training(n_files ,n_subject, training_ratio, n_last_file): # in linear and exponential methods to calculate the num of reading files for the subject
+    Ns = len(n_last_file)
+    for i in range(0, int(Ns/2)):
+        if training_ratio <= 0.5:
+            if (random() <= 2 * training_ratio):
+                n_last_file[i] = randrange(0, n_files, 1)
+        else:
+            n_last_file[i] = randrange(int(round(2*training_ratio*n_files))-n_files, n_files, 1)
+    for i in range(Ns-1,int(Ns/2)-1,-1):
+        p = Ns-(i+1)
+        n_last_file[i]=n_last_file[p]
+    print (n_last_file)
     return n_last_file
-
-   # c=1
-   # while c <= Ns:
-   #     if c <= Ns/2: 
-   #         n_get_file= (2 * n_files_prime * c)/ Ns
-   #         if n_get_file >= Nf: #line passed or touched the border
-   #             n_last_file[pointer]= 0
-   #         else:
-   #             n_last_file[pointer]= n_get_file
-   #         if c != Ns/2:
-   #             pointer +=1
-   #     else: #symetrical time
-   #         n_last_file[c] = n_last_file[pointer]
-   #         pointer -= 1
-   #     c+=1
-   # return n_last_file 
 
 def random_split_2D(lines, training_ratio, max_diff, sampling_method):
     training = [] # this will contain the training set
@@ -141,7 +99,7 @@ def random_split_2D(lines, training_ratio, max_diff, sampling_method):
     next_file = []
     n_last_file = [] # in linear mode records the number of selected files for the subject according to the formula (to be used for semetrycal purpose
     p=0
-    for c in range(0,n_subject):
+    for c in range(0,n_subject-1):
         n_last_file.append(0)
     print ("n_files: ", n_files,"n_subject:", n_subject) 
     for i in range(0, n_subject):
@@ -152,10 +110,8 @@ def random_split_2D(lines, training_ratio, max_diff, sampling_method):
 
         if sampling_method == "linear":
             get_number_of_files_to_training (n_files, n_subject, training_ratio, n_last_file)
-            p+=1
-            if (p >= 243):
-                print (n_last_file)
-                break
+            break
+
            # for j in range (0, last_selected_file_subject_id):
                # file_index+=1
                # put_line_into_training (file_index,subject_id)
