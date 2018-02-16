@@ -72,6 +72,13 @@ def get_number_of_files_to_training(n_files ,n_subject, training_ratio, n_last_f
         n_last_file[i]=n_last_file[p]
     print (n_last_file)
     return n_last_file
+def put_files_into_training(n_last_file, lines,shuffled_subject,training, training_matrix):
+    for i in range (1,len(shuffled_subject)):
+        for line in lines:
+            if line[3] <= n_last_file[i-1] and line[1] == shuffled_subject[i]:
+                if line not in training:
+                    training.append(line)
+                    write_matrix(line,training_matrix)
 
 def random_split_2D(lines, training_ratio, max_diff, sampling_method):
     training = [] # this will contain the training set
@@ -110,37 +117,8 @@ def random_split_2D(lines, training_ratio, max_diff, sampling_method):
 
         if sampling_method == "linear":
             get_number_of_files_to_training (n_files, n_subject, training_ratio, n_last_file)
+            put_files_into_training (n_last_file, lines, shuffled_subject,training,training_matrix)
             break
-
-           # for j in range (0, last_selected_file_subject_id):
-               # file_index+=1
-               # put_line_into_training (file_index,subject_id)
-           # subject_id +=1
-           # counter +=1
-
-#            n_files_prime = n_files * ((2 * training_ratio) - 1)
-#            # n_files_prime < 0  ratio makes the triangle passed or reached the matrix borders
-#            # n_files_prime > 0  triangle (selected training set) is still in the matrix
-#            
-#            if subject_id <= n_subject/2 :#half_training_size is not completed 
-#                calcul_file = int (round (subject_id * 2 * abs(n_files - n_files_prime) / n_subject))
-#                print ("calcul_file: ", calcul_file)
-#                if calcul_file < n_files : # still in the matrix
-#                    n_last_file [c] = n_files - calcul_file
-#                    last_selected_file_subject_id = n_last_file [c]
-#                c += 1
-#            else:  #half_training_size is completed (symetrical time)
-#                if c != 0:
-#                    c -= 1
-#                last_selected_file_subject_id = n_last_file [c]
-#            for j in range (0, last_selected_file_subject_id):
-#                file_index += 1
-#            if subject_id <n_subject:    
-#                subject_id += 1
-#            print (n_last_file)
-#            print ("n_line_add", n_line_add)
-#            print (subject_id)
-#
         elif sampling_method == "random-unreal":
              subject_id = randrange(0, n_subject)
              file_index = randrange(0, n_files)
@@ -163,8 +141,6 @@ def random_split_2D(lines, training_ratio, max_diff, sampling_method):
                 print("Subject id {0} is already fully sampled, looking for another one".format(subject_id))
 
         if (file_index < n_files and subject_id < n_subject):
-       #     print ("File index or subject index is out of bound!")
-       #     print (file_index, n_files, subject_id, n_subject)
              assert(file_index < n_files and subject_id < n_subject), "File index or subject index is out of bound!" # This should never happen
         for line in lines:
             if line[3] == file_index and line[1] == shuffled_subject[subject_id]:
@@ -179,10 +155,11 @@ def random_split_2D(lines, training_ratio, max_diff, sampling_method):
     for line in lines:
         if line not in training:
             test.append(line)
-
     effective_training_ratio = len(training)/(float(len(lines)))
-    print("Training ratio:\n  * Target: {0}\n  * Effective: {1}".format(training_ratio, effective_training_ratio))
-    assert(abs(effective_training_ratio-training_ratio)<max_diff), "Effective and target training ratios differed by more than {0}".format(max_diff) # TODO: think about this threshold
+    if (sampling_method != "linear"):
+        effective_training_ratio = len(training)/(float(len(lines)))
+        print("Training ratio:\n  * Target: {0}\n  * Effective: {1}".format(training_ratio, effective_training_ratio))
+        assert(abs(effective_training_ratio-training_ratio)<max_diff), "Effective and target training ratios differed by more than {0}".format(max_diff) # TODO: think about this threshold
     return training, test
 
 def random_split(lines, training_ratio, max_diff):
