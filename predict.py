@@ -72,6 +72,7 @@ def get_number_of_files_to_training(n_files ,n_subject, training_ratio, n_last_f
         n_last_file[i]=n_last_file[p]
     print (n_last_file)
     return n_last_file
+
 def put_files_into_training(n_last_file, lines,shuffled_subject,training, training_matrix):
     for i in range (1,len(shuffled_subject)):
         for line in lines:
@@ -79,7 +80,6 @@ def put_files_into_training(n_last_file, lines,shuffled_subject,training, traini
                 if line not in training:
                     training.append(line)
                     write_matrix(line,training_matrix)
-
 def random_split_2D(lines, training_ratio, max_diff, sampling_method):
     training = [] # this will contain the training set
     test = [] # this will contain the test set
@@ -156,9 +156,9 @@ def random_split_2D(lines, training_ratio, max_diff, sampling_method):
         if line not in training:
             test.append(line)
     effective_training_ratio = len(training)/(float(len(lines)))
+    print("Training ratio:\n  * Target: {0}\n  * Effective: {1}".format(training_ratio, effective_training_ratio))
     if (sampling_method != "linear"):
-        effective_training_ratio = len(training)/(float(len(lines)))
-        print("Training ratio:\n  * Target: {0}\n  * Effective: {1}".format(training_ratio, effective_training_ratio))
+       #print("Training ratio:\n  * Target: {0}\n  * Effective: {1}".format(training_ratio, effective_training_ratio))
         assert(abs(effective_training_ratio-training_ratio)<max_diff), "Effective and target training ratios differed by more than {0}".format(max_diff) # TODO: think about this threshold
     return training, test
 
@@ -273,8 +273,8 @@ def main(args=None):
         print("Accuracy = " + str(accuracy))
         print("Accuracy of dummy classifier = " + str(compute_accuracy_dummy(lines)))
         predictions = create_dataframe_from_line_list(sc, spark, predictions_list, False)
-        predictions.show(1000,False)
-        print(pd.options.display.max_rows)
+        #predictions.show(1000,False)
+       # print(pd.options.display.max_rows)
     else: # Assess model by use of RMSE on the test data
         evaluator = RegressionEvaluator(metricName="rmse", labelCol="val", predictionCol="prediction")
         rmse = evaluator.evaluate(predictions)
