@@ -59,7 +59,7 @@ def n_columns_files(line_list):
             max_file_id = line[0]
     return max_col_id + 1, max_file_id + 1
 
-def get_number_of_files_to_training(n_files ,n_subject, training_ratio, n_last_file): # in linear and exponential methods to calculate the num of reading files for the subject
+def get_number_of_files_to_training(n_files ,n_subject, training_ratio, n_last_file): # in diagnoal methods to calculate the num of reading files for the subject
     Ns = len(n_last_file)
     for i in range(0, int(Ns/2)):
         if training_ratio <= 0.5:
@@ -104,7 +104,7 @@ def random_split_2D(lines, training_ratio, max_diff, sampling_method):
 
     # used in random-real sampling method in the while loop below
     next_file = []
-    n_last_file = [] # in linear mode records the number of selected files for the subject according to the formula (to be used for semetrycal purpose
+    n_last_file = [] # in diagnoal mode records the number of selected files for the subject according to the formula (to be used for semetrycal purpose
     p=0
     for c in range(0,n_subject-1):
         n_last_file.append(0)
@@ -113,9 +113,9 @@ def random_split_2D(lines, training_ratio, max_diff, sampling_method):
         next_file.append(1)
     while(len(training) < target_training_size):
         n_line_add = 0 
-        assert(sampling_method in ["random-unreal", "columns", "rows", "random-real", "linear"]), "Unknown sampling method: {0}".format(sampling_method)
+        assert(sampling_method in ["random-unreal", "columns", "rows", "random-real", "diagnoal"]), "Unknown sampling method: {0}".format(sampling_method)
 
-        if sampling_method == "linear":
+        if sampling_method == "diagnoal":
             get_number_of_files_to_training (n_files, n_subject, training_ratio, n_last_file)
             put_files_into_training (n_last_file, lines, shuffled_subject,training,training_matrix)
             break
@@ -157,7 +157,7 @@ def random_split_2D(lines, training_ratio, max_diff, sampling_method):
             test.append(line)
     effective_training_ratio = len(training)/(float(len(lines)))
     print("Training ratio:\n  * Target: {0}\n  * Effective: {1}".format(training_ratio, effective_training_ratio))
-    if (sampling_method != "linear"):
+    if (sampling_method != "diagnoal"):
        #print("Training ratio:\n  * Target: {0}\n  * Effective: {1}".format(training_ratio, effective_training_ratio))
         assert(abs(effective_training_ratio-training_ratio)<max_diff), "Effective and target training ratios differed by more than {0}".format(max_diff) # TODO: think about this threshold
     return training, test
