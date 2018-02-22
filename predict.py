@@ -59,18 +59,15 @@ def n_columns_files(line_list):
             max_file_id = line[0]
     return max_col_id + 1, max_file_id + 1
 
-def get_number_of_files_to_training(n_files ,n_subject, training_ratio, n_last_file): # in diagnoal methods to calculate the num of reading files for the subject
-    Ns = len(n_last_file)
-    for i in range(0, int(Ns/2)):
+def get_number_of_files_to_training(n_files ,n_subject, training_ratio, n_last_file): # in diagnoal and exponential methods to calculate the num of reading files for the subject
+    for i in range(0, n_subject):
         if training_ratio <= 0.5:
-            if (random() <= 2 * training_ratio):
+            if(random() <= 2*training_ratio):
                 n_last_file[i] = randrange(0, n_files, 1)
+            else:
+                n_last_file[i] = 0
         else:
             n_last_file[i] = randrange(int(round(2*training_ratio*n_files))-n_files, n_files, 1)
-    for i in range(Ns-1,int(Ns/2)-1,-1):
-        p = Ns-(i+1)
-        n_last_file[i]=n_last_file[p]
-    print (n_last_file)
     return n_last_file
 
 def put_files_into_training(n_last_file, lines,shuffled_subject,training, training_matrix):
@@ -106,7 +103,7 @@ def random_split_2D(lines, training_ratio, max_diff, sampling_method):
     next_file = []
     n_last_file = [] # in diagnoal mode records the number of selected files for the subject according to the formula (to be used for semetrycal purpose
     p=0
-    for c in range(0,n_subject-1):
+    for c in range(0,n_subject):
         n_last_file.append(0)
     print ("n_files: ", n_files,"n_subject:", n_subject) 
     for i in range(0, n_subject):
@@ -158,7 +155,6 @@ def random_split_2D(lines, training_ratio, max_diff, sampling_method):
     effective_training_ratio = len(training)/(float(len(lines)))
     print("Training ratio:\n  * Target: {0}\n  * Effective: {1}".format(training_ratio, effective_training_ratio))
     if (sampling_method != "diagnoal"):
-       #print("Training ratio:\n  * Target: {0}\n  * Effective: {1}".format(training_ratio, effective_training_ratio))
         assert(abs(effective_training_ratio-training_ratio)<max_diff), "Effective and target training ratios differed by more than {0}".format(max_diff) # TODO: think about this threshold
     return training, test
 
