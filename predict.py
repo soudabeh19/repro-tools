@@ -10,7 +10,8 @@ from pyspark.sql import SparkSession, Row
 from pyspark.ml.evaluation import RegressionEvaluator
 from pyspark.ml.recommendation import ALS
 from random import random, randint, sample, randrange
-from math import tan
+from collections import Counter 
+from pyspark.sql import functions as F
 import pandas as pd
 import numpy as np
 def compute_accuracy(predictions_list):
@@ -224,6 +225,7 @@ def parse_file(file_path):
         for line in f:
             elements = line.split(";")
             lines.append([int(elements[0]), int(elements[1]), int(elements[2]), int(elements[3])])
+    print (len (lines))
     return lines
 
 def main(args=None):
@@ -246,26 +248,40 @@ def main(args=None):
   
     conf = SparkConf().setAppName("predict").setMaster("local")
     sc = SparkContext(conf=conf)
-
     spark = SparkSession.builder.appName("ALS_session").getOrCreate()
-
     lines = parse_file(results.matrix_file)
     assert(len(lines) > 0), "Matrix file is empty"
     #training, test = random_split(lines, results.training_ratio, results.random_ratio_error)
     training, test = random_split_2D(lines, results.training_ratio, results.random_ratio_error, results.sampling_method)
-
     training_df = create_dataframe_from_line_list(sc,spark,training, True)
+    subject_mean_training = training_df.groupBy('subject').agg(F.avg(training_df.val).alias("subject_mean"))
+    file_mean_training = training_df.groupBy('ordered_file_id').agg(F.avg(training_df.val).alias("file_mean"))
+    training_fin = training_df.join(subject_mean_training, ['subject']).join(file_mean_training, ['ordered_file_id'])
+    global_mean_training = training_df.groupBy().agg(F.avg(training_df.val).alias("global_mean"))
+    global_mean = global_mean_training.collect()[0][0]
+    print ("global_mean", global_mean)
+    training_fin = training_fin.withColumn('interaction', (training_fin['val'] - (training_fin['subject_mean'] + training_fin['file_mean']- global_mean)))
+    print ("__________________taining___________________")
+    training_fin.show()
     test_df = create_dataframe_from_line_list(sc,spark,test, True)
     # Building recommendation model by use of ALS on the training set
-    als = ALS(maxIter=5, regParam=0.01, userCol="subject", itemCol="ordered_file_id", ratingCol="val")
-    model = als.fit(training_df)  
+    als = ALS(maxIter=5, regParam=0.01, userCol="subject", itemCol="ordered_file_id", ratingCol="interaction")
+    model = als.fit(training_fin)
+
     # Assess the model 
     predictions = model.transform(test_df)
+    print ("__________________predictions___________________")
+    predictions.show()
+    predictions_fin = predictions.join(subject_mean_training, ['subject']).join(file_mean_training, ['ordered_file_id'])
+    predictions_fin = predictions_fin.withColumn('fin_val', predictions_fin['prediction'] + training_fin['subject_mean'] + training_fin['file_mean'] - global_mean) 
+    print ("__________________final_predictions___________________")
+    predictions_fin.show(200)
+    #len(predictions.index)
     if is_binary_matrix(lines): # assess the model
         # prediction will be rounded to closest integer
         # TODO: check how the rounding can be done directly with the dataframe, to avoid converting to list
-        predictions_list = predictions.rdd.map(lambda row: [ row.ordered_file_id, row.subject,
-                                                             row.val, row.prediction]).collect()
+        predictions_list = predictions_fin.rdd.map(lambda row: [ row.ordered_file_id, row.subject,
+                                                             row.val, row.fin_val]).collect()
         predictions_list =round_values(predictions_list)
         test_data_matrix = open(results.sampling_method+"_"+str(results.training_ratio)+"_test_data_matrix.txt","w+")
         for i in range (len(predictions_list)):
@@ -275,9 +291,9 @@ def main(args=None):
         print("Accuracy of dummy classifier = " + str(compute_accuracy_dummy(lines)))
         predictions = create_dataframe_from_line_list(sc, spark, predictions_list, False)
         predictions.toPandas().to_csv('prediction.csv')
-    else: # Assess model by use of RMSE on the test data
-        evaluator = RegressionEvaluator(metricName="rmse", labelCol="val", predictionCol="prediction")
-        rmse = evaluator.evaluate(predictions)
+    #else: # Assess model by use of RMSE on the test data
+        evaluator = RegressionEvaluator(metricName="rmse", labelCol="val", predictionCol="fin_val")
+        rmse = evaluator.evaluate(predictions_fin)
         print("RMSE = " + str(rmse))
         
     if results.predictions:
