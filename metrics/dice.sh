@@ -27,8 +27,8 @@ im2=$(convert $2)
 
 diff=$(mktemp diff-XXXXX.nii.gz)
 fslmaths ${im1} -sub ${im2} ${diff}
-nim1=$(fslstats ${im1} -V | awk '{print $1}')
-nim2=$(fslstats ${im2} -V | awk '{print $1}')
+nim1=$(fslstats ${im1} -v | awk '{print $1}')
+nim2=$(fslstats ${im2} -v | awk '{print $1}')
 n_diff=$(fslstats ${diff} -V | awk '{print $1}')
 echo "scale=10 ; (${nim1}+${nim2}-2*${n_diff})/(${nim1}+${nim2})" | bc
 \rm ${diff}
