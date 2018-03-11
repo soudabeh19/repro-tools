@@ -225,7 +225,6 @@ def parse_file(file_path):
         for line in f:
             elements = line.split(";")
             lines.append([int(elements[0]), int(elements[1]), int(elements[2]), int(elements[3])])
-    print (len (lines))
     return lines
 
 def main(args=None):
@@ -261,8 +260,6 @@ def main(args=None):
     global_mean = global_mean_training.collect()[0][0]
     print ("global_mean", global_mean)
     training_fin = training_fin.withColumn('interaction', (training_fin['val'] - (training_fin['subject_mean'] + training_fin['file_mean']- global_mean)))
-    print ("__________________taining___________________")
-    training_fin.show()
     test_df = create_dataframe_from_line_list(sc,spark,test, True)
     # Building recommendation model by use of ALS on the training set
     als = ALS(maxIter=5, regParam=0.01, userCol="subject", itemCol="ordered_file_id", ratingCol="interaction")
@@ -270,13 +267,8 @@ def main(args=None):
 
     # Assess the model 
     predictions = model.transform(test_df)
-    print ("__________________predictions___________________")
-    predictions.show()
     predictions_fin = predictions.join(subject_mean_training, ['subject']).join(file_mean_training, ['ordered_file_id'])
     predictions_fin = predictions_fin.withColumn('fin_val', predictions_fin['prediction'] + training_fin['subject_mean'] + training_fin['file_mean'] - global_mean) 
-    print ("__________________final_predictions___________________")
-    predictions_fin.show(200)
-    #len(predictions.index)
     if is_binary_matrix(lines): # assess the model
         # prediction will be rounded to closest integer
         # TODO: check how the rounding can be done directly with the dataframe, to avoid converting to list
