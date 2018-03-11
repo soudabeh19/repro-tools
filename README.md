@@ -78,3 +78,10 @@ Python 2.7.13
 Running the script:
 'predict.py' [utility matrix file][training ratio][training sampling method]'
 
+## plot_superimpose_matrix
+
+plot\_superimpose\_matrix.py plot lays a matrix over the other to highlights the differences between the applied metrics.For instance, the predicted matrix (produced predict.py) over the utility matrix (produced verifyFiles.py) to heatmaps the evident differences between these two matrix. 
+
+For instance, ./plot\_superimpose\_matrix.py test\test\_differences\_plot.png test\test\_plot\_superimpose\_matrix.py output.pdf will produce the following plot:
+
+
