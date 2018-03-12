@@ -57,12 +57,20 @@ Python 2.7.5, graphviz module
     *Note: The output would be a dot format file which requiers to create appropriate representing file formats such as: svg, png and etc.
 
   * `dot -Tpng Graphmodel.dot -o Figure.png`
-## Predict
 ___
+## Predict
+
 predict.py can be used to predict the elements of utility matrix _{M ij} when following the sequential generating of elements is a concern.
 (Ex. a comparison matrix of generated files from a same pipeline process in two different versions of an operating system) 
 
-The sampling method options for fitting the training sets of the Alternating Least Square (ALS) are consist of:columns,rows,random-real,random-unreal,diagonal (random picking of j from a uniform distribution),triangular-L(Random-triangle-L: fewer i, more j),triangular-S(Random-triangular-S: more i, fewer j),Bias 
+The sampling method options for fitting the training sets of the Alternating Least Square (ALS) are consist of:
+	columns
+	rows,random-real
+	random-unreal
+	diagonal (random picking of j from a uniform distribution)
+	triangular-L(Random-triangle-L: fewer i, more j)
+	triangular-S(Random-triangular-S: more i, fewer j)
+	Bias 
 
 ### Prerequisites: 
 spark 2.2.0
@@ -70,9 +78,8 @@ Python 2.7.13
 
 ### Running the script:
   * 'predict.py' [utility matrix file][training ratio][training sampling method]'
-
-## plot\_superimpose\_matrix
 ___
+## plot\_superimpose\_matrix
 
 plot\_superimpose\_matrix.py plot lays a matrix over the other to highlights the differences between the applied metrics.For instance, the predicted matrix (produced predict.py) over the utility matrix (produced verifyFiles.py) to heatmaps the evident differences between these two matrix. 
 
