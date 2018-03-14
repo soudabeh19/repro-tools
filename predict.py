@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 from __future__ import print_function, division
-from argparse import ArgumentParser
+from argparse import ArgumentParser,SUPPRESS
 import os, shutil, sys
 if sys.version >= '3':
     long = int
@@ -9,6 +9,7 @@ from pyspark import SparkConf, SparkContext
 from pyspark.sql import SparkSession, Row
 from pyspark.ml.evaluation import RegressionEvaluator
 from pyspark.ml.recommendation import ALS
+import random as rn
 from random import random, randint, sample, randrange
 from collections import Counter 
 from pyspark.sql import functions as F
@@ -62,18 +63,20 @@ def n_columns_files(line_list):
     return max_col_id + 1, max_file_id + 1
 
 def get_number_of_files_to_training(n_files ,n_subject, training_ratio, n_last_file, sampling_method): # Calculate the num of files to be fitted into training set from each subject in diagnoal and triangular random methods
+    #rn.seed(30)
     if sampling_method in ("triangular-L","triangular-S") and training_ratio <= 1/3:
         sampling_method = "diagnoal"
     for i in range(0, n_subject):
         if sampling_method == "diagnoal":
             if training_ratio <= 0.5:
-                if(random() <= 2*training_ratio):
-                    n_last_file[i] = randrange(0, n_files, 1)
+                if(rn.random() <= 2*training_ratio):
+                    n_last_file[i] = rn.randrange(0, n_files, 1)
                 else:
                     n_last_file[i] = 0
             else:
-                n_last_file[i] = randrange(int(round(2*training_ratio*n_files))-n_files, n_files, 1)
+                n_last_file[i] = rn.randrange(int(round(2*training_ratio*n_files))-n_files, n_files, 1)
         else:
+            np.random.seed(30)
             if sampling_method == "triangular-L" and training_ratio > 1/3:
                 a = (n_files*((3 * training_ratio)-1))/2
                 b = a 
@@ -99,7 +102,8 @@ def random_split_2D(lines, training_ratio, max_diff, sampling_method):
     # pick that subject for every file of the condition, put it in training
     # and also pick first file for every subject, put it in training
     ran_subject_order = list(range(0,n_subject))
-    shuffled_subject = sample(ran_subject_order,n_subject)
+    #rn.seed(seed)
+    shuffled_subject = rn.sample(ran_subject_order,n_subject)
     first_ran_subject = shuffled_subject[0]
     print(" shuffled list of subjects:", shuffled_subject) 
    
@@ -240,11 +244,20 @@ def main(args=None):
                         help="Maximum acceptable difference between target and effective training ratios. Defaults to 0.01.")
     parser.add_argument("sampling_method", action="store", 
                         help="Sampling method to use to build the training set.")
+    parser.add_argument("--seed_number","-s",
+                        help="set seed number")
     results = parser.parse_args() if args is None else parser.parse_args(args)          
     assert(results.training_ratio <=1 and results.training_ratio >=0), "Training ratio has to be in [0,1]."
     # matrix file path, split fraction, all the ALS parameters (with default values)
     # see sim package on github
-  
+    try:
+       seed = int(results.seed_number)
+       rn.seed(seed)
+       np.random.seed(seed)
+    except:
+       print("No seed")
+
+    #random.seed(seed)
     conf = SparkConf().setAppName("predict").setMaster("local")
     sc = SparkContext(conf=conf)
     spark = SparkSession.builder.appName("ALS_session").getOrCreate()
@@ -263,7 +276,11 @@ def main(args=None):
     test_df = create_dataframe_from_line_list(sc,spark,test, True)
     # Building recommendation model by use of ALS on the training set
     als = ALS(maxIter=5, regParam=0.01, userCol="subject", itemCol="ordered_file_id", ratingCol="interaction")
-    model = als.fit(training_fin)
+    try:
+        als.setSeed(seed)
+        model = als.fit(training_fin)
+    except:
+        model = als.fit(training_fin)
 
     # Assess the model 
     predictions = model.transform(test_df)
