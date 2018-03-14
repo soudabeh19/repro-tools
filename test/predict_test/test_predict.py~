@@ -1,8 +1,0 @@
-mport pytest
-import commands
-
-def test_run():
-      command_line_string = "python predict.py test/"
-      predict.py ./results/HCPsample-5subject/sos_2D_CentOS6vsCentOS7_differences.txt 0.6 triangular-S
-      return_value, output = commands.getstatusoutput(command_line_string)
-      assert not return_value, output
