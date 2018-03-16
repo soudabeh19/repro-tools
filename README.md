@@ -80,8 +80,8 @@ Spark 2.2.0, Python 2.7.13
 ___
 ## plot\_superimpose\_matrix
 
-plot\_superimpose\_matrix.py plot lays a matrix over the other to highlights the differences between the applied metrics.For instance, the predicted matrix (produced predict.py) over the utility matrix (produced verifyFiles.py) to heatmaps the evident differences between these two matrices. 
+plot_superimpose_matrix.py plot lays a matrix over the other to highlights the differences between the applied metrics.For instance, the predicted matrix (produced predict.py) over the utility matrix (produced verifyFiles.py) to heatmaps the evident differences between these two matrices. 
 
-For instance, `./plot\_superimpose\_matrix.py test/test\_differences\_plot.png test/test\_plot\_superimpose\_matrix.py output.png` will produce the following plot:
+For instance, `./plot_superimpose_matrix.py plot_superimpose_matrix.py test/predict_test/test_differences.txt test/predict_test/triangular-S_0.6_test_data_matrix.txt output.png` will produce the following plot:
 
 ![Alt text](./test/test_superimpose_plot.png?raw=true "Title")
