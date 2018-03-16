@@ -63,7 +63,6 @@ def n_columns_files(line_list):
     return max_col_id + 1, max_file_id + 1
 
 def get_number_of_files_to_training(n_files ,n_subject, training_ratio, n_last_file, sampling_method): # Calculate the num of files to be fitted into training set from each subject in diagnoal and triangular random methods
-    #rn.seed(30)
     if sampling_method in ("triangular-L","triangular-S") and training_ratio <= 1/3:
         sampling_method = "diagnoal"
     for i in range(0, n_subject):
@@ -76,7 +75,6 @@ def get_number_of_files_to_training(n_files ,n_subject, training_ratio, n_last_f
             else:
                 n_last_file[i] = rn.randrange(int(round(2*training_ratio*n_files))-n_files, n_files, 1)
         else:
-            np.random.seed(30)
             if sampling_method == "triangular-L" and training_ratio > 1/3:
                 a = (n_files*((3 * training_ratio)-1))/2
                 b = a 
@@ -102,7 +100,6 @@ def random_split_2D(lines, training_ratio, max_diff, sampling_method):
     # pick that subject for every file of the condition, put it in training
     # and also pick first file for every subject, put it in training
     ran_subject_order = list(range(0,n_subject))
-    #rn.seed(seed)
     shuffled_subject = rn.sample(ran_subject_order,n_subject)
     first_ran_subject = shuffled_subject[0]
     print(" shuffled list of subjects:", shuffled_subject) 
@@ -257,7 +254,6 @@ def main(args=None):
     except:
        print("No seed")
 
-    #random.seed(seed)
     conf = SparkConf().setAppName("predict").setMaster("local")
     sc = SparkContext(conf=conf)
     spark = SparkSession.builder.appName("ALS_session").getOrCreate()
