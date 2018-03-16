@@ -7,10 +7,27 @@ import collections
 import matplotlib
 matplotlib.use('PS')
 import matplotlib.pyplot as plt
-import pandas as pd
 plt.xlabel ("subject-id")
 plt.ylabel ("file-id")
 
+def parse_matrix(csv_file_name, is_original):
+    with open(csv_file_name, 'rb') as csv_file:
+        reader_test = csv.reader(csv_file, delimiter=';')
+        matrix = {}
+        for row in reader_test:
+            assert(len(row) >= 3)
+            if is_original:
+                file_id = int(row[3]) # ordered file id
+                subject_id = int(row[1]) #subject_id
+                prediction = int(row[2]) #predict-value
+            else:
+                file_id = int(row[0])
+                subject_id = int(row[1])
+                prediction = int(row[3])
+            if not matrix.get(file_id):
+                matrix[file_id] = {}
+            matrix[file_id][subject_id] = prediction
+    return matrix
 
 def main():
     parser=argparse.ArgumentParser(description = "Plots a difference matrix.")
@@ -22,54 +39,29 @@ def main():
     parser.add_argument("output_file", help = "Output file where the plot will be saved. File type is determined from extension.")
     args=parser.parse_args()
 
-    a = []
-    b = []
-    c = []
-    d =[]
-    e =[]
-    f =[]
-    color = []
-    with open(args.test_matrix, 'rb') as csvfile:
-        reader_test = csv.reader(csvfile, delimiter=';')
-        for row in reader_test:
-            assert(len(row) >= 3)
-            d.append(int(row[0]))#ordered_file_id
-            e.append(int(row[1]))#subject_id
-            f.append(int(row[3]))#predict-value 
-    with open(args.original_matrix, 'rb') as csvfile:
-        reader_origin = csv.reader(csvfile, delimiter=';')
-        for row in reader_origin:
-            assert(len(row) >= 3)
-            a.append(int(row[3]))#ordered_file
-            b.append(int(row[1]))#subject_id
-            c.append(int(row[2]))#differnce-value
-            color.append('N-Test, 0')
-    n = np.zeros(shape=(max(a)+1,max(b)+1))
-    for i, x in enumerate(c):
-        n[a[i],b[i]]= c[i]
-        for j, y in enumerate(f):
-            if a[i] == d[j] and b[i] == e[j]:
-                if c[i] == f[j] and f[j]== 1: # no difference in prediction
-                    n[a[i],b[i]] = 2
-                    color[i] = 'correct-1' 
-                elif c[i] == 1 and f[j] == 0: # false negative
-                    n[a[i],b[i]] = 4
-                    color[i] = 'wrong-1'
-                elif c[i] == f[j] and f[j]== 0:
-                    color[i] = 'correct-0'
-                    n[a[i],b[i]] = 3
-                elif c[i] == 0 and f[j] == 1: #false positive
-                    color[i] = 'wrong-0'
-                    n[a[i],b[i]] = 5
+    original_matrix = parse_matrix(args.original_matrix, True)
+    test_matrix = parse_matrix(args.test_matrix, False)
+    assert(original_matrix.get(0))
+    n = np.zeros(shape=(len(original_matrix), len(original_matrix[0])))
+    for file_id in original_matrix.keys():
+        subject_dict = original_matrix[file_id]
+        for subject_id in subject_dict.keys():
+            original_value = subject_dict[subject_id]
+            n[file_id, subject_id] = original_value
+            if test_matrix.get(file_id) == None or test_matrix[file_id].get(subject_id) == None: # file and subject are in the test set
+                continue
+            if test_matrix[file_id][subject_id] == original_value: # no difference
+                if test_matrix[file_id][subject_id] == 1:
+                    n[file_id, subject_id] = 2
                 else:
-                    print ("a[i]:%s,b[i]:%s,c[i]:%s,d[j]:%s,e[j]:%s,f[j]:%s"%(a[i],b[i],c[i],d[j],e[j],f[j]))
-                    color[i] = 'missed'
-    df= pd.DataFrame(dict(ordered_file_id = a, subject_id = b, color=color))
-    fig, ax = plt.subplots()
-    colors = {'correct-1':'lawngreen', 'correct-0':'lawngreen', 'wrong-1':'red', 'wrong-0':'red', 'N-Test, 1':'white', 'N-Test, 0':'white', 'missed':'yellow'}
-    ax.scatter(df['subject_id'],df['ordered_file_id'],c=df['color'].apply(lambda x: colors[x]),marker='s')
-    ax.legend(fontsize='small')
-    plt.matshow(n, interpolation = 'nearest', aspect='auto')
+                    n[file_id, subject_id] = 3
+            else: # there is a difference
+                if test_matrix[file_id][subject_id] == 1:
+                    n[file_id, subject_id] = 5
+                else:
+                    n[file_id, subject_id] = 4
+    cmap = matplotlib.colors.ListedColormap(['#000000', '#FFFFFF', '#DDFFDD', '#777777', '#FFFF00', '#FF0000'])
+    plt.matshow(n, interpolation = 'nearest', aspect='auto', cmap=cmap)
     plt.colorbar()
     plt.savefig(args.output_file)
 
