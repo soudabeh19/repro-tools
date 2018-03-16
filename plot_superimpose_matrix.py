@@ -52,13 +52,13 @@ def main():
                 if c[i] == f[j] and f[j]== 1: # no difference in prediction
                     n[a[i],b[i]] = 2
                     color[i] = 'correct-1' 
-                elif c[i] == 1 and f[j] == 0: # false prediction
+                elif c[i] == 1 and f[j] == 0: # false negative
                     n[a[i],b[i]] = 4
                     color[i] = 'wrong-1'
                 elif c[i] == f[j] and f[j]== 0:
                     color[i] = 'correct-0'
                     n[a[i],b[i]] = 3
-                elif c[i] == 0 and f[j] == 1:
+                elif c[i] == 0 and f[j] == 1: #false positive
                     color[i] = 'wrong-0'
                     n[a[i],b[i]] = 5
                 else:
@@ -69,8 +69,8 @@ def main():
     colors = {'correct-1':'lawngreen', 'correct-0':'lawngreen', 'wrong-1':'red', 'wrong-0':'red', 'N-Test, 1':'white', 'N-Test, 0':'white', 'missed':'yellow'}
     ax.scatter(df['subject_id'],df['ordered_file_id'],c=df['color'].apply(lambda x: colors[x]),marker='s')
     ax.legend(fontsize='small')
-    #plt.imshow(n, interpolation='none', aspect='auto')
-    plt.matshow(n) 
+    plt.matshow(n, interpolation = 'nearest', aspect='auto')
+    plt.colorbar()
     plt.savefig(args.output_file)
 
 if __name__=='__main__':
