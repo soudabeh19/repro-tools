@@ -39,6 +39,8 @@ def main():
     parser.add_argument("output_file", help = "Output file where the plot will be saved. File type is determined from extension.")
     args=parser.parse_args()
     original_matrix = parse_matrix(args.original_matrix, True)
+    if args.test_matrix is not None:
+        test_matrix = parse_matrix(args.test_matrix, False)
     assert(original_matrix.get(0))
     n = np.zeros(shape=(len(original_matrix), len(original_matrix[0])))
     for file_id in original_matrix.keys():
@@ -47,7 +49,6 @@ def main():
             original_value = subject_dict[subject_id]
             n[file_id, subject_id] = original_value
             if args.test_matrix is not None:
-                test_matrix = parse_matrix(args.test_matrix, False)
                 if test_matrix.get(file_id) == None or test_matrix[file_id].get(subject_id) == None: # file and subject are in the test set
                         continue
                 if test_matrix[file_id][subject_id] == original_value: # no difference
