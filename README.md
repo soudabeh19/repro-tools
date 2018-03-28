@@ -39,7 +39,7 @@ __Pytest syntax__
 test/test_differences_plot.txt output.png` will produce the following
 plot:
 
-![Alt text](./test/test_plot_utility_matrix.png?raw=true "Title")
+![Alt text](./test/test_differences_plot.png?raw=true "Title")
 
 `-t` argument gives the possibility to superimpose the predicted matrices achived by `predict.py` over the difference matrices produced by `verifyFiles.py`. For example, `python plot_matrix.py test/predict_test/test_differences.txt -t test/predict_test/triangular-S_0.6_test_data_matrix.txt test_plot_matrix.png` will make the following plot:  
 
