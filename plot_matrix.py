@@ -61,7 +61,10 @@ def main():
                         n[file_id, subject_id] = 5
                     else:
                         n[file_id, subject_id] = 4
-    cmap = matplotlib.colors.ListedColormap(['#000000', '#FFFFFF', '#DDFFDD', '#777777', '#FFFF00', '#FF0000'])
+    if args.test_matrix is not None:
+        cmap = matplotlib.colors.ListedColormap(['#000000', '#FFFFFF', '#DDFFDD', '#777777', '#FFFF00', '#FF0000'])
+    else:
+        cmap = matplotlib.colors.ListedColormap(['#000000','#FFFFFF'])
     plt.matshow(n, interpolation = 'nearest', aspect='auto', cmap=cmap)
     plt.colorbar()
     plt.savefig(args.output_file)
