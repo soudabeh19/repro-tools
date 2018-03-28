@@ -3,12 +3,9 @@
 import numpy as np
 import csv
 import argparse
-import collections
 import matplotlib
 matplotlib.use('PS')
 import matplotlib.pyplot as plt
-plt.xlabel ("subject-id")
-plt.ylabel ("file-id")
 
 def parse_matrix(csv_file_name, is_original):
     with open(csv_file_name, 'rb') as csv_file:
