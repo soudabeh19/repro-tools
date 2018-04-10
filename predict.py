@@ -15,13 +15,14 @@ from collections import Counter
 from pyspark.sql import functions as F
 import pandas as pd
 import numpy as np
-def compute_accuracy(predictions_list):
+def compute_accuracy(predictions_list,file_mean):
     right_predictions = 0.0
     for line in predictions_list:
-        if(line[2]==line[3]):
-            right_predictions += 1
+        for f_mean in file_mean:
+            if (line[2]==line[3] and line[0]==f_mean[0]):
+                if (f_mean[1] not in (0,1)): 
+                    right_predictions += 1
     return right_predictions / len(predictions_list)
-
 def compute_accuracy_dummy(line_list):
     number_of_ones = 0.1
     for line in line_list:
@@ -263,7 +264,7 @@ def main(args=None):
     training, test = random_split_2D(lines, results.training_ratio, results.random_ratio_error, results.sampling_method)
     training_df = create_dataframe_from_line_list(sc,spark,training, True)
     subject_mean_training = training_df.groupBy('subject').agg(F.avg(training_df.val).alias("subject_mean"))
-    file_mean_training = training_df.groupBy('ordered_file_id').agg(F.avg(training_df.val).alias("file_mean"))
+    file_mean_training = training_df.groupBy('ordered_file_id').agg(F.avg(training_df.val).alias("file_mean")) #If it's 1 or 0 means it's complete 1 or zero. 
     training_fin = training_df.join(subject_mean_training, ['subject']).join(file_mean_training, ['ordered_file_id'])
     global_mean_training = training_df.groupBy().agg(F.avg(training_df.val).alias("global_mean"))
     global_mean = global_mean_training.collect()[0][0]
@@ -281,7 +282,8 @@ def main(args=None):
     # Assess the model 
     predictions = model.transform(test_df)
     predictions_fin = predictions.join(subject_mean_training, ['subject']).join(file_mean_training, ['ordered_file_id'])
-    predictions_fin = predictions_fin.withColumn('fin_val', predictions_fin['prediction'] + training_fin['subject_mean'] + training_fin['file_mean'] - global_mean) 
+    predictions_fin = predictions_fin.withColumn('fin_val', predictions_fin['prediction'] + training_fin['subject_mean'] + training_fin['file_mean'] - global_mean)
+    #predictions_fin = predictions_fin.withColumn('fin_val', training_fin['subject_mean'] + training_fin['file_mean'] - global_mean) # removed prediction (just bias)
     if is_binary_matrix(lines): # assess the model
         # prediction will be rounded to closest integer
         # TODO: check how the rounding can be done directly with the dataframe, to avoid converting to list
@@ -291,10 +293,12 @@ def main(args=None):
         test_data_matrix = open(results.sampling_method+"_"+str(results.training_ratio)+"_test_data_matrix.txt","w+")
         for i in range (len(predictions_list)):
             write_matrix(predictions_list[i],test_data_matrix)
-        accuracy = compute_accuracy(predictions_list)
+        file_mean_list = file_mean_training.rdd.map(lambda row: [row.ordered_file_id, row.file_mean]).collect()# a list from file_mean to add the end of predictions list
+        accuracy = compute_accuracy(predictions_list, file_mean_list)
         print("Accuracy = " + str(accuracy))
         print("Accuracy of dummy classifier = " + str(compute_accuracy_dummy(lines)))
         predictions = create_dataframe_from_line_list(sc, spark, predictions_list, False)
+        df_calcul_accuracy=predictions.join(file_mean_training,['ordered_file_id'])
         predictions.toPandas().to_csv('prediction.csv')
     #else: # Assess model by use of RMSE on the test data
         evaluator = RegressionEvaluator(metricName="rmse", labelCol="val", predictionCol="fin_val")
