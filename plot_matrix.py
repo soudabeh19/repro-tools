@@ -8,19 +8,19 @@ matplotlib.use('PS')
 import matplotlib.pyplot as plt
 
 def parse_matrix(csv_file_name, is_original):
-    with open(csv_file_name, 'rb') as csv_file:
+    with open(csv_file_name, 'rt') as csv_file:
         reader_test = csv.reader(csv_file, delimiter=';')
         matrix = {}
         for row in reader_test:
             assert(len(row) >= 3)
             if is_original:
-                file_id = int(row[3]) # ordered file id
+                file_id = int(row[3]) # file_id
                 subject_id = int(row[1]) #subject_id
-                prediction = int(row[2]) #predict-value
+                prediction = int(row[2]) #binary_difference
             else:
-                file_id = int(row[0])
-                subject_id = int(row[1])
-                prediction = int(row[3])
+                file_id = int(row[0]) # file_id
+                subject_id = int(row[1]) #subject_id
+                prediction = int(row[3]) #predict_value
             if not matrix.get(file_id):
                 matrix[file_id] = {}
             matrix[file_id][subject_id] = prediction
@@ -63,6 +63,8 @@ def main():
     else:
         cmap = matplotlib.colors.ListedColormap(['#000000','#FFFFFF'])
     plt.matshow(n, interpolation = 'nearest', aspect='auto', cmap=cmap)
+    plt.xlabel('Subject')
+    plt.ylabel('File-id')
     plt.colorbar()
     plt.savefig(args.output_file)
 
