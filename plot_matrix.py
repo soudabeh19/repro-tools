@@ -77,7 +77,6 @@ def main():
         plt.legend([black,white],["Negative","Positive"],bbox_to_anchor=(0.,1.06 , 1., .102), loc=1, ncol=2, mode="expand", borderaxespad=0., fontsize='x-small')
     plt.xlabel('Subject')
     plt.ylabel('File-id')
-    plt.colorbar()
     plt.savefig(args.output_file)
 
 if __name__=='__main__':
