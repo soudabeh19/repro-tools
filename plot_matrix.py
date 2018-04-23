@@ -6,6 +6,7 @@ import argparse
 import matplotlib
 matplotlib.use('PS')
 import matplotlib.pyplot as plt
+import matplotlib.patches as mpatches
 
 def parse_matrix(csv_file_name, is_original):
     with open(csv_file_name, 'rt') as csv_file:
@@ -63,6 +64,17 @@ def main():
     else:
         cmap = matplotlib.colors.ListedColormap(['#000000','#FFFFFF'])
     plt.matshow(n, interpolation = 'nearest', aspect='auto', cmap=cmap)
+    black = mpatches.Patch(color='#000000')
+    white = mpatches.Patch(color='#FFFFFF')
+    green = mpatches.Patch(color='#DDFFDD')
+    grey = mpatches.Patch(color='#777777')
+    red = mpatches.Patch(color='#FFFF00')
+    yellow = mpatches.Patch(color='#FF0000')
+    if args.test_matrix is not None:
+        plt.legend([black,white,green,grey,red,yellow],["Negative","Positive","True Positive","True Negative","False Positive","False Negative"],bbox_to_anchor=(0.,1.06, 1.
+, .102), loc=1, ncol=3, mode="expand", borderaxespad=0., fontsize='x-small')
+    else:
+        plt.legend([black,white],["Negative","Positive"],bbox_to_anchor=(0.,1.06 , 1., .102), loc=1, ncol=2, mode="expand", borderaxespad=0., fontsize='x-small')
     plt.xlabel('Subject')
     plt.ylabel('File-id')
     plt.colorbar()
