@@ -17,12 +17,32 @@ import pandas as pd
 import numpy as np
 def compute_accuracy(predictions_list,file_mean):
     right_predictions = 0.0
+    correct_pure_predic = 0.0
     for line in predictions_list:
         for f_mean in file_mean:
             if (line[2]==line[3] and line[0]==f_mean[0]):
-                if (f_mean[1] not in (0,1)): 
-                    right_predictions += 1
-    return right_predictions / len(predictions_list)
+                if (f_mean[1] not in (0,1)):
+                    correct_pure_predic += 1
+        if (line[2]==line[3]):
+            right_predictions += 1
+    acc = right_predictions / len(predictions_list)
+    pure_acc = correct_pure_predic / len(predictions_list)
+    return (acc,pure_acc)
+def sens_spec(predictions_list):
+    TP=TN=FP=FN = 0
+    for line in predictions_list:
+        if (line[2]==line[3]):
+            if (line[3]==1):
+                TP += 1
+            else:
+                TN += 1
+        elif (line[3]==1):
+            FP += 1
+        else : 
+            FN += 1
+    sens = TP/(TP+FN)
+    spec = TN/(TN+FP)
+    return(sens, spec)
 def compute_accuracy_dummy(line_list):
     number_of_ones = 0.1
     for line in line_list:
@@ -282,8 +302,8 @@ def main(args=None):
     # Assess the model 
     predictions = model.transform(test_df)
     predictions_fin = predictions.join(subject_mean_training, ['subject']).join(file_mean_training, ['ordered_file_id'])
-    predictions_fin = predictions_fin.withColumn('fin_val', predictions_fin['prediction'] + training_fin['subject_mean'] + training_fin['file_mean'] - global_mean)
-    #predictions_fin = predictions_fin.withColumn('fin_val', training_fin['subject_mean'] + training_fin['file_mean'] - global_mean) # removed prediction (just bias)
+    #predictions_fin = predictions_fin.withColumn('fin_val', predictions_fin['prediction'] + training_fin['subject_mean'] + training_fin['file_mean'] - global_mean)
+    predictions_fin = predictions_fin.withColumn('fin_val', training_fin['subject_mean'] + training_fin['file_mean'] - global_mean) # removed prediction (just bias)
     if is_binary_matrix(lines): # assess the model
         # prediction will be rounded to closest integer
         # TODO: check how the rounding can be done directly with the dataframe, to avoid converting to list
@@ -294,8 +314,12 @@ def main(args=None):
         for i in range (len(predictions_list)):
             write_matrix(predictions_list[i],test_data_matrix)
         file_mean_list = file_mean_training.rdd.map(lambda row: [row.ordered_file_id, row.file_mean]).collect()# a list from file_mean to add the end of predictions list
-        accuracy = compute_accuracy(predictions_list, file_mean_list)
+        accuracy, pure_accuracy = compute_accuracy(predictions_list, file_mean_list)
+        sensitivity, specificity = sens_spec(predictions_list)
         print("Accuracy = " + str(accuracy))
+        print("Accuracy ignores constant files = " + str(pure_accuracy))
+        print("Sensitivity = " + str(sensitivity))
+        print("Specificity = " + str(specificity))
         print("Accuracy of dummy classifier = " + str(compute_accuracy_dummy(lines)))
         predictions = create_dataframe_from_line_list(sc, spark, predictions_list, False)
         df_calcul_accuracy=predictions.join(file_mean_training,['ordered_file_id'])
