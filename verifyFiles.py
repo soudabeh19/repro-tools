@@ -390,12 +390,10 @@ def matrix_differences(bDiff,condition,subject,path,r,c,mode,differences):
     differences.write(";")
     differences.write(str(c))
     differences.write(";")
+    differences.write(str(bDiff[condition][subject][path]))
     if mode == True:
-    	differences.write(str(bDiff[condition][subject][path]))
     	differences.write(";")
     	differences.write(str([bDiff[condition][subject]['mtime_files_list'].index(t) for t in bDiff[condition][subject]['mtime_files_list'] if t[0] == path])[1:-1]) # file_index
-    else:
-        differences.write(str(bDiff[condition][subject][path]))
     differences.write("\n")
 #Write row_index text file of the matrix    
 def matrix_row(bDiff,subject,path,r,mode,row_index):

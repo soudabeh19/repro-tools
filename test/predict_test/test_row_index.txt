@@ -1,0 +1,6 @@
+0;T1w/ACPCAlignment/acpc_final.nii.gz
+1;T2w/T2wToT1wDistortionCorrectAndReg/Magnitude_warppedT2w.nii.gz
+2;T2w/T2w_acpc.nii.gz
+3;MNINonLinear/T1w.nii.gz
+4;MNINonLinear/xfms/NonlinearIntensities.nii.gz.txt
+5;T1w/BiasFieldCorrection_sqrtT1wXT1w/bias_raw.nii.gz
