@@ -328,7 +328,7 @@ def main(args=None):
             predictions_list = predictions_fin.rdd.map(lambda row: [ row.ordered_file_id, row.subject, row.val, row.fin_val]).collect()# ALS+BIAS or Just_BIAS
         else: 
             predictions_list = predictions.rdd.map(lambda row: [ row.ordered_file_id, row.subject,row.val, row.prediction]).collect() # ALS
-        #predictions_list =round_values(predictions_list)
+        predictions_list =round_values(predictions_list)
             #test_round_dataframe = pd.DataFrame (data = predictions_list, columns=['ordered_file_id', 'subject', 'val', 'prediction'])
             #decimals = pd.Series([0, 0, 0, 0, 0])
             #test_round_dataframe.round(decimals)
@@ -339,11 +339,11 @@ def main(args=None):
             write_matrix(predictions_list[i],test_data_matrix)
         file_mean_list = file_mean_training.rdd.map(lambda row: [row.ordered_file_id, row.file_mean]).collect()# a list from file_mean to add the end of predictions list
         accuracy, pure_accuracy = compute_accuracy(predictions_list, file_mean_list)
-        #sensitivity, specificity = sens_spec(predictions_list)
-        #print("Accuracy = " + str(accuracy))
-        #print("Accuracy ignores constant files = " + str(pure_accuracy))
-        #print("Sensitivity = " + str(sensitivity))
-        #print("Specificity = " + str(specificity))
+        sensitivity, specificity = sens_spec(predictions_list)
+        print("Accuracy = " + str(accuracy))
+        print("Accuracy ignores constant files = " + str(pure_accuracy))
+        print("Sensitivity = " + str(sensitivity))
+        print("Specificity = " + str(specificity))
         print("Accuracy of dummy classifier = " + str(compute_accuracy_dummy(lines)))
         predictions = create_dataframe_from_line_list(sc, spark, predictions_list, False)
         #df_calcul_accuracy=predictions.join(file_mean_training,['ordered_file_id'])
