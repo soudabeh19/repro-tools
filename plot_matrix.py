@@ -25,6 +25,8 @@ def parse_matrix(csv_file_name, is_original):
             if not matrix.get(file_id):
                 matrix[file_id] = {}
             matrix[file_id][subject_id] = prediction
+    print("number of files: ",len(matrix))
+    print("number of subjects: ",len(matrix[0]))
     return matrix
 
 def main():
@@ -40,7 +42,7 @@ def main():
     if args.test_matrix is not None:
         test_matrix = parse_matrix(args.test_matrix, False)
     assert(original_matrix.get(0))
-    n = np.zeros(shape=(len(original_matrix), len(original_matrix[0])))
+    n = np.zeros(shape=(len(original_matrix), len(original_matrix[0])), dtype=int)
     for file_id in original_matrix.keys():
         subject_dict = original_matrix[file_id]
         for subject_id in subject_dict.keys():
@@ -57,22 +59,32 @@ def main():
                 else: # there is a difference
                     if test_matrix[file_id][subject_id] == 1:
                         n[file_id, subject_id] = 5
+                    elif test_matrix[file_id][subject_id] == -1:
+                        n[file_id, subject_id] = 6
                     else:
                         n[file_id, subject_id] = 4
+            #print (file_id,subject_id,original_value,test_matrix[file_id][subject_id], n[file_id, subject_id])
     if args.test_matrix is not None:
-        cmap = matplotlib.colors.ListedColormap(['#000000', '#FFFFFF', '#DDFFDD', '#777777', '#FFFF00', '#FF0000'])
+        colors = ['#000000','#FFFFFF', '#4BFC4B','#777777','#FFFF00','#FF0000','#275EDD']
+        d = np.unique(n)
+        mapping = np.arange(d.size)
+        index = np.digitize(n.ravel(), d, right=True)
+        n = mapping[index].reshape(n.shape)
+        colors = np.take(colors, d)
+        #print(colors)
+        cmap = matplotlib.colors.ListedColormap(colors)
     else:
         cmap = matplotlib.colors.ListedColormap(['#000000','#FFFFFF'])
-    plt.matshow(n, interpolation = 'nearest', aspect='auto', cmap=cmap)
+    plt.matshow(n, interpolation='nearest', aspect='auto', cmap=cmap)
     black = mpatches.Patch(color='#000000')
     white = mpatches.Patch(color='#FFFFFF')
-    green = mpatches.Patch(color='#DDFFDD')
-    grey = mpatches.Patch(color='#777777')
-    red = mpatches.Patch(color='#FFFF00')
-    yellow = mpatches.Patch(color='#FF0000')
+    green = mpatches.Patch(color='#4BFC4B')
+    gray = mpatches.Patch(color='#777777')
+    yellow = mpatches.Patch(color='#FFFF00')
+    red = mpatches.Patch(color='#FF0000')
+    blue = mpatches.Patch(color='#275EDD')
     if args.test_matrix is not None:
-        plt.legend([black,white,green,grey,red,yellow],["Negative","Positive","True Positive","True Negative","False Positive","False Negative"],bbox_to_anchor=(0.,1.06, 1.
-, .102), loc=1, ncol=3, mode="expand", borderaxespad=0., fontsize='x-small')
+        plt.legend([black,white,green,gray,yellow,red,blue],["Negative","Positive","True Positive","True Negative","False Negative","False Positive","Invalid"],bbox_to_anchor=(0.,1.06, 1. , .102), loc=1, ncol=3, mode="expand", borderaxespad=0., fontsize='x-small')
     else:
         plt.legend([black,white],["Negative","Positive"],bbox_to_anchor=(0.,1.06 , 1., .102), loc=1, ncol=2, mode="expand", borderaxespad=0., fontsize='x-small')
     plt.xlabel('Subject')

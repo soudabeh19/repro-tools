@@ -256,6 +256,7 @@ def main(args=None):
                         help="The matrix file produced by verifyFiles. Each line must be formated as '<file_id>;<condition_id>;<value>'.")
     parser.add_argument("training_ratio", action="store", type=float,
                         help="The ratio of matrix elements that will be added to the training set. Has to be in [0,1].")
+    parser.add_argument("approach", action="store", help="Prediction strategy: ALS, ALS-Bias or Bias.")
     parser.add_argument("--predictions", "-p", action="store",
                         help="Text file where the predictions will be stored.")
     parser.add_argument("--random-ratio-error", "-r", action="store", type=float, default=0.01,
@@ -266,6 +267,7 @@ def main(args=None):
                         help="set seed number")
     results = parser.parse_args() if args is None else parser.parse_args(args)          
     assert(results.training_ratio <=1 and results.training_ratio >=0), "Training ratio has to be in [0,1]."
+    assert(results.approach in ["ALS", "ALS-Bias", "Bias"]), "Unknown approach: {0}".format(results.approach)
     # matrix file path, split fraction, all the ALS parameters (with default values)
     # see sim package on github
     try:
@@ -276,40 +278,62 @@ def main(args=None):
        print("No seed")
 
     conf = SparkConf().setAppName("predict").setMaster("local")
-    sc = SparkContext(conf=conf)
+    sc = SparkContext(conf = conf)
     spark = SparkSession.builder.appName("ALS_session").getOrCreate()
     lines = parse_file(results.matrix_file)
     assert(len(lines) > 0), "Matrix file is empty"
-    #training, test = random_split(lines, results.training_ratio, results.random_ratio_error)
     training, test = random_split_2D(lines, results.training_ratio, results.random_ratio_error, results.sampling_method)
     training_df = create_dataframe_from_line_list(sc,spark,training, True)
-    subject_mean_training = training_df.groupBy('subject').agg(F.avg(training_df.val).alias("subject_mean"))
-    file_mean_training = training_df.groupBy('ordered_file_id').agg(F.avg(training_df.val).alias("file_mean")) #If it's 1 or 0 means it's complete 1 or zero. 
-    training_fin = training_df.join(subject_mean_training, ['subject']).join(file_mean_training, ['ordered_file_id'])
-    global_mean_training = training_df.groupBy().agg(F.avg(training_df.val).alias("global_mean"))
-    global_mean = global_mean_training.collect()[0][0]
-    print ("global_mean", global_mean)
-    training_fin = training_fin.withColumn('interaction', (training_fin['val'] - (training_fin['subject_mean'] + training_fin['file_mean']- global_mean)))
+    file_mean_training = training_df.groupBy('ordered_file_id').agg(F.avg(training_df.val).alias("file_mean")) #If it's 1 or 0 means that it's constant 1 or zero
     test_df = create_dataframe_from_line_list(sc,spark,test, True)
-    # Building recommendation model by use of ALS on the training set
-    als = ALS(maxIter=5, regParam=0.01, userCol="subject", itemCol="ordered_file_id", ratingCol="interaction")
-    try:
-        als.setSeed(seed)
-        model = als.fit(training_fin)
-    except:
-        model = als.fit(training_fin)
 
-    # Assess the model 
-    predictions = model.transform(test_df)
-    predictions_fin = predictions.join(subject_mean_training, ['subject']).join(file_mean_training, ['ordered_file_id'])
-    #predictions_fin = predictions_fin.withColumn('fin_val', predictions_fin['prediction'] + training_fin['subject_mean'] + training_fin['file_mean'] - global_mean)
-    predictions_fin = predictions_fin.withColumn('fin_val', training_fin['subject_mean'] + training_fin['file_mean'] - global_mean) # removed prediction (just bias)
+    if results.approach =='ALS':
+        als = ALS(maxIter=5, regParam=0.01, userCol="subject", itemCol="ordered_file_id", ratingCol="val", rank=40, nonnegative=True)
+        try:
+            als.setSeed(seed)
+            model = als.fit(training_df)
+        except:
+            model = als.fit(training_df)
+            predictions = model.transform(test_df)
+
+
+    else:
+        subject_mean_training = training_df.groupBy('subject').agg(F.avg(training_df.val).alias("subject_mean"))
+        training_fin = training_df.join(subject_mean_training, ['subject']).join(file_mean_training, ['ordered_file_id'])
+        global_mean_training = training_df.groupBy().agg(F.avg(training_df.val).alias("global_mean"))
+        global_mean = global_mean_training.collect()[0][0]
+        print ("global_mean", global_mean)
+        training_fin = training_fin.withColumn('interaction', (training_fin['val'] - (training_fin['subject_mean'] + training_fin['file_mean']- global_mean)))
+        als = ALS(maxIter=5, regParam=0.01, userCol="subject", itemCol="ordered_file_id", ratingCol="interaction", rank=40, nonnegative=True)
+        try:
+            als.setSeed(seed)
+            model = als.fit(training_fin)
+        except:
+            model = als.fit(training_fin)
+        predictions = model.transform(test_df)    
+        predictions_fin = predictions.join(subject_mean_training, ['subject']).join(file_mean_training, ['ordered_file_id'])
+        if  results.approach == 'ALS-Bias':
+            predictions_fin = predictions_fin.withColumn('fin_val', predictions_fin['prediction'] + training_fin['subject_mean'] + training_fin['file_mean'] - global_mean)
+        else: #Bias
+            predictions_fin = predictions_fin.withColumn('fin_val', training_fin['subject_mean'] + training_fin['file_mean'] - global_mean)
+    
+
+
+
+
     if is_binary_matrix(lines): # assess the model
         # prediction will be rounded to closest integer
         # TODO: check how the rounding can be done directly with the dataframe, to avoid converting to list
-        predictions_list = predictions_fin.rdd.map(lambda row: [ row.ordered_file_id, row.subject,
-                                                             row.val, row.fin_val]).collect()
+        if  results.approach in {'ALS-Bias','Bias'}:
+            predictions_list = predictions_fin.rdd.map(lambda row: [ row.ordered_file_id, row.subject, row.val, row.fin_val]).collect()# ALS+BIAS or Just_BIAS
+        else: 
+            predictions_list = predictions.rdd.map(lambda row: [ row.ordered_file_id, row.subject,row.val, row.prediction]).collect() # ALS
         predictions_list =round_values(predictions_list)
+            #test_round_dataframe = pd.DataFrame (data = predictions_list, columns=['ordered_file_id', 'subject', 'val', 'prediction'])
+            #decimals = pd.Series([0, 0, 0, 0, 0])
+            #test_round_dataframe.round(decimals)
+            #test_round_dataframe = test_round_dataframe.round({'prediction': 0})
+            #print (test_round_dataframe)
         test_data_matrix = open(results.sampling_method+"_"+str(results.training_ratio)+"_test_data_matrix.txt","w+")
         for i in range (len(predictions_list)):
             write_matrix(predictions_list[i],test_data_matrix)
@@ -322,11 +346,16 @@ def main(args=None):
         print("Specificity = " + str(specificity))
         print("Accuracy of dummy classifier = " + str(compute_accuracy_dummy(lines)))
         predictions = create_dataframe_from_line_list(sc, spark, predictions_list, False)
-        df_calcul_accuracy=predictions.join(file_mean_training,['ordered_file_id'])
+        #df_calcul_accuracy=predictions.join(file_mean_training,['ordered_file_id'])
         predictions.toPandas().to_csv('prediction.csv')
     #else: # Assess model by use of RMSE on the test data
-        evaluator = RegressionEvaluator(metricName="rmse", labelCol="val", predictionCol="fin_val")
-        rmse = evaluator.evaluate(predictions_fin)
+        if  results.approach in {'ALS-Bias','Bias'}:
+            evaluator = RegressionEvaluator(metricName="rmse", labelCol="val", predictionCol="fin_val")
+            rmse = evaluator.evaluate(predictions_fin)
+        else:
+            evaluator = RegressionEvaluator(metricName="rmse", labelCol="val", predictionCol="prediction")
+            rmse = evaluator.evaluate(predictions)
+
         print("RMSE = " + str(rmse))
         
     if results.predictions:
