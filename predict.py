@@ -40,8 +40,19 @@ def sens_spec(predictions_list):
             FP += 1
         else : 
             FN += 1
-    sens = TP/(TP+FN)
-    spec = TN/(TN+FP)
+    all_positive = TP+FN
+    all_negative = TN+FP
+    #assert(TP+FN != 0), "TP+FN is zero"
+    if all_positive == 0:
+        print ("TP+FN is zero")
+        sens = None
+    else:
+        sens = TP/all_positive
+    if all_negative == 0:
+        print ("TN+FP is zero")
+        spec = None
+    else:
+        spec = TN/all_negative
     return(sens, spec)
 def compute_accuracy_dummy(line_list):
     number_of_ones = 0.1
@@ -112,11 +123,11 @@ def put_files_into_training(n_last_file, lines,shuffled_subject,training, traini
                 if line not in training:
                     training.append(line)
                     write_matrix(line,training_matrix)
-def random_split_2D(lines, training_ratio, max_diff, sampling_method):
+def random_split_2D(lines, training_ratio, max_diff, sampling_method, dataset, approach):
     training = [] # this will contain the training set
     test = [] # this will contain the test set
     n_subject, n_files = n_columns_files(lines)
-    training_matrix = open(sampling_method+"_"+str(training_ratio)+"_training_matrix.txt","w+")
+    training_matrix = open(sampling_method+"_"+dataset+"_"+approach+"_"+str(training_ratio)+"_training_matrix.txt","w+")
     # Random selection of a subject (column) in advance then
     # pick that subject for every file of the condition, put it in training
     # and also pick first file for every subject, put it in training
@@ -257,6 +268,7 @@ def main(args=None):
     parser.add_argument("training_ratio", action="store", type=float,
                         help="The ratio of matrix elements that will be added to the training set. Has to be in [0,1].")
     parser.add_argument("approach", action="store", help="Prediction strategy: ALS, ALS-Bias or Bias.")
+    parser.add_argument("dataset", action="store", help="Dataset: FreeSurfer, PreFreeSurfer, FS100F(first 100 files of the subjects)")
     parser.add_argument("--predictions", "-p", action="store",
                         help="Text file where the predictions will be stored.")
     parser.add_argument("--random-ratio-error", "-r", action="store", type=float, default=0.01,
@@ -268,6 +280,7 @@ def main(args=None):
     results = parser.parse_args() if args is None else parser.parse_args(args)          
     assert(results.training_ratio <=1 and results.training_ratio >=0), "Training ratio has to be in [0,1]."
     assert(results.approach in ["ALS", "ALS-Bias", "Bias"]), "Unknown approach: {0}".format(results.approach)
+    assert(results.dataset in ["FS", "PFS", "FS100F"]), "Unknown approach: {0}".format(results.dataset)
     # matrix file path, split fraction, all the ALS parameters (with default values)
     # see sim package on github
     try:
@@ -282,7 +295,7 @@ def main(args=None):
     spark = SparkSession.builder.appName("ALS_session").getOrCreate()
     lines = parse_file(results.matrix_file)
     assert(len(lines) > 0), "Matrix file is empty"
-    training, test = random_split_2D(lines, results.training_ratio, results.random_ratio_error, results.sampling_method)
+    training, test = random_split_2D(lines, results.training_ratio, results.random_ratio_error, results.sampling_method, results.dataset, results.approach)
     training_df = create_dataframe_from_line_list(sc,spark,training, True)
     file_mean_training = training_df.groupBy('ordered_file_id').agg(F.avg(training_df.val).alias("file_mean")) #If it's 1 or 0 means that it's constant 1 or zero
     test_df = create_dataframe_from_line_list(sc,spark,test, True)
@@ -334,7 +347,7 @@ def main(args=None):
             #test_round_dataframe.round(decimals)
             #test_round_dataframe = test_round_dataframe.round({'prediction': 0})
             #print (test_round_dataframe)
-        test_data_matrix = open(results.sampling_method+"_"+str(results.training_ratio)+"_test_data_matrix.txt","w+")
+        test_data_matrix = open(results.sampling_method+"_"+results.dataset+"_"+results.approach+"_"+str(results.training_ratio)+"_test_data_matrix.txt","w+")
         for i in range (len(predictions_list)):
             write_matrix(predictions_list[i],test_data_matrix)
         file_mean_list = file_mean_training.rdd.map(lambda row: [row.ordered_file_id, row.file_mean]).collect()# a list from file_mean to add the end of predictions list
