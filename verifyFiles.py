@@ -19,6 +19,7 @@ import sqlite3
 import re
 import pandas as pd
 import random
+import collections
 # Returns a dictionary where the keys are the paths in 'directory'
 # (relative to 'directory') and the values are the os.stat objects
 # associated with these paths. By convention, keys representing
@@ -147,17 +148,25 @@ def n_differences_across_subjects(conditions_dict,root_dir,metrics,checksums_fro
     diff={} # Will be the return value
     bDiff={} # will be the return value for being used in binary matrix
     metric_values={}
-    # Dictionary_modtime is used for sorting files by increasing modification time for each subject in each condition 
+    # Dictionary_modtime is used for sorting files of a random selected subject and applied the same order for all other subjects
     modtime_dict={}
+    selec_sub= random.choice(conditions_dict.values()[0].keys())
     for key in conditions_dict.keys():
-	modtime_dict[key]={}
-	for subject in conditions_dict.values()[0].keys():
+        modtime_selec_sub=[]
+        for path_name in conditions_dict[key][selec_sub].keys():
+            modtime_selec_sub.append((path_name,conditions_dict[key][selec_sub][path_name].st_mtime))
+        modtime_selec_sub= sorted(modtime_selec_sub, key=lambda x: x[1])
+        selec_sub_ordered_files= []
+        for file in modtime_selec_sub:
+            selec_sub_ordered_files.append(file[0])
+    for key in conditions_dict.keys():
+        modtime_dict[key]={}
+        for subject in conditions_dict.values()[0].keys():
             mtime_list=[]
-	    modtime_dict[key][subject]={}
-	    for path_name in conditions_dict[key][subject].keys(): 
-  	        mtime_list.append((path_name,conditions_dict[key][subject][path_name].st_mtime))
-	    modtime_dict[key][subject]= sorted(mtime_list, key=lambda x: x[1])  
-    #Dictionary metric_values_subject_wise holds the metric values mapped to individual subjects. 
+            modtime_dict[key][subject]={}
+            for path_name in selec_sub_ordered_files:
+                mtime_list.append((path_name,conditions_dict[key][subject][path_name].st_mtime))
+            modtime_dict[key][subject]= mtime_list
     #This helps us identify the metrics values and associate it with individual subjects.
     metric_values_subject_wise={}
     path_names = conditions_dict.values()[0].values()[0].keys()
@@ -220,6 +229,7 @@ def n_differences_across_subjects(conditions_dict,root_dir,metrics,checksums_fro
 		        if key_name == selected_condition: 
 		           mtime_files_list = modtime_dict[key_name][subject]
 		           bDiff[key][subject]['mtime_files_list'] = mtime_files_list
+
 		    
                     if checksums_from_file_dict:
                         if "subject_name" in file_name:
