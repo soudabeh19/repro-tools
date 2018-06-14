@@ -148,7 +148,7 @@ def n_differences_across_subjects(conditions_dict,root_dir,metrics,checksums_fro
     diff={} # Will be the return value
     bDiff={} # will be the return value for being used in binary matrix
     metric_values={}
-    # Dictionary_modtime is used for sorting files of a random selected subject and applied the same order for all other subjects
+    # Dictionary_modtime is used for sorting files of a random selected subject and applied the same ordered file for all other subjects
     modtime_dict={}
     selec_sub= random.choice(conditions_dict.values()[0].keys())
     for key in conditions_dict.keys():
