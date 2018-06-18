@@ -157,13 +157,13 @@ def n_differences_across_subjects(conditions_dict,root_dir,metrics,checksums_fro
             modtime_selec_sub.append((path_name,conditions_dict[key][selec_sub][path_name].st_mtime))
         modtime_selec_sub= sorted(modtime_selec_sub, key=lambda x: x[1])
         selec_sub_ordered_files= []
-        for file in modtime_selec_sub:
-            selec_sub_ordered_files.append(file[0])
+        for file_name in modtime_selec_sub:
+            selec_sub_ordered_files.append(file_name[0])
     for key in conditions_dict.keys():
         modtime_dict[key]={}
         for subject in conditions_dict.values()[0].keys():
             mtime_list=[]
-            modtime_dict[key][subject]={}
+            modtime_dict[key][subject]= {}
             for path_name in selec_sub_ordered_files:
                 mtime_list.append((path_name,conditions_dict[key][subject][path_name].st_mtime))
             modtime_dict[key][subject]= mtime_list
@@ -224,9 +224,9 @@ def n_differences_across_subjects(conditions_dict,root_dir,metrics,checksums_fro
 		        abs_path_c=os.path.join(root_dir,c,subject,file_name)
                         abs_path_d=os.path.join(root_dir,d,subject,file_name)
 		    # Random selection of modtime_list of subject between two conditions
-		    selected_condition=random.choice([c,d])
+		    #selected_condition=random.choice([c,d])
 		    for key_name in modtime_dict:
-		        if key_name == selected_condition: 
+		        if key_name == c: 
 		           mtime_files_list = modtime_dict[key_name][subject]
 		           bDiff[key][subject]['mtime_files_list'] = mtime_files_list
 
@@ -318,6 +318,9 @@ def n_differences_across_subjects(conditions_dict,root_dir,metrics,checksums_fro
 	
     if sqlite_db_path:
       conn.close()
+    df = pd.DataFrame(bDiff)
+    print (df)
+    print (bDiff)
     return diff,bDiff,metric_values,dictionary_executables,dictionary_processes,metric_values_subject_wise
 
 #Method get_executable_details is used for finding out the details of the processes that created or modified the specified file.
@@ -616,7 +619,7 @@ def main():
            # two_dimensional_matrix (bDiff,conditions_dict,args.result_base_name)
 	    for condition_pairs in bDiff.keys():
                 matrix_text_files (bDiff,conditions_dict,output_base_path,True,condition_pairs)# 2D matrix
-	    matrix_text_files (bDiff,conditions_dict,output_base_path,False,None)# 3D matrix
+	    #matrix_text_files (bDiff,conditions_dict,output_base_path,False,None)# 3D matrix
             diff_file.close()
 
         for metric_name in metric_values.keys():
