@@ -143,7 +143,7 @@ def check_files(conditions_dict):
 #  {'condition1 vs condition2': {'c/c.txt': 0, 'a.txt': 2}}
 #  means that 'c/c.txt' is identical for all subjects in conditions condition1 and condition2 while 'a.txt' differs in two subjects.
 def n_differences_across_subjects(conditions_dict,root_dir,metrics,checksums_from_file_dict,checksum_after_file_path,check_corruption,sqlite_db_path,track_processes):
-    # For each pair of conditions C1 and C1
+    # For each pair of conditions C1 and C2
     product = ((i,j) for i in conditions_dict.keys() for j in conditions_dict.keys())
     diff={} # Will be the return value
     bDiff={} # will be the return value for being used in binary matrix
@@ -153,20 +153,21 @@ def n_differences_across_subjects(conditions_dict,root_dir,metrics,checksums_fro
     selec_sub= random.choice(conditions_dict.values()[0].keys())
     for key in conditions_dict.keys():
         modtime_selec_sub=[]
-        for path_name in conditions_dict[key][selec_sub].keys():
-            modtime_selec_sub.append((path_name,conditions_dict[key][selec_sub][path_name].st_mtime))
-        modtime_selec_sub= sorted(modtime_selec_sub, key=lambda x: x[1])
-        selec_sub_ordered_files= []
-        for file_name in modtime_selec_sub:
-            selec_sub_ordered_files.append(file_name[0])
-    for key in conditions_dict.keys():
         modtime_dict[key]={}
+	for path_name in conditions_dict[key][selec_sub].keys():
+		modtime_selec_sub.append((path_name,conditions_dict[key][selec_sub][path_name].st_mtime))
+	modtime_selec_sub= sorted(modtime_selec_sub, key=lambda x: x[1])
+	selec_sub_ordered_files= []
+	for file_name in modtime_selec_sub:
+		selec_sub_ordered_files.append(file_name[0])
+
         for subject in conditions_dict.values()[0].keys():
-            mtime_list=[]
-            modtime_dict[key][subject]= {}
+		modtime_dict[key][subject]= {}
+		modtime_list=[]
             for path_name in selec_sub_ordered_files:
-                mtime_list.append((path_name,conditions_dict[key][subject][path_name].st_mtime))
-            modtime_dict[key][subject]= mtime_list
+		modtime_list.append((path_name,conditions_dict[key][subject][path_name].st_mtime))
+		modtime_dict[key][subject]= modtime_list
+
     #This helps us identify the metrics values and associate it with individual subjects.
     metric_values_subject_wise={}
     path_names = conditions_dict.values()[0].values()[0].keys()
