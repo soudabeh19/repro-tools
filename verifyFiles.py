@@ -164,8 +164,8 @@ def n_differences_across_subjects(conditions_dict,root_dir,metrics,checksums_fro
         for subject in conditions_dict.values()[0].keys():
 		modtime_dict[key][subject]= {}
 		modtime_list=[]
-            for path_name in selec_sub_ordered_files:
-		modtime_list.append((path_name,conditions_dict[key][subject][path_name].st_mtime))
+                for path_name in selec_sub_ordered_files:
+		    modtime_list.append((path_name,conditions_dict[key][subject][path_name].st_mtime))
 		modtime_dict[key][subject]= modtime_list
 
     #This helps us identify the metrics values and associate it with individual subjects.
