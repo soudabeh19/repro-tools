@@ -3,8 +3,6 @@
 from __future__ import print_function, division
 from argparse import ArgumentParser,SUPPRESS
 import os, shutil, sys
-if sys.version >= '3':
-    long = int
 from pyspark import SparkConf, SparkContext
 from pyspark.sql import SparkSession, Row
 from pyspark.ml.evaluation import RegressionEvaluator
@@ -15,6 +13,7 @@ from collections import Counter
 from pyspark.sql import functions as F
 import pandas as pd
 import numpy as np
+
 def compute_accuracy(predictions_list,file_mean):
     right_predictions = 0.0
     correct_pure_predic = 0.0
@@ -28,6 +27,7 @@ def compute_accuracy(predictions_list,file_mean):
     acc = right_predictions / len(predictions_list)
     pure_acc = correct_pure_predic / len(predictions_list)
     return (acc,pure_acc)
+
 def sens_spec(predictions_list):
     TP=TN=FP=FN = 0
     for line in predictions_list:
@@ -40,9 +40,18 @@ def sens_spec(predictions_list):
             FP += 1
         else : 
             FN += 1
-    sens = TP/(TP+FN)
-    spec = TN/(TN+FP)
+    all_positive = TP+FN
+    all_negative = TN+FP
+    if all_positive == 0:
+        sens = None
+    else:
+        sens = TP/all_positive
+    if all_negative == 0:
+        spec = None
+    else:
+        spec = TN/all_negative
     return(sens, spec)
+
 def compute_accuracy_dummy(line_list):
     number_of_ones = 0.1
     for line in line_list:
@@ -66,12 +75,14 @@ def create_dataframe_from_line_list(sc, ss, line_list, mode):
     else: #test dataframe # there is a prediction on the 3rd column
         rdd=sc.parallelize(line_list).map(lambda line:Row(ordered_file_id=long(line[0]), subject=long(line[1]), val=long(line[2]), prediction=float(line[3])))
     return ss.createDataFrame(rdd)
+
 def write_matrix(line,matrix_name):
     for i in range (0,len(line)):
         matrix_name.write(str(line[i]))
         if i != len(line)-1:
             matrix_name.write(";")
     matrix_name.write("\n")
+
 # Find the max number of conditions and files
 def n_columns_files(line_list):
     max_col_id = 0
@@ -83,11 +94,11 @@ def n_columns_files(line_list):
             max_file_id = line[0]
     return max_col_id + 1, max_file_id + 1
 
-def get_number_of_files_to_training(n_files ,n_subject, training_ratio, n_last_file, sampling_method): # Calculate the num of files to be fitted into training set from each subject in diagnoal and triangular random methods
-    if sampling_method in ("triangular-L","triangular-S") and training_ratio <= 1/3:
-        sampling_method = "diagnoal"
+def get_number_of_files_to_training(n_files ,n_subject, training_ratio, n_last_file, sampling_method): # Calculate the num of files to be fitted into training set from each subject in RFNU and triangular random methods
+    if sampling_method in ("RFNT-L","RFNT-S") and training_ratio <= 1/3:
+        sampling_method = "RFNU"
     for i in range(0, n_subject):
-        if sampling_method == "diagnoal":
+        if sampling_method == "RFNU":
             if training_ratio <= 0.5:
                 if(rn.random() <= 2*training_ratio):
                     n_last_file[i] = rn.randrange(0, n_files, 1)
@@ -96,10 +107,10 @@ def get_number_of_files_to_training(n_files ,n_subject, training_ratio, n_last_f
             else:
                 n_last_file[i] = rn.randrange(int(round(2*training_ratio*n_files))-n_files, n_files, 1)
         else:
-            if sampling_method == "triangular-L" and training_ratio > 1/3:
+            if sampling_method == "RFNT-L" and training_ratio > 1/3:
                 a = (n_files*((3 * training_ratio)-1))/2
                 b = a 
-            elif sampling_method == "triangular-S" and training_ratio > 1/3:
+            elif sampling_method == "RFNT-S" and training_ratio > 1/3:
                 a = 0
                 b = min(n_files,((3 * training_ratio * n_files) - n_files))
             n_last_file[i]=np.random.triangular(a, b, n_files)
@@ -112,11 +123,12 @@ def put_files_into_training(n_last_file, lines,shuffled_subject,training, traini
                 if line not in training:
                     training.append(line)
                     write_matrix(line,training_matrix)
-def random_split_2D(lines, training_ratio, max_diff, sampling_method):
+
+def random_split_2D(lines, training_ratio, max_diff, sampling_method, dataset, approach):
     training = [] # this will contain the training set
     test = [] # this will contain the test set
     n_subject, n_files = n_columns_files(lines)
-    training_matrix = open(sampling_method+"_"+str(training_ratio)+"_training_matrix.txt","w+")
+    training_matrix = open(sampling_method+"_"+dataset+"_"+approach+"_"+str(training_ratio)+"_training_matrix.txt","w+")
     # Random selection of a subject (column) in advance then
     # pick that subject for every file of the condition, put it in training
     # and also pick first file for every subject, put it in training
@@ -124,7 +136,6 @@ def random_split_2D(lines, training_ratio, max_diff, sampling_method):
     shuffled_subject = rn.sample(ran_subject_order,n_subject)
     first_ran_subject = shuffled_subject[0]
     print(" shuffled list of subjects:", shuffled_subject) 
-   
     target_training_size = training_ratio * len(lines)
     for line in lines: # add the lines corresponding to the first file or the first subject
         if line[3] == 0 or line[1] == first_ran_subject: 
@@ -134,9 +145,9 @@ def random_split_2D(lines, training_ratio, max_diff, sampling_method):
     subject_id = 1
     file_index = 0
 
-    # used in random-real sampling method in the while loop below
+    # used in RS sampling method in the while loop below
     next_file = []
-    n_last_file = [] # in diagnoal mode records the number of selected files for the subject according to the formula (to be used for semetrycal purpose
+    n_last_file = [] # in RFNU mode records the number of selected files for the subject according to the formula (to be used for semetrycal purpose
     p=0
     for c in range(0,n_subject):
         n_last_file.append(0)
@@ -145,9 +156,9 @@ def random_split_2D(lines, training_ratio, max_diff, sampling_method):
         next_file.append(1)
     while(len(training) < target_training_size):
         n_line_add = 0 
-        assert(sampling_method in ["random-unreal", "columns", "rows", "random-real", "diagnoal", "triangular-L", "triangular-S"]), "Unknown sampling method: {0}".format(sampling_method)
+        assert(sampling_method in ["random-unreal", "columns", "rows", "RS", "RFNU", "RFNT-L", "RFNT-S"]), "Unknown sampling method: {0}".format(sampling_method)
 
-        if sampling_method in {"diagnoal", "triangular-L", "triangular-S"}:
+        if sampling_method in {"RFNU", "RFNT-L", "RFNT-S"}:
             get_number_of_files_to_training (n_files, n_subject, training_ratio, n_last_file, sampling_method)
             put_files_into_training (n_last_file, lines, shuffled_subject,training,training_matrix)
             break
@@ -164,7 +175,7 @@ def random_split_2D(lines, training_ratio, max_diff, sampling_method):
             if subject_id == n_subject:
                 file_index +=1
                 subject_id = 1
-        elif sampling_method == "random-real":
+        elif sampling_method == "RS":
             subject_id = randrange(1, n_subject)
             if next_file[subject_id] <= n_files:
                 file_index = next_file[subject_id]
@@ -189,43 +200,8 @@ def random_split_2D(lines, training_ratio, max_diff, sampling_method):
             test.append(line)
     effective_training_ratio = len(training)/(float(len(lines)))
     print("Training ratio:\n  * Target: {0}\n  * Effective: {1}".format(training_ratio, effective_training_ratio))
-    if (sampling_method not in  ("diagnoal", "triangular-L", "triangular-S")):
+    if (sampling_method not in  ("RFNU", "RFNT-L", "RFNT-S")):
         assert(abs(effective_training_ratio-training_ratio)<max_diff), "Effective and target training ratios differed by more than {0}".format(max_diff) # TODO: think about this threshold
-    return training, test
-
-def random_split(lines, training_ratio, max_diff):
-    training = []
-    test = []
-    n_cond, n_files = n_columns_files(lines)
-    n_overrides = 0 
-
-    # pick one condition for every file, put it in training
-    picked_conditions = {}
-    for file_id in range(0, n_files):
-        picked_conditions[file_id] = randint(0, n_cond-1)
-    for line in lines:
-        file_id = line[0]
-        condition_id = line[1]
-        if picked_conditions[file_id] == condition_id:
-            training.append(line)
-
-    # training now has n_files elements
-    updated_training_ratio = (training_ratio*len(lines)-n_files)/(float(len(lines)-n_files))
-    print("updated_training_ratio=", updated_training_ratio)
-    assert(updated_training_ratio >= 0), "Training ratio is too small."
-
-    # do the random sampling using new_ratio
-    for line in lines:
-        if line in training:
-            continue
-        file_id, cond_id, value = line[0], line[1], line[2]
-        if random() < updated_training_ratio:
-            training.append(line)
-        else:
-            test.append(line)
-    effective_training_ratio = len(training)/(float(len(lines)))
-    print("Training ratio:\n  * Target: {0}\n  * Effective: {1}".format(training_ratio, effective_training_ratio))
-    assert(abs(effective_training_ratio-training_ratio)<max_diff), "Effective and target training ratios differed by more than {0}".format(max_diff) # TODO: think about this threshold
     return training, test
 
 def write_line_list_to_text_file(line_list, file_name):
@@ -257,6 +233,7 @@ def main(args=None):
     parser.add_argument("training_ratio", action="store", type=float,
                         help="The ratio of matrix elements that will be added to the training set. Has to be in [0,1].")
     parser.add_argument("approach", action="store", help="Prediction strategy: ALS, ALS-Bias or Bias.")
+    parser.add_argument("dataset", action="store", help="Name of the dataset. Just to be used in the name of the output files")
     parser.add_argument("--predictions", "-p", action="store",
                         help="Text file where the predictions will be stored.")
     parser.add_argument("--random-ratio-error", "-r", action="store", type=float, default=0.01,
@@ -282,20 +259,19 @@ def main(args=None):
     spark = SparkSession.builder.appName("ALS_session").getOrCreate()
     lines = parse_file(results.matrix_file)
     assert(len(lines) > 0), "Matrix file is empty"
-    training, test = random_split_2D(lines, results.training_ratio, results.random_ratio_error, results.sampling_method)
+    training, test = random_split_2D(lines, results.training_ratio, results.random_ratio_error, results.sampling_method, results.dataset, results.approach)
     training_df = create_dataframe_from_line_list(sc,spark,training, True)
     file_mean_training = training_df.groupBy('ordered_file_id').agg(F.avg(training_df.val).alias("file_mean")) #If it's 1 or 0 means that it's constant 1 or zero
     test_df = create_dataframe_from_line_list(sc,spark,test, True)
 
     if results.approach =='ALS':
-        als = ALS(maxIter=5, regParam=0.01, userCol="subject", itemCol="ordered_file_id", ratingCol="val", rank=40, nonnegative=True)
+        als = ALS(maxIter=5, regParam=0.01, userCol="subject", itemCol="ordered_file_id", ratingCol="val", rank=50, nonnegative=True)
         try:
             als.setSeed(seed)
             model = als.fit(training_df)
         except:
             model = als.fit(training_df)
-            predictions = model.transform(test_df)
-
+        predictions = model.transform(test_df)
 
     else:
         subject_mean_training = training_df.groupBy('subject').agg(F.avg(training_df.val).alias("subject_mean"))
@@ -304,7 +280,7 @@ def main(args=None):
         global_mean = global_mean_training.collect()[0][0]
         print ("global_mean", global_mean)
         training_fin = training_fin.withColumn('interaction', (training_fin['val'] - (training_fin['subject_mean'] + training_fin['file_mean']- global_mean)))
-        als = ALS(maxIter=5, regParam=0.01, userCol="subject", itemCol="ordered_file_id", ratingCol="interaction", rank=40, nonnegative=True)
+        als = ALS(maxIter=5, regParam=0.01, userCol="subject", itemCol="ordered_file_id", ratingCol="interaction", rank=50, nonnegative=True)
         try:
             als.setSeed(seed)
             model = als.fit(training_fin)
@@ -317,11 +293,7 @@ def main(args=None):
         else: #Bias
             predictions_fin = predictions_fin.withColumn('fin_val', training_fin['subject_mean'] + training_fin['file_mean'] - global_mean)
     
-
-
-
-
-    if is_binary_matrix(lines): # assess the model
+    if is_binary_matrix(lines): # assess the model    
         # prediction will be rounded to closest integer
         # TODO: check how the rounding can be done directly with the dataframe, to avoid converting to list
         if  results.approach in {'ALS-Bias','Bias'}:
@@ -329,12 +301,7 @@ def main(args=None):
         else: 
             predictions_list = predictions.rdd.map(lambda row: [ row.ordered_file_id, row.subject,row.val, row.prediction]).collect() # ALS
         predictions_list =round_values(predictions_list)
-            #test_round_dataframe = pd.DataFrame (data = predictions_list, columns=['ordered_file_id', 'subject', 'val', 'prediction'])
-            #decimals = pd.Series([0, 0, 0, 0, 0])
-            #test_round_dataframe.round(decimals)
-            #test_round_dataframe = test_round_dataframe.round({'prediction': 0})
-            #print (test_round_dataframe)
-        test_data_matrix = open(results.sampling_method+"_"+str(results.training_ratio)+"_test_data_matrix.txt","w+")
+        test_data_matrix = open(results.sampling_method+"_"+results.dataset+"_"+results.approach+"_"+str(results.training_ratio)+"_test_data_matrix.txt","w+")
         for i in range (len(predictions_list)):
             write_matrix(predictions_list[i],test_data_matrix)
         file_mean_list = file_mean_training.rdd.map(lambda row: [row.ordered_file_id, row.file_mean]).collect()# a list from file_mean to add the end of predictions list
@@ -346,9 +313,7 @@ def main(args=None):
         print("Specificity = " + str(specificity))
         print("Accuracy of dummy classifier = " + str(compute_accuracy_dummy(lines)))
         predictions = create_dataframe_from_line_list(sc, spark, predictions_list, False)
-        #df_calcul_accuracy=predictions.join(file_mean_training,['ordered_file_id'])
         predictions.toPandas().to_csv('prediction.csv')
-    #else: # Assess model by use of RMSE on the test data
         if  results.approach in {'ALS-Bias','Bias'}:
             evaluator = RegressionEvaluator(metricName="rmse", labelCol="val", predictionCol="fin_val")
             rmse = evaluator.evaluate(predictions_fin)
