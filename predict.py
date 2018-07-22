@@ -67,6 +67,7 @@ def is_binary_matrix(lines):
     return True
 
 def round_values(line_list):
+    print (line_list)
     return [ [x[0], x[1], x[2], int(round(x[3]))] for x in line_list]
 
 def create_dataframe_from_line_list(sc, ss, line_list, mode):
@@ -114,7 +115,7 @@ def get_number_of_files_to_training(n_files ,n_subject, training_ratio, n_last_f
                 a = 0
                 b = min(n_files,((3 * training_ratio * n_files) - n_files))
             n_last_file[i]=np.random.triangular(a, b, n_files)
-    return n_last_file
+    return n_last_file , a
 
 def put_files_into_training(n_last_file, lines,shuffled_subject,training, training_matrix):
     for i in range (1,len(shuffled_subject)):
@@ -135,6 +136,7 @@ def random_split_2D(lines, training_ratio, max_diff, sampling_method, dataset, a
     ran_subject_order = list(range(0,n_subject))
     shuffled_subject = rn.sample(ran_subject_order,n_subject)
     first_ran_subject = shuffled_subject[0]
+
     print(" shuffled list of subjects:", shuffled_subject) 
     target_training_size = training_ratio * len(lines)
     for line in lines: # add the lines corresponding to the first file or the first subject
@@ -144,7 +146,8 @@ def random_split_2D(lines, training_ratio, max_diff, sampling_method, dataset, a
             write_matrix(line, training_matrix)
     subject_id = 1
     file_index = 0
-
+    print ("first_ran_subject",first_ran_subject)
+    print ("initial training:>>>>>>>>>>>>>>>",training)
     # used in RS sampling method in the while loop below
     next_file = []
     n_last_file = [] # in RFNU mode records the number of selected files for the subject according to the formula (to be used for semetrycal purpose
@@ -159,7 +162,7 @@ def random_split_2D(lines, training_ratio, max_diff, sampling_method, dataset, a
         assert(sampling_method in ["random-unreal", "columns", "rows", "RS", "RFNU", "RFNT-L", "RFNT-S"]), "Unknown sampling method: {0}".format(sampling_method)
 
         if sampling_method in {"RFNU", "RFNT-L", "RFNT-S"}:
-            get_number_of_files_to_training (n_files, n_subject, training_ratio, n_last_file, sampling_method)
+            n_last_file , a = get_number_of_files_to_training (n_files, n_subject, training_ratio, n_last_file, sampling_method)
             put_files_into_training (n_last_file, lines, shuffled_subject,training,training_matrix)
             break
         elif sampling_method == "random-unreal":
@@ -202,7 +205,56 @@ def random_split_2D(lines, training_ratio, max_diff, sampling_method, dataset, a
     print("Training ratio:\n  * Target: {0}\n  * Effective: {1}".format(training_ratio, effective_training_ratio))
     if (sampling_method not in  ("RFNU", "RFNT-L", "RFNT-S")):
         assert(abs(effective_training_ratio-training_ratio)<max_diff), "Effective and target training ratios differed by more than {0}".format(max_diff) # TODO: think about this threshold
+    else:
+        subjects_in_training = []
+        subjects_in_training = list(set(map(lambda s: s[1],training)))
+        applicable_subjects_in_training = []
+        applicable_subjects_in_training = subjects_in_training
+        applicable_subjects_in_training.remove(first_ran_subject)
+        if abs(effective_training_ratio-training_ratio)> max_diff and sampling_method == "RFNT-L":
+            if effective_training_ratio > training_ratio:  # downsize training
+                while len(training) > target_training_size:
+                    last_sub_fileid, ran_subject = balance_training (training, applicable_subjects_in_training)
+                    if last_sub_fileid == a: #to respect the largest-a it is not allowed to remove those files which are less than the minimum required for each subject
+                        last_sub_fileid, ran_subject = balance_training (training, applicable_subjects_in_training)
+                    else:
+                        target_sub = filter(lambda x: x[3]==last_sub_fileid,filter(lambda y: y[1] == ran_subject[0],training))
+                        test.append(target_sub[0])
+                	training.remove(target_sub[0])
+            else: #oversampling training
+                oversampling_training(training,test,target_training_size,lines,n_subject)
+
+        elif effective_training_ratio > training_ratio: # downsize training
+            while len(training) > target_training_size:
+                last_sub_fileid, ran_subject = balance_training (training, applicable_subjects_in_training)
+                if last_sub_fileid == min(map(lambda x: x[3], filter(lambda y: y[1] == ran_subject[0], lines))):# to respect having atleast one file for each subject
+                    last_sub_fileid, ran_subject = balance_training (training, applicable_subjects_in_training)
+                else:
+                    target_sub = filter(lambda x: x[3]==last_sub_fileid,filter(lambda y: y[1] == ran_subject[0],training))
+                    test.append(target_sub[0])
+                    training.remove(target_sub[0])
+        elif effective_training_ratio < training_ratio: # oversampling training
+            oversampling_training(training,test,target_training_size,lines,n_subject)
+    final_effective_training_ratio = len(training)/(float(len(lines)))
+    print ("Modified_effective_training_ratio: ",final_effective_training_ratio)
     return training, test
+
+def balance_training (training, applicable_subjects_in_training ): #maximum file-id random selected subject in the current training
+    print ("applicable_subjects_in_training",applicable_subjects_in_training)
+    random_subject = rn.sample(applicable_subjects_in_training,1)
+    last_sub_fileid = max(map(lambda x: x[3], filter(lambda y: y[1] == random_subject[0], training)))
+    return(last_sub_fileid, random_subject)
+
+def oversampling_training (training,test,target_training_size,lines,n_subject):
+    while len (training) < target_training_size:
+        ran_subject_id = randrange(1, n_subject)
+        last_sub_fileid = max(map(lambda x: x[3], filter(lambda y: y[1] == ran_subject_id, training)))# maximum file-id random selected subject in the current training
+        next_sub_fileid = last_sub_fileid + 1
+        if next_sub_fileid < max(map(lambda x: x[3], filter(lambda y: y[1] == ran_subject_id, lines))):
+            target_sub = filter(lambda x: x[3]==next_sub_fileid,filter(lambda y: y[1] == ran_subject_id,lines))
+            training.append(target_sub[0])
+            test.remove(target_sub[0])
+    return test,training
 
 def write_line_list_to_text_file(line_list, file_name):
     with open(file_name, 'w') as f:
@@ -300,7 +352,7 @@ def main(args=None):
             predictions_list = predictions_fin.rdd.map(lambda row: [ row.ordered_file_id, row.subject, row.val, row.fin_val]).collect()# ALS+BIAS or Just_BIAS
         else: 
             predictions_list = predictions.rdd.map(lambda row: [ row.ordered_file_id, row.subject,row.val, row.prediction]).collect() # ALS
-        predictions_list =round_values(predictions_list)
+        predictions_list = round_values(predictions_list)
         test_data_matrix = open(results.sampling_method+"_"+results.dataset+"_"+results.approach+"_"+str(results.training_ratio)+"_test_data_matrix.txt","w+")
         for i in range (len(predictions_list)):
             write_matrix(predictions_list[i],test_data_matrix)
