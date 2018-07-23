@@ -67,7 +67,6 @@ def is_binary_matrix(lines):
     return True
 
 def round_values(line_list):
-    print (line_list)
     return [ [x[0], x[1], x[2], int(round(x[3]))] for x in line_list]
 
 def create_dataframe_from_line_list(sc, ss, line_list, mode):
@@ -96,8 +95,6 @@ def n_columns_files(line_list):
     return max_col_id + 1, max_file_id + 1
 
 def get_number_of_files_to_training(n_files ,n_subject, training_ratio, n_last_file, sampling_method): # Calculate the num of files to be fitted into training set from each subject in RFNU and triangular random methods
-    if sampling_method in ("RFNT-L","RFNT-S") and training_ratio <= 1/3:
-        sampling_method = "RFNU"
     for i in range(0, n_subject):
         if sampling_method == "RFNU":
             if training_ratio <= 0.5:
@@ -107,14 +104,41 @@ def get_number_of_files_to_training(n_files ,n_subject, training_ratio, n_last_f
                     n_last_file[i] = 0
             else:
                 n_last_file[i] = rn.randrange(int(round(2*training_ratio*n_files))-n_files, n_files, 1)
-        else:
-            if sampling_method == "RFNT-L" and training_ratio > 1/3:
-                a = (n_files*((3 * training_ratio)-1))/2
-                b = a 
-            elif sampling_method == "RFNT-S" and training_ratio > 1/3:
+        
+        elif sampling_method == "RFNT-S":
+            if training_ratio >= 1/3.0:
+                if training_ratio >= 2/3.0:
+                    b= n_files
+                    a =0
+                    if  rn.uniform(0,1) <= 3 * (1-training_ratio): #with probability 3(1-alpha)
+                        n_last_file[i] = np.random.triangular(a, b, n_files)
+                    else:
+                        n_last_file[i] = n_files
+                else:
+                    b = n_files*((3*training_ratio)-1)
+                    a = 0
+                    n_last_file[i] = np.random.triangular(a,b,n_files)
+            else:
                 a = 0
-                b = min(n_files,((3 * training_ratio * n_files) - n_files))
-            n_last_file[i]=np.random.triangular(a, b, n_files)
+                b = 0
+                if rn.uniform(0,1) <= 3 * training_ratio: #with probability 3(alpha)
+                    n_last_file[i] = np.random.triangular(a, b, n_files)
+                else: 
+                    n_last_file[i] = 0
+        
+        else: #sampling_method == "RFNT-L"
+	    if training_ratio >= 1/3.0:
+                a = (n_files*((3 * training_ratio)-1))/2
+                b = a
+                n_last_file[i] = np.random.triangular(a, b, n_files)
+            else:
+                a = 0
+                b = 0
+                if rn.uniform(0,1) <= 3 * training_ratio: #with probability 3(alpha)
+                    n_last_file[i] = np.random.triangular(a, b, n_files)
+                else:
+                    n_last_file[i] = 0
+            
     return n_last_file , a
 
 def put_files_into_training(n_last_file, lines,shuffled_subject,training, training_matrix):
@@ -146,8 +170,6 @@ def random_split_2D(lines, training_ratio, max_diff, sampling_method, dataset, a
             write_matrix(line, training_matrix)
     subject_id = 1
     file_index = 0
-    print ("first_ran_subject",first_ran_subject)
-    print ("initial training:>>>>>>>>>>>>>>>",training)
     # used in RS sampling method in the while loop below
     next_file = []
     n_last_file = [] # in RFNU mode records the number of selected files for the subject according to the formula (to be used for semetrycal purpose
@@ -237,10 +259,10 @@ def random_split_2D(lines, training_ratio, max_diff, sampling_method, dataset, a
             oversampling_training(training,test,target_training_size,lines,n_subject)
     final_effective_training_ratio = len(training)/(float(len(lines)))
     print ("Modified_effective_training_ratio: ",final_effective_training_ratio)
+    print("Updated training size is {0}".format(len(training)))
     return training, test
 
 def balance_training (training, applicable_subjects_in_training ): #maximum file-id random selected subject in the current training
-    print ("applicable_subjects_in_training",applicable_subjects_in_training)
     random_subject = rn.sample(applicable_subjects_in_training,1)
     last_sub_fileid = max(map(lambda x: x[3], filter(lambda y: y[1] == random_subject[0], training)))
     return(last_sub_fileid, random_subject)
