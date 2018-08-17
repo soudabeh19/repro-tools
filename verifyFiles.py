@@ -19,6 +19,7 @@ import sqlite3
 import re
 import pandas as pd
 import random
+import collections
 # Returns a dictionary where the keys are the paths in 'directory'
 # (relative to 'directory') and the values are the os.stat objects
 # associated with these paths. By convention, keys representing
@@ -26,12 +27,12 @@ import random
 def get_dir_dict(directory,exclude_items): 
     result_dict={}
     for root,dirs,files in os.walk(directory):
-	if exclude_items is not None:
-	    dirs[:]=[d for d in dirs if d not in exclude_items]
+        if exclude_items is not None:
+            dirs[:]=[d for d in dirs if d not in exclude_items]
 	    #To eliminate the files listd in exclude items file. Condition below checks relative file path as well as file names. 
             files[:]=[f for f in files if f not in exclude_items and os.path.join(root,f).replace(os.path.join(directory+"/"),"") not in exclude_items]
         for file_name in files:
-	    if not exclude_items or (file_name not in exclude_items):
+            if not exclude_items or (file_name not in exclude_items):
               abs_file_path=os.path.join(root,file_name)
               rel_path=abs_file_path.replace(os.path.join(directory+"/"),"")
               if '/' in rel_path and directory.split('/')[-1] in rel_path:
@@ -142,22 +143,31 @@ def check_files(conditions_dict):
 #  {'condition1 vs condition2': {'c/c.txt': 0, 'a.txt': 2}}
 #  means that 'c/c.txt' is identical for all subjects in conditions condition1 and condition2 while 'a.txt' differs in two subjects.
 def n_differences_across_subjects(conditions_dict,root_dir,metrics,checksums_from_file_dict,checksum_after_file_path,check_corruption,sqlite_db_path,track_processes):
-    # For each pair of conditions C1 and C1
+    # For each pair of conditions C1 and C2
     product = ((i,j) for i in conditions_dict.keys() for j in conditions_dict.keys())
     diff={} # Will be the return value
     bDiff={} # will be the return value for being used in binary matrix
     metric_values={}
-    # Dictionary_modtime is used for sorting files by increasing modification time for each subject in each condition 
+    # Dictionary_modtime is used for sorting files of a random selected subject and applied the same ordered file for all other subjects
     modtime_dict={}
+    selec_sub= random.choice(conditions_dict.values()[0].keys())
     for key in conditions_dict.keys():
-	modtime_dict[key]={}
-	for subject in conditions_dict.values()[0].keys():
-            mtime_list=[]
-	    modtime_dict[key][subject]={}
-	    for path_name in conditions_dict[key][subject].keys(): 
-  	        mtime_list.append((path_name,conditions_dict[key][subject][path_name].st_mtime))
-	    modtime_dict[key][subject]= sorted(mtime_list, key=lambda x: x[1])  
-    #Dictionary metric_values_subject_wise holds the metric values mapped to individual subjects. 
+        modtime_selec_sub=[]
+        modtime_dict[key]={}
+	for path_name in conditions_dict[key][selec_sub].keys():
+		modtime_selec_sub.append((path_name,conditions_dict[key][selec_sub][path_name].st_mtime))
+	modtime_selec_sub= sorted(modtime_selec_sub, key=lambda x: x[1])
+	selec_sub_ordered_files= []
+	for file_name in modtime_selec_sub:
+		selec_sub_ordered_files.append(file_name[0])
+
+        for subject in conditions_dict.values()[0].keys():
+		modtime_dict[key][subject]= {}
+		modtime_list=[]
+                for path_name in selec_sub_ordered_files:
+		    modtime_list.append((path_name,conditions_dict[key][subject][path_name].st_mtime))
+		modtime_dict[key][subject]= modtime_list
+
     #This helps us identify the metrics values and associate it with individual subjects.
     metric_values_subject_wise={}
     path_names = conditions_dict.values()[0].values()[0].keys()
@@ -209,24 +219,36 @@ def n_differences_across_subjects(conditions_dict,root_dir,metrics,checksums_fro
                     file_name_new=None
                     if "subject_name" in file_name:
                         file_name_new=file_name.replace("subject_name",subject)
+                        if file_name == "T1w/subject_name/label/aparc.annot.ctab":
+                            print("file_name_new:"+file_name_new)
                         abs_path_c=os.path.join(root_dir,c,subject,file_name_new)
                         abs_path_d=os.path.join(root_dir,d,subject,file_name_new)
                     else:    
 		        abs_path_c=os.path.join(root_dir,c,subject,file_name)
                         abs_path_d=os.path.join(root_dir,d,subject,file_name)
 		    # Random selection of modtime_list of subject between two conditions
-		    selected_condition=random.choice([c,d])
+		    #selected_condition=random.choice([c,d])
 		    for key_name in modtime_dict:
-		        if key_name == selected_condition: 
+		        if key_name == c: 
 		           mtime_files_list = modtime_dict[key_name][subject]
 		           bDiff[key][subject]['mtime_files_list'] = mtime_files_list
+
 		    
                     if checksums_from_file_dict:
                         if "subject_name" in file_name:
+                            #if file_name in checksums_from_file_dict[c][subject].keys() and file_name in checksums_from_file_dict[d][subject].keys():
                             if (checksums_from_file_dict[c][subject][file_name_new] != checksums_from_file_dict[d][subject][file_name_new]):
                                 files_are_different=True
-                        elif (checksums_from_file_dict[c][subject][file_name] != checksums_from_file_dict[d][subject][file_name]):
-                            files_are_different=True
+                        else:
+                            for cond in [c, d]:
+                                if not checksums_from_file_dict.get(cond):
+                                    print("{} is not in checksums_from_file_dict".format(c))
+                                elif not checksums_from_file_dict[cond].get(subject):
+                                    print("{} is not in checksums_from_file_dict[{}]".format(subject, cond))
+                                elif not checksums_from_file_dict[cond][subject].get(file_name):
+                                    print("{} is not in checksums_from_file_dict[{}][{}]".format(file_name, cond, subject))
+                            if (checksums_from_file_dict[c][subject][file_name] != checksums_from_file_dict[d][subject][file_name]):
+                                files_are_different=True
 		    elif "subject_name" not in file_name and conditions_dict[c][subject][file_name].st_size != conditions_dict[d][subject][file_name].st_size :
 		        files_are_different=True
                     elif "subject_name" in file_name and conditions_dict[c][subject][file_name_new].st_size != conditions_dict[d][subject][file_name_new].st_size:
@@ -308,6 +330,9 @@ def n_differences_across_subjects(conditions_dict,root_dir,metrics,checksums_fro
 	
     if sqlite_db_path:
       conn.close()
+    df = pd.DataFrame(bDiff)
+    print (df)
+    print (bDiff)
     return diff,bDiff,metric_values,dictionary_executables,dictionary_processes,metric_values_subject_wise
 
 #Method get_executable_details is used for finding out the details of the processes that created or modified the specified file.
@@ -386,6 +411,7 @@ def matrix_column(bDiff,condition,condition_id,column_index):
     column_index.write("\n")
 #Write the text file of matrix according to the define conditions for it
 def matrix_differences(bDiff,condition,subject,path,r,c,mode,differences):
+    #print (bDiff)
     differences.write(str(r))
     differences.write(";")
     differences.write(str(c))
@@ -606,7 +632,7 @@ def main():
            # two_dimensional_matrix (bDiff,conditions_dict,args.result_base_name)
 	    for condition_pairs in bDiff.keys():
                 matrix_text_files (bDiff,conditions_dict,output_base_path,True,condition_pairs)# 2D matrix
-	    matrix_text_files (bDiff,conditions_dict,output_base_path,False,None)# 3D matrix
+	    #matrix_text_files (bDiff,conditions_dict,output_base_path,False,None)# 3D matrix
             diff_file.close()
 
         for metric_name in metric_values.keys():
