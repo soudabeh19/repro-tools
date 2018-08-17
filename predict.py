@@ -300,6 +300,13 @@ def parse_file(file_path):
             lines.append([int(elements[0]), int(elements[1]), int(elements[2]), int(elements[3])])
     return lines
 
+def latentFactors(model, sampling_method, dataset, approach, training_ratio):
+    labels = ['id','feature']
+    df_userFactors = pd.DataFrame.from_records(model.userFactors.orderBy("id").collect(), columns=labels)
+    df_itemFactors = pd.DataFrame.from_records(model.itemFactors.orderBy("id").collect(), columns=labels)
+    df_userFactors.to_csv(sampling_method+"_"+dataset+"_"+approach+"_"+str(training_ratio)+'userFactors.csv', sep='\t')
+    df_itemFactors.to_csv(sampling_method+"_"+dataset+"_"+approach+"_"+str(training_ratio)+'itemFactors.csv', sep='\t')
+
 def main(args=None):
     # Use argparse to get arguments of your script:
     parser = ArgumentParser("predict")
@@ -340,13 +347,14 @@ def main(args=None):
     test_df = create_dataframe_from_line_list(sc,spark,test, True)
 
     if results.approach =='ALS':
-        als = ALS(maxIter=5, regParam=0.01, userCol="subject", itemCol="ordered_file_id", ratingCol="val", rank=50, nonnegative=True)
+        als = ALS(maxIter=5, regParam=0.01, userCol="ordered_file_id", itemCol="subject", ratingCol="val", rank=50, nonnegative=True)
         try:
             als.setSeed(seed)
             model = als.fit(training_df)
         except:
             model = als.fit(training_df)
-        predictions = model.transform(test_df)
+        latentFactors(model, results.sampling_method, results.dataset, results.approach, results.training_ratio)
+      	predictions = model.transform(test_df)
 
     else:
         subject_mean_training = training_df.groupBy('subject').agg(F.avg(training_df.val).alias("subject_mean"))
@@ -355,12 +363,13 @@ def main(args=None):
         global_mean = global_mean_training.collect()[0][0]
         print ("global_mean", global_mean)
         training_fin = training_fin.withColumn('interaction', (training_fin['val'] - (training_fin['subject_mean'] + training_fin['file_mean']- global_mean)))
-        als = ALS(maxIter=5, regParam=0.01, userCol="subject", itemCol="ordered_file_id", ratingCol="interaction", rank=50, nonnegative=True)
+        als = ALS(maxIter=5, regParam=0.01, userCol="ordered_file_id", itemCol="subject", ratingCol="interaction", rank=50, nonnegative=True)
         try:
             als.setSeed(seed)
             model = als.fit(training_fin)
         except:
             model = als.fit(training_fin)
+        latentFactors(model, results.sampling_method, results.dataset, results.approach, results.training_ratio)
         predictions = model.transform(test_df)    
         predictions_fin = predictions.join(subject_mean_training, ['subject']).join(file_mean_training, ['ordered_file_id'])
         if  results.approach == 'ALS-Bias':
